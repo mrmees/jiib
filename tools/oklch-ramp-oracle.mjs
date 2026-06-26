@@ -7,7 +7,7 @@
 // NEVER regenerates it from Kotlin output. If the ramp endpoints ever change, edit the control
 // points below and re-run this script to regenerate the fixture.
 //
-// The OKLCH↔sRGB math here mirrors works.mees.dinghy.theme.Palette VERBATIM (the same OKLab 3×3
+// The OKLCH↔sRGB math here mirrors works.mees.jiib.theme.Palette VERBATIM (the same OKLab 3×3
 // matrices, the same sRGB transfer fns, the same round-to-8-bit quantization, the same 20-iter
 // chroma-reduction gamut clamp). Any divergence would defeat the golden test's whole point.
 //

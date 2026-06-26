@@ -2,7 +2,7 @@
 
 > **This is UI LAW (D-13).** Every later phase builds against this doc. It is the canonical,
 > in-repo description of the **as-built** Phase-15.1 theme model — reconciled to the actual
-> Kotlin theme code (`app/src/main/java/works/mees/dinghy/theme/`), not to any earlier wireframe.
+> Kotlin theme code (`app/src/main/java/works/mees/jiib/theme/`), not to any earlier wireframe.
 > Where this doc and the code ever drift, the code (`ThemeTokens`, `TokenBridge`, `SeriesColor`,
 > `StatusSlot`, `OklchRamp`) is authoritative and this doc is the bug.
 >

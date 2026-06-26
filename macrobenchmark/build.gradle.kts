@@ -15,7 +15,7 @@ plugins {
 }
 
 android {
-    namespace = "works.mees.dinghy.macrobenchmark"
+    namespace = "works.mees.jiib.macrobenchmark"
     compileSdk = 35
 
     compileOptions {

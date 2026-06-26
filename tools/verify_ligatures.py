@@ -40,7 +40,7 @@ import sys
 from fontTools.ttLib import TTFont
 
 FONT = "app/src/main/res/font/material_symbols_outlined.ttf"
-DINGHY_ICONS = "app/src/main/java/works/mees/dinghy/designsystem/icons/DinghyIcons.kt"
+DINGHY_ICONS = "app/src/main/java/works/mees/jiib/designsystem/icons/DinghyIcons.kt"
 
 
 def resolvable_ligatures(path):

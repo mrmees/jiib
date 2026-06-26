@@ -1,0 +1,188 @@
+package works.mees.jiib.net
+
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
+import okhttp3.WebSocket
+import okhttp3.WebSocketListener
+import works.mees.jiib.config.DevConfig
+import java.util.concurrent.TimeUnit
+
+/**
+ * One event in the raw socket lifecycle, bridged from OkHttp's [WebSocketListener] callbacks into
+ * a cold [Flow] (02-RESEARCH § Pattern 1). The [Open] event carries a live [RpcConnection] — the
+ * only handle through which outbound sends are possible — so a send can never precede `onOpen`
+ * nor outlive a close (review HIGH #4).
+ */
+sealed interface SocketEvent {
+    /** The socket reached `onOpen`; [connection] is bound to the live websocket for the duration. */
+    data class Open(val connection: RpcConnection) : SocketEvent
+
+    /** A raw inbound text frame (`onMessage`). Parsing/correlation happens downstream in JsonRpcClient. */
+    data class Frame(val text: String) : SocketEvent
+
+    /** The socket is closing / failed (`onClosing`/`onFailure`); [cause] is typed when known. */
+    data class Closed(val cause: ConnectionError?) : SocketEvent
+}
+
+/**
+ * The function that actually opens a websocket given a [Request] and a [WebSocketListener].
+ *
+ * This is the **deliberate testability seam** (02-PATTERNS § "Testable seam"): the real path binds
+ * it to `OkHttpClient.newWebSocket`, and tests bind it to a lambda that returns a `FakeWebSocket`,
+ * so golden/adversarial frames replay through the SAME `onMessage` path the real socket uses with
+ * no network. The transport class never hard-codes `newWebSocket`.
+ */
+fun interface WebSocketFactory {
+    fun open(request: Request, listener: WebSocketListener): WebSocket
+}
+
+/**
+ * Bridges an OkHttp [WebSocket] into a cold [Flow] of [SocketEvent]s via [callbackFlow]
+ * (02-RESEARCH § Pattern 1, § "Don't Hand-Roll" push→Flow).
+ *
+ * - `onOpen`  → construct an [RpcConnection] over the live socket, emit [SocketEvent.Open].
+ * - `onMessage` → emit [SocketEvent.Frame] (raw text; no parsing at this layer).
+ * - `onClosing` → invalidate the connection, emit [SocketEvent.Closed] (normal close), complete.
+ * - `onFailure` → invalidate the connection, emit [SocketEvent.Closed] with a typed
+ *   [ConnectionError.NetworkUnavailable], complete.
+ * - `awaitClose` → on scope cancellation, [RpcConnection.close] cancels the underlying socket so
+ *   nothing leaks (structured-concurrency cancel propagates to the socket).
+ *
+ * The OkHttp client carries forward the Phase-1 smoke-test websocket posture: one client for ws+REST,
+ * a finite `connectTimeout`, and `readTimeout(0)` (a websocket must NOT be killed by a read timeout).
+ */
+class MoonrakerSocket(
+    private val factory: WebSocketFactory,
+    private val request: Request,
+) {
+    /**
+     * Open the socket and stream its lifecycle. Cold: each collection opens a fresh socket; cancelling
+     * the collecting scope cancels the socket (via `awaitClose`). The emitted [SocketEvent.Open]
+     * connection is invalidated when the flow completes for any reason.
+     */
+    fun events(): Flow<SocketEvent> = callbackFlow {
+        // Connection is created in onOpen and shared with awaitClose for cancel-time invalidation.
+        var connection: RpcConnection? = null
+
+        val listener = object : WebSocketListener() {
+            override fun onOpen(webSocket: WebSocket, response: Response) {
+                val conn = RpcConnection(webSocket)
+                connection = conn
+                trySend(SocketEvent.Open(conn))
+            }
+
+            override fun onMessage(webSocket: WebSocket, text: String) {
+                trySend(SocketEvent.Frame(text))
+            }
+
+            override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+                connection?.close()
+                trySend(SocketEvent.Closed(cause = null))
+                close()
+            }
+
+            override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                // R7 (26.5-07): type the failure. A TLS trust failure (untrusted/self-signed/expired
+                // cert on a useSecure wss:// connect) is carried as a DISTINCT cause so the existing
+                // connection-error surface can name the real problem instead of a generic "can't
+                // reach". Everything else stays NetworkUnavailable. No trust-all bypass — OkHttp's
+                // default trust chain is the verifier (T-26.5-20).
+                val cause = if (isTlsTrustFailure(t)) {
+                    ConnectionError.TlsTrustFailure
+                } else {
+                    ConnectionError.NetworkUnavailable
+                }
+                connection?.close(cause)
+                trySend(SocketEvent.Closed(cause))
+                // Complete the flow NORMALLY — the transport failure is carried as a typed cause in
+                // the SocketEvent.Closed value, NOT as a flow exception. Consumers (the reconnect
+                // supervisor in 02-04) observe Closed(cause) and decide; they should not have to
+                // wrap collection in try/catch to learn the socket died.
+                close()
+            }
+        }
+
+        factory.open(request, listener)
+
+        awaitClose {
+            // Scope cancelled (or flow completed): invalidate the connection, which cancels the
+            // underlying socket. No leak.
+            connection?.close()
+        }
+    }
+
+    companion object {
+        /**
+         * R7 (26.5-07): does this failure mean "the server's TLS certificate is not trusted"?
+         * `SSLHandshakeException` (untrusted/expired/self-signed chain) and
+         * `SSLPeerUnverifiedException` (hostname/peer verification) are the two shapes OkHttp's
+         * default trust chain produces; the chain walk catches either when wrapped (bounded — a
+         * pathological self-referential cause chain must not loop forever).
+         */
+        fun isTlsTrustFailure(t: Throwable): Boolean {
+            var cur: Throwable? = t
+            var hops = 0
+            while (cur != null && hops < 8) {
+                if (cur is javax.net.ssl.SSLHandshakeException ||
+                    cur is javax.net.ssl.SSLPeerUnverifiedException
+                ) {
+                    return true
+                }
+                cur = cur.cause
+                hops++
+            }
+            return false
+        }
+
+        /** websocket connect timeout (ms) — finite; matches the Phase-1 smoke posture. */
+        const val OPEN_TIMEOUT_MS = 10_000L
+
+        /**
+         * Websocket keepalive interval (ms). A websocket over WiFi can go HALF-OPEN silently — the
+         * tablet's WiFi is toggled off, or the printer's network is pulled mid-print — leaving a dead
+         * TCP peer that never produces an `onFailure`. With no keepalive, OkHttp never detects the dead
+         * peer, [SocketEvent.Closed] is never emitted, the reconnect supervisor never runs, and the feed
+         * just freezes indefinitely (the on-device G-B1 freeze the 13-04 live UAT caught). OkHttp's
+         * `pingInterval` sends websocket PING frames and FAILS the connection on a missing PONG within
+         * the interval → `onFailure` → [SocketEvent.Closed] → the reconnect supervisor reconnects and
+         * resyncs. This is the load-bearing half-open-detection mechanism — NOT `readTimeout` (a ws must
+         * never die on a read timeout; we keep `readTimeout(0)`).
+         *
+         * The unit suite missed this because [WebSocketFactory]'s `FakeWebSocket` SYNTHESIZES `Closed`
+         * on cancel, while a REAL OkHttp socket never produces `Closed` without keepalive — the project's
+         * 4th mock-vs-reality strike. [MoonrakerSocketClientTest] now pins `pingIntervalMillis > 0`.
+         */
+        const val PING_INTERVAL_MS = 10_000L
+
+        /**
+         * Build a [MoonrakerSocket] over a REAL OkHttp client (the production path). Carries the
+         * smoke-test posture: finite `connectTimeout`, `readTimeout(0)` (no read timeout on a ws).
+         * The [client] is reused for REST too (one TLS/pool/timeout config — CLAUDE.md networking).
+         *
+         * @param wsUrl the websocket URL; defaults to [DevConfig.wsUrl]. A token-bearing URL
+         *   (`?token=...`) can be supplied here for the Plan-04 auth variant.
+         */
+        fun real(
+            client: OkHttpClient = defaultClient(),
+            wsUrl: String = DevConfig.wsUrl,
+        ): MoonrakerSocket =
+            MoonrakerSocket(
+                factory = { request, listener -> client.newWebSocket(request, listener) },
+                request = Request.Builder().url(wsUrl).build(),
+            )
+
+        /** The shared OkHttp client posture for ws (and REST): finite connect, no read timeout. */
+        fun defaultClient(): OkHttpClient =
+            OkHttpClient.Builder()
+                .connectTimeout(OPEN_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+                .readTimeout(0, TimeUnit.MILLISECONDS) // websocket: no read timeout
+                // Half-open detection: PING the peer; a missing PONG within the interval fails the
+                // connection → onFailure → SocketEvent.Closed → reconnect supervisor. See PING_INTERVAL_MS.
+                .pingInterval(PING_INTERVAL_MS, TimeUnit.MILLISECONDS)
+                .build()
+    }
+}

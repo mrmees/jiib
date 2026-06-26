@@ -100,7 +100,7 @@ Compose interop (`AndroidView` / `ComposeView`) hosts the Views surfaces inside 
 
 - Captures: `.planning/phases/01-platform-gate-.../captures/` — `compose-framestats*.csv`,
   `views-framestats*.csv`, `*-summary.txt`, `rounds.md`
-- Harness: `app/src/main/java/works/mees/dinghy/bench/` (SyntheticFeed, ComposeBenchScene,
+- Harness: `app/src/main/java/works/mees/jiib/bench/` (SyntheticFeed, ComposeBenchScene,
   ViewsBenchScene, BenchActivity), `macrobenchmark/.../ToolkitBenchmark.kt`,
   `tools/gfxinfo-parser/parse_framestats.py`
 - Decisions: D-02 (fairness), D-03 (release/real-device), D-04 (thresholds), D-05 (Compose vs hybrid),

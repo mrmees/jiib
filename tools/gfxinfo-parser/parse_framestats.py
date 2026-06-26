@@ -26,7 +26,7 @@ A non-zero Flags value marks a frame the platform itself considers skipped/abnor
 Usage:
     # one or more captured dumps (concatenated automatically; ring-buffer overlap deduped)
     python3 parse_framestats.py capture1.txt capture2.txt ...
-    adb shell dumpsys gfxinfo works.mees.dinghy framestats | python3 parse_framestats.py -
+    adb shell dumpsys gfxinfo works.mees.jiib framestats | python3 parse_framestats.py -
     python3 parse_framestats.py --warmup 30 --jank-ms 700 capture.txt
 """
 

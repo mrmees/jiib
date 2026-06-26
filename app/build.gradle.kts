@@ -30,14 +30,14 @@ fun devProp(key: String, default: String): String =
 val appVersionCode = 1
 
 android {
-    namespace = "works.mees.dinghy"
+    namespace = "works.mees.jiib"
     compileSdk = 36                                  // bumped 35→36 (Phase 21): media3 1.10.x AAR metadata
                                                      // MANDATES compileSdkVersion >= 36. AGP 8.7.0 accepts it
                                                      // (warns "max recommended 35" — non-fatal); merged-manifest
                                                      // minSdk floor stays 23 (PROVEN by verifyMinSdkRelease).
 
     defaultConfig {
-        applicationId = "works.mees.dinghy"
+        applicationId = "works.mees.jiib"
         minSdk = 23                                  // PKG-02 floor (asserted on MERGED manifest by verifyMinSdk)
         targetSdk = 35                               // D-10/D-11 cleartext caveat applies on API 24+
         versionCode = appVersionCode

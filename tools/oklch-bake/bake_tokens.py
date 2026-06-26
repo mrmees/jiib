@@ -165,7 +165,7 @@ def main():
 
     lines = []
     w = lines.append
-    w("package works.mees.dinghy.theme")
+    w("package works.mees.jiib.theme")
     w("")
     w("import androidx.compose.ui.graphics.Color")
     w("import androidx.compose.ui.unit.dp")

@@ -42,7 +42,7 @@
         errorLine1="        startForegroundService(Intent(this, MoonrakerService::class.java))"
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/works/mees/dinghy/MainActivity.kt"
+            file="src/main/java/works/mees/jiib/MainActivity.kt"
             line="44"
             column="9"/>
     </issue>
@@ -174,7 +174,7 @@
         errorLine1="class ConsoleRowView(context: android.content.Context) : TextView(context) {"
         errorLine2="                                                         ~~~~~~~~">
         <location
-            file="src/main/java/works/mees/dinghy/ui/console/ConsoleRowsAdapter.kt"
+            file="src/main/java/works/mees/jiib/ui/console/ConsoleRowsAdapter.kt"
             line="147"
             column="58"/>
     </issue>
@@ -834,7 +834,7 @@
         errorLine1="        notifyDataSetChanged()"
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/works/mees/dinghy/ui/console/ConsoleRowsAdapter.kt"
+            file="src/main/java/works/mees/jiib/ui/console/ConsoleRowsAdapter.kt"
             line="100"
             column="9"/>
     </issue>
@@ -845,7 +845,7 @@
         errorLine1="            notifyDataSetChanged() // worst-case: full rebind churn (intentional stress)"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/works/mees/dinghy/bench/ViewsBenchScene.kt"
+            file="src/main/java/works/mees/jiib/bench/ViewsBenchScene.kt"
             line="151"
             column="13"/>
     </issue>
@@ -1296,7 +1296,7 @@
         errorLine1="        selectedMark.text = &quot;SEL&quot;"
         errorLine2="                             ~~~">
         <location
-            file="src/main/java/works/mees/dinghy/ui/files/FileRowsAdapter.kt"
+            file="src/main/java/works/mees/jiib/ui/files/FileRowsAdapter.kt"
             line="141"
             column="30"/>
     </issue>
@@ -1307,7 +1307,7 @@
         errorLine1="        readouts.text = &quot;E %.1f/%.0f   B %.1f/%.0f   Z %.3f   %.0f%%&quot;.format("
         errorLine2="                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/works/mees/dinghy/bench/ViewsBenchScene.kt"
+            file="src/main/java/works/mees/jiib/bench/ViewsBenchScene.kt"
             line="99"
             column="26"/>
     </issue>
@@ -1318,7 +1318,7 @@
         errorLine1="            holder.row.size.text = &quot;${file.sizeKb} KB&quot;"
         errorLine2="                                   ~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/works/mees/dinghy/bench/ViewsBenchScene.kt"
+            file="src/main/java/works/mees/jiib/bench/ViewsBenchScene.kt"
             line="167"
             column="36"/>
     </issue>
@@ -1329,7 +1329,7 @@
         errorLine1="            holder.row.size.text = &quot;${file.sizeKb} KB&quot;"
         errorLine2="                                                  ~~~">
         <location
-            file="src/main/java/works/mees/dinghy/bench/ViewsBenchScene.kt"
+            file="src/main/java/works/mees/jiib/bench/ViewsBenchScene.kt"
             line="167"
             column="51"/>
     </issue>

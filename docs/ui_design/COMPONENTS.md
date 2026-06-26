@@ -64,7 +64,7 @@ context and this document as the class-definition context.
 
 ## 3. Component catalog
 
-One row per class. Implementations live in `app/src/main/java/works/mees/dinghy/designsystem/`.
+One row per class. Implementations live in `app/src/main/java/works/mees/jiib/designsystem/`.
 
 | Class | Fill type | Background | Border | Primary content | Implementation |
 |---|---|---|---|---|---|

@@ -1,0 +1,451 @@
+package works.mees.jiib.ui.finetune
+
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.collections.immutable.ImmutableMap
+import kotlinx.collections.immutable.persistentMapOf
+import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import works.mees.jiib.command.CommandDispatcher
+import works.mees.jiib.command.CommandRegistry
+import works.mees.jiib.command.DispatchEvent
+import works.mees.jiib.command.TrailingCommitBatcher
+import works.mees.jiib.command.dispatch
+import androidx.compose.ui.res.stringResource
+import works.mees.jiib.R
+import works.mees.jiib.designsystem.Severity
+import works.mees.jiib.designsystem.SeverityToast
+import works.mees.jiib.designsystem.components.AdjusterPanel
+import works.mees.jiib.designsystem.components.FocusFrame
+import works.mees.jiib.designsystem.components.FootAction
+import works.mees.jiib.designsystem.components.FootButtonBar
+import works.mees.jiib.designsystem.components.IncrementPicker
+import works.mees.jiib.designsystem.components.ListRow
+import works.mees.jiib.designsystem.components.ListRowIcon
+import works.mees.jiib.designsystem.components.ListRowLabel
+import works.mees.jiib.designsystem.components.shouldShowBaseline
+import works.mees.jiib.designsystem.icons.DinghyIcons
+import works.mees.jiib.designsystem.icons.DinghyIconView
+import works.mees.jiib.designsystem.layout.FocusInset
+import works.mees.jiib.designsystem.layout.ListBlock
+import works.mees.jiib.designsystem.layout.ScreenScaffold
+import works.mees.jiib.designsystem.layout.rememberUnitGrid
+import works.mees.jiib.designsystem.control.Intent
+import works.mees.jiib.di.AppContainer
+import works.mees.jiib.state.PrintState
+import works.mees.jiib.state.PrinterState
+import works.mees.jiib.theme.DinghyType
+import works.mees.jiib.theme.compose.LocalTokens
+import works.mees.jiib.theme.compose.toTextStyle
+
+/**
+ * Fine-Tune flat-list screen — the canonical sketch-003 adjustment archetype (D-01).
+ *
+ * Collapses the four old screens (Hub + Extrusion + Motion + FwRetraction) into ONE flat list:
+ *  - Field = scrollable [ListRow] list of all visible params, leading icon tinted to the group's
+ *    pool hue (D-02), trailing current-value readout in GeistMono, `hasFwRetraction`-gated (D-08).
+ *  - Focus = [FocusFrame] wrapping an [AdjusterPanel] (D-05 stepper, D-21 inline baseline).
+ *  - FootButtonBar in the field lambda (foot-of-list pattern).
+ *
+ * ## Session memory (D-04)
+ * The last-adjusted [FineTuneTuner] is remembered for the session (composition lifetime); the
+ * first param in the list is the fresh-entry fallback.
+ *
+ * ## Trailing-commit batching + clamp authority (quick-rmr / D-22 / 17-07 invariant)
+ * Stepper taps accumulate a CANONICALIZED working value locally via [TrailingCommitBatcher.tap]
+ * ([canonicalTunerValue] per tap = clamp + wire-precision round — the display can never show an
+ * un-clamped or off-wire-grid value); ONE wire command dispatches per quiet window through
+ * [commitTunerValue] (same canonicalization → [FineTuneHolder.markPending] → dispatch). The screen
+ * NEVER calls markPending directly. Resets cancel the pending working value and commit
+ * immediately; leaving the screen mid-burst COMMITS via dispose (flush).
+ *
+ * ## FloatingEStop
+ * Wired to [container.printerState]; visible only when printing (PrintState.Printing or Paused).
+ * Fine-Tune is a printing-list-valid destination (P24 D-04).
+ *
+ * This LIVE overload resolves flows from [AppContainer] + [FineTuneHolder] and delegates rendering
+ * to the stateless [FineTuneContent] — the same surface the stateless preview overload calls.
+ */
+@Composable
+fun FineTuneScreen(
+    holder: FineTuneHolder,
+    container: AppContainer,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val dispatcher by container.dispatcher.collectAsStateWithLifecycle(initialValue = null)
+    val inFlight by remember(dispatcher) {
+        dispatcher?.inFlight ?: MutableStateFlow(emptySet())
+    }.collectAsStateWithLifecycle(initialValue = emptySet())
+    val vm by holder.vm.collectAsStateWithLifecycle()
+    val printerState by container.printerState.collectAsStateWithLifecycle(
+        initialValue = PrinterState(),
+    )
+    val isPrinting = printerState.printState == PrintState.Printing ||
+        printerState.printState == PrintState.Paused
+    var failureText by remember { mutableStateOf<String?>(null) }
+
+    // Per-printer increment lists: resolve each Fine-Tune param's `steps` from the active printer's
+    // stored (or default) lists. The map is keyed by FineTuneTuner.name; an absent/empty entry keeps
+    // the param's own hardcoded default steps. Count stays at 3 so defaultStepIndex stays valid.
+    val incrementLists by container.activeIncrementLists.collectAsStateWithLifecycle(emptyMap())
+    val activeParams = remember(incrementLists) {
+        ALL_FINE_TUNE_PARAMS.map { p ->
+            val steps = incrementLists[p.tuner.name]
+            if (steps != null && steps.isNotEmpty()) p.copy(steps = steps.toImmutableList()) else p
+        }
+    }
+
+    LaunchedEffect(inFlight) { holder.setInFlight(inFlight) }
+    val groupBusy = inFlight.isNotEmpty() || holder.pendingStateFlip != null || vm.groupBusy
+
+    // quick-rmr: trailing-commit batcher — taps accumulate a clamped working value locally; ONE
+    // wire dispatch per ~500ms quiet window via commitTunerValue. Keys = FineTuneTuner.name (the
+    // four retraction tuners SHARE a dispatch key — keying by tuner keeps their working values
+    // independent; canCommit translates tuner → dispatch key at fire time).
+    // COMPOSITION-STABLE (post-review fix 3): `remember {}` with NO dispatcher key — re-keying on
+    // reconnect disposed the old batcher mid-burst (early flush, working values lost to the empty
+    // replacement). Both lambdas read `dispatcher` through the local `by` STATE DELEGATE, so every
+    // invocation resolves the CURRENT dispatcher at fire time — no key needed for freshness.
+    val batcher = remember {
+        TrailingCommitBatcher(
+            canCommit = { tunerName ->
+                // Fire-time read of the in-flight set (never a composition snapshot): the commit
+                // RESCHEDULES while this tuner's dispatch key is in flight, so markPending never
+                // arms for a guaranteed-rejected dispatch (which would re-create the backstop dim).
+                dispatchKeyForTuner(FineTuneTuner.valueOf(tunerName)) !in
+                    (dispatcher?.inFlight?.value ?: emptySet())
+            },
+            onCommit = { tunerName, value ->
+                // 19-09 stale-closure lesson: resolve holder.vm.value and the dispatcher AT FIRE
+                // TIME via the stable holder + delegated state read — never the composed snapshots.
+                val tuner = FineTuneTuner.valueOf(tunerName)
+                val param = activeParams.first { it.tuner == tuner }
+                commitTunerValue(param, value, holder.vm.value, holder, dispatcher)
+            },
+        )
+    }
+    // Commit-on-dispose (design decision 1): a same-frame nav mid-burst flushes the pending
+    // working value; the dispatch rides CommandDispatcher's app-lifetime scope. The batcher is
+    // composition-stable, so this fires exactly once — when the screen leaves composition.
+    DisposableEffect(batcher) { onDispose { batcher.dispose() } }
+    val working by batcher.working.collectAsStateWithLifecycle()
+
+    LaunchedEffect(dispatcher) {
+        failureText = null
+        val d = dispatcher ?: return@LaunchedEffect
+        d.events.collect { event ->
+            when (event) {
+                is DispatchEvent.Failure -> {
+                    failureText = event.message
+                    holder.clearPending()
+                    // Revert working values to live on failure (the SeverityToast explains why).
+                    batcher.cancelAll()
+                }
+            }
+        }
+    }
+    LaunchedEffect(failureText) {
+        if (failureText != null) { delay(4_000); failureText = null }
+    }
+
+    // R10 (26.5-03): per-dispatch-key rejection tick counters. The dispatcher emits the key of each
+    // intentionally-dropped tap (busy/debounce) on [CommandDispatcher.rejectedKey]; each emission
+    // bumps that key's counter and the AdjusterPanel showing that key renders a one-shot flash.
+    // PersistentMap keeps the param @Stable for Compose skipping (Phase-22 discipline); it only
+    // changes on a rejection (rare), never per state tick.
+    var rejectTicks by remember { mutableStateOf(persistentMapOf<String, Long>()) }
+    // Lifecycle-aware collection (codex review; Part-1 #3 lifecycle-hygiene invariant): no
+    // collection while backgrounded; resumes on STARTED. House pattern = AppShell webcam binding.
+    val rejectLifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(dispatcher, rejectLifecycleOwner) {
+        rejectTicks = persistentMapOf()
+        val d = dispatcher ?: return@LaunchedEffect
+        rejectLifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            d.rejectedKey.collect { key ->
+                rejectTicks = rejectTicks.put(key, (rejectTicks[key] ?: 0L) + 1L)
+            }
+        }
+    }
+
+    Box(modifier.fillMaxSize()) {
+        FineTuneContent(
+            vm = vm,
+            params = activeParams,
+            isPrinting = isPrinting,
+            busy = groupBusy,
+            working = working,
+            failureText = failureText,
+            rejectTicks = rejectTicks,
+            onBack = onBack,
+            onNudge = { param, _, stepDelta ->
+                // TAP path (quick-rmr): canonicalize per-tap (clamp + wire-precision round, the
+                // SAME helper the commit path uses — post-review fix 4: display == wire even from
+                // an off-grid live baseline), accumulate locally — NO markPending, NO dispatch.
+                // Base = the pending working value, else the live vm value (an unreported value
+                // stays a no-op, existing behavior — never fabricate a base).
+                val base = working[param.tuner.name] ?: vm.valueForTuner(param.tuner)
+                if (base != null) {
+                    batcher.tap(param.tuner.name, canonicalTunerValue(param.tuner, base + stepDelta))
+                }
+            },
+            onNudgeToBaseline = { param, baseline ->
+                // Resets commit immediately (design decision 3): cancel the pending working value
+                // for this tuner, then the existing immediate path.
+                batcher.cancel(param.tuner.name)
+                nudgeToBaseline(
+                    param = param,
+                    baseline = baseline,
+                    vm = vm,
+                    holder = holder,
+                    dispatcher = dispatcher,
+                )
+            },
+            onResetAll = {
+                // Reset all params that have a baseline back to their baseline value.
+                batcher.cancelAll()
+                activeParams.forEach { param ->
+                    val baseline = vm.baselineForTuner(param.tuner) ?: return@forEach
+                    nudgeToBaseline(
+                        param = param,
+                        baseline = baseline,
+                        vm = vm,
+                        holder = holder,
+                        dispatcher = dispatcher,
+                    )
+                }
+            },
+            onEmergencyStop = {
+                dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit)
+            },
+        )
+    }
+}
+
+/**
+ * STATELESS preview/host overload — drives [FineTuneContent] from a pure [FineTuneVm] fixture with
+ * no [AppContainer], dispatcher, or holder (no live Moonraker). Side-effects default to no-ops.
+ *
+ * [isPrinting] drives the [FloatingEStop] visibility in previews.
+ */
+@Composable
+fun FineTuneScreen(
+    vm: FineTuneVm,
+    isPrinting: Boolean = false,
+    onBack: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier.fillMaxSize()) {
+        FineTuneContent(
+            vm = vm,
+            isPrinting = isPrinting,
+            busy = vm.groupBusy,
+            failureText = null,
+            onBack = onBack,
+            onNudge = { _, _, _ -> },
+            onNudgeToBaseline = { _, _ -> },
+            onResetAll = {},
+            onEmergencyStop = {},
+        )
+    }
+}
+
+/**
+ * The pure, container-free Fine-Tune rendering surface shared by BOTH [FineTuneScreen] overloads.
+ * Holds no flow/dispatcher state; renders identically under `@Preview` and at runtime.
+ */
+@Composable
+private fun FineTuneContent(
+    vm: FineTuneVm,
+    params: List<FineTuneParam> = ALL_FINE_TUNE_PARAMS,
+    isPrinting: Boolean,
+    busy: Boolean,
+    failureText: String?,
+    onBack: () -> Unit,
+    rejectTicks: ImmutableMap<String, Long> = persistentMapOf(),
+    working: ImmutableMap<String, Double> = persistentMapOf(),
+    onNudge: (param: FineTuneParam, currentValue: Double?, stepDelta: Double) -> Unit,
+    onNudgeToBaseline: (param: FineTuneParam, baseline: Double) -> Unit,
+    onResetAll: () -> Unit,
+    onEmergencyStop: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val t = LocalTokens.current
+
+    // D-04: session-remember the selected tuner; first param is the fresh-entry fallback.
+    var selectedTuner by remember {
+        mutableStateOf(params.first().tuner)
+    }
+    // Active step index resets to the param's default when the selection changes.
+    val selectedParam = params.first { it.tuner == selectedTuner }
+    // Do NOT key this on `steps` — that would reset the user's selected position when the active
+    // list first resolves (empty → stored). Keyed on selectedTuner only.
+    var activeStep by remember(selectedTuner) {
+        mutableStateOf(defaultStepFor(selectedParam))
+    }
+    // Member-safe read: the active list can change once under us (the first emit is emptyMap() →
+    // default steps, then the real stored map). If the remembered activeStep is no longer a member
+    // of the resolved steps, fall back to the param's default step (always a real member).
+    // IncrementPicker requires activeStep to be present in `steps`.
+    val safeActiveStep = if (activeStep in selectedParam.steps) activeStep else defaultStepFor(selectedParam)
+
+    // D-08: hide-not-grey FW-retraction rows when the printer doesn't have the capability.
+    val visibleParams = params.filter { param ->
+        if (param.requiresFwRetraction) vm.hasFwRetraction else true
+    }
+
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
+
+        ScreenScaffold(
+            focus = {
+                // D-01: Focus = FocusFrame wrapping AdjusterPanel; e-stop docks into header.
+                FocusFrame(
+                    title = selectedParam.name,
+                    icon = selectedParam.icon,
+                    uDp = grid.uDp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    isPrinting = isPrinting,
+                    onEmergencyStop = onEmergencyStop,
+                    onPanic = onEmergencyStop,
+                    contentInset = FocusInset / 2, // shared calibration-focus rhythm
+                    trailingActionIcon = run {
+                        val v = working[selectedTuner.name] ?: vm.valueForTuner(selectedTuner)
+                        val base = vm.baselineForTuner(selectedTuner)
+                        if (shouldShowBaseline(v, base, selectedParam.decimals)) DinghyIcons.Revert else null
+                    },
+                    onTrailingAction = vm.baselineForTuner(selectedTuner)?.let { base ->
+                        { onNudgeToBaseline(selectedParam, base) }
+                    },
+                    trailingActionContentDescription = stringResource(R.string.cd_revert),
+                ) {
+                    // quick-rmr: the pending WORKING value wins over the live vm value, so a
+                    // tap burst follows the thumb instantly (and survives the echo window).
+                    val value = working[selectedTuner.name] ?: vm.valueForTuner(selectedTuner)
+                    val baseline = vm.baselineForTuner(selectedTuner)
+                    AdjusterPanel(
+                        value = value,
+                        unit = selectedParam.unit,
+                        baseline = baseline,
+                        decimals = selectedParam.decimals,
+                        onDecrement = {
+                            onNudge(selectedParam, value, -safeActiveStep)
+                        },
+                        onIncrement = {
+                            onNudge(selectedParam, value, +safeActiveStep)
+                        },
+                        // quick-rmr: never lock out during a tap burst — busy only DIMS the
+                        // −/+ tiles (taps accumulate); Reset is disabled while busy.
+                        enabled = true,
+                        busy = busy,
+                        incrementPicker = {
+                            IncrementPicker(
+                                steps = selectedParam.steps,
+                                activeStep = safeActiveStep,
+                                onSelect = { activeStep = it },
+                                uDp = grid.uDp,
+                            )
+                        },
+                        uDp = grid.uDp,
+                        // R10: flash on busy/debounce rejections of THIS param's dispatch key.
+                        rejectTick = rejectTicks[dispatchKeyForTuner(selectedTuner)] ?: 0L,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+            },
+            field = {
+                // Field: param list + FootButtonBar (FootButtonBar lives HERE).
+                ListBlock(
+                    modifier = Modifier
+                        .weight(1f),
+                ) {
+                    // D-02: group identity = pool-color tint on leading icon; no text group labels.
+                    items(visibleParams, key = { it.tuner.name }) { param ->
+                        val groupColor = groupColorFor(param.group, t.pool)
+                        ListRow(
+                            selected = param.tuner == selectedTuner,
+                            onClick = {
+                                selectedTuner = param.tuner
+                                activeStep = defaultStepFor(param)
+                            },
+                            uDp = grid.uDp,
+                            leadingContent = {
+                                // R23: canonical list-row icon — 0.6U, U-relative (does not
+                                // grow with the text setting).
+                                ListRowIcon(icon = param.icon, uDp = grid.uDp, tint = groupColor)
+                            },
+                            trailingContent = {
+                                // Trailing: current-value readout in GeistMono (D-23 fsSp floor).
+                                val displayValue = vm.valueForTuner(param.tuner)
+                                Text(
+                                    // No-space value/unit to match the Focus hero value (UAT 2026-06-13).
+                                    text = if (displayValue == null) DASH
+                                           else fmtValue(displayValue, param.decimals) + param.unit.trim(),
+                                    style = DinghyType.dataInline.toTextStyle(t),
+                                    color = t.text2,
+                                )
+                            },
+                        ) {
+                            // Canonical list-label look — owned by the design system (pilot fix).
+                            ListRowLabel(param.name)
+                        }
+                    }
+                }
+
+                // FootButtonBar is INSIDE the field lambda (D-23 / shared pattern).
+                FootButtonBar(
+                    uDp = grid.uDp,
+                    actions = listOf(
+                        // Back (accent, FIRST — R5/R8) + Reset All (warn/amber).
+                        FootAction(
+                            label = stringResource(R.string.common_back),
+                            onClick = onBack,
+                            intent = Intent.Accent,
+                            icon = DinghyIcons.Back,
+                            contentDescription = stringResource(R.string.cd_back),
+                        ),
+                        FootAction(
+                            label = stringResource(R.string.finetune_reset_all),
+                            onClick = onResetAll,
+                            intent = Intent.Warn,
+                            icon = DinghyIcons.ResetSettings, // distinct from per-field Revert glyph
+                        ),
+                    ),
+                )
+            },
+        )
+
+        // Non-fatal failure toast (dispatch failures from MotionScreen/ExtrusionScreen pattern).
+        if (failureText != null) {
+            SeverityToast(
+                severity = Severity.Error,
+                text = failureText ?: "",
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
+        }
+    }
+}
