@@ -60,12 +60,12 @@ internal fun isDarkBackdrop(bg: Color): Boolean = bg.luminance() < 0.5f
  *    style applies. The SAME style selection is therefore correct on both generations.
  *
  * Resolves the host [ComponentActivity] from the view's context chain; silently no-ops in
- * previews ([android.view.View.isInEditMode]) and non-activity hosts (gallery/benchmark hosts
+ * previews ([android.view.View.isInEditMode]) and non-activity hosts (benchmark hosts
  * keep their own window untouched). Every color flows from [LocalTokens] — no raw literals.
  *
  * Call it from MainActivity's composition (the production host) as the first child inside the
- * [DinghyTheme] boundary — deliberately NOT from [DinghyTheme] itself, which is shared with the
- * debug-only GalleryActivity and `@Preview`/benchmark hosts.
+ * [DinghyTheme] boundary — deliberately NOT from [DinghyTheme] itself, which is shared with
+ * `@Preview` and benchmark hosts.
  */
 @Composable
 fun SyncSystemBarsToTheme() {

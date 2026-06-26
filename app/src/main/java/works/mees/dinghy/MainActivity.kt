@@ -44,8 +44,8 @@ import works.mees.dinghy.ui.shell.parseStartDest
  *     delegates ALL top-level routing to the single [RootController] (review #2). MainActivity itself
  *     does NOT branch on routes/Dest — it composes the one controller and nothing else.
  *
- * Mirrors `gallery/GalleryActivity`'s `setContent { DinghyTheme(resolver){ Surface { … } } }` host
- * shape, swapping the gallery body for [RootController]. No Navigation-Compose.
+ * The host shape is `setContent { DinghyTheme(resolver) { Surface { … } } }` with [RootController]
+ * as the sole body. No Navigation-Compose.
  */
 class MainActivity : ComponentActivity() {
 

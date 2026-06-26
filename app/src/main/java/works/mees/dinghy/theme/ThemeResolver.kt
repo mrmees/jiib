@@ -51,7 +51,7 @@ class ThemeResolver(
     // ---------- the NEW live API: seed / mode / pool ----------
     //
     // WR-01 (thread safety): the input fields are written from TWO sites — the Compose UI thread
-    // (these set*() calls from Settings/Gallery/the editor) and a background dispatcher (the
+    // (these set*() calls from Settings/the editor) and a background dispatcher (the
     // `seedTheme` collector → [apply], which `flatMapLatest` runs off `Dispatchers.Default`). Each
     // mutator + the [compute] snapshot it triggers run under `synchronized(this)` so a UI-thread
     // single-field write can never tear a concurrent multi-field [apply] into a garbage intermediate

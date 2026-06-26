@@ -69,8 +69,8 @@ import works.mees.dinghy.ui.settings.TraceStylePrefs
 import works.mees.dinghy.ui.webcam.WebcamPrefs
 
 /**
- * The process-scoped service-locator (no DI framework — D-02). It is the promotion of GalleryActivity's
- * sole-assembler block to an [android.app.Application]-held singleton ([DinghyApp] owns the instance and
+ * The process-scoped service-locator (no DI framework — D-02). It hoists all dependency assembly into
+ * an [android.app.Application]-held singleton ([DinghyApp] owns the instance and
  * the two DataStore files). It owns the headless, connection-independent state — [ThemePrefs],
  * [ConnectionStore], and a [ThemeResolver] seeded once from persisted theme prefs — and exposes ONE
  * publication point for the live spine.

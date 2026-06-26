@@ -27,7 +27,7 @@ class FontConformanceTest {
         // chooses, not chrome. The base run is role-routed (DinghyType.body); only the sanctioned
         // size-span carve-out remains inline here.
         "ui/prompt/PromptMarkupText.kt",
-        "/preview/", "/gallery/",   // NOT /bench/ — BenchActivity ships (manifest), gets swept
+        "/preview/",   // NOT /bench/ — BenchActivity ships (manifest), gets swept
     )
 
     private val patterns = listOf(
