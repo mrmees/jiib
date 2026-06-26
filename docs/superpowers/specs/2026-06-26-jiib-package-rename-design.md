@@ -1,20 +1,20 @@
 # Spec: Internal package/symbol rename `dinghy` → `jiib`
 
 **Date:** 2026-06-26
-**Status:** Approved (design) — awaiting spec review
+**Status:** Approved (design) — revised after Codex review — awaiting spec re-review
 **Type:** Mechanical rename / rebrand (internal identity)
 
 ## Context
 
 The app's user-facing brand is **already `jiib`** — `app_name` and the logo
-content-description were swapped to `jiib` in Phase 18.2 (2026-06-07). What
-remains as `dinghy`/`mees` is entirely **internal plumbing** no end user sees:
-the package namespace, the `applicationId`, a handful of `Dinghy*` code symbols,
-and a few Moonraker-visible strings.
+content-description were swapped in Phase 18.2 (2026-06-07). What remains as
+`dinghy`/`mees` is **internal plumbing** no end user sees: the package
+namespace, the `applicationId`, the `Dinghy*` code symbols, a few
+Moonraker-visible strings, and the `tools/` build scripts.
 
 Doing this now is deliberate: it lands **before** APK signing and the first
-public release (Phase 29), which is the only clean moment to set a permanent
-`applicationId`. Renaming after a real install base exists would fragment it.
+public release (Phase 29) — the only clean moment to set a permanent
+`applicationId`.
 
 ### Decisions (locked with owner)
 
@@ -23,30 +23,31 @@ public release (Phase 29), which is the only clean moment to set a permanent
    reverse-domain owner segment; swap only the stale `dinghy` segment).
 3. **`rootProject.name`:** `dinghy-display` → `jiib`.
 4. **Docs:** update only live/forward-looking docs; **do not** rewrite the
-   `.planning/` execution log (it is a dated record of when the app *was*
-   internally "dinghy").
-5. **Repo directory + GitHub remote rename:** **DEFERRED** to a separate step
-   (external blast radius — clones, the `mrmees/dinghy-display` remote, and the
-   hardcoded repo path in both `CLAUDE.md` files and assistant memory).
+   `.planning/` execution log.
+5. **Repo dir + GitHub remote rename:** **DEFERRED** to a separate step.
 
-## Goal
+### Open decision (needs owner sign-off — see §C / §G)
 
-The app compiles, installs, and passes its full test suite as
-`works.mees.jiib`, with no remaining `dinghy`/`Dinghy` reference in **live**
-code, config, resources, or forward-looking docs — while git history is
-preserved (`git mv`) and a wholesale rollback point exists.
+- **`CLIENT_URL` / `clientUrl` = `https://mees.works/dinghy-display`.** This is a
+  Moonraker-announced URL carrying a `DO NOT regress` marker, and it couples
+  *both* the personal `mees.works` domain *and* the (deferred) repo path. The
+  same literal is mirrored in `tools/ws-capture.py` and `tools/spoolman-probe.py`.
+  **Recommendation: EXEMPT it from this pass** and fold it into the deferred
+  repo-rename step (the URL tracks the project home, which is still
+  `dinghy-display`). Owner may instead elect `https://mees.works/jiib` now.
 
 ## Naming convention note
 
 The lowercase-with-dots `jiib` brand governs **user-facing text only**. Kotlin
-type identifiers follow PascalCase: `DinghyApp` → `JiibApp`, `DinghyType` →
-`JiibType`, etc. This is intentional, not an inconsistency.
+type identifiers stay PascalCase: `DinghyApp` → `JiibApp`, `DinghyType` →
+`JiibType`. Intentional, not an inconsistency.
+
+---
 
 ## Rename inventory (authoritative what → what)
 
-Replacements are **targeted**, not one blind `sed` — lowercase `dinghy`,
-PascalCase `Dinghy`, and the literal `"Dinghy Display"` map to three different
-results.
+Replacements are **targeted and ordered**, never one blind `sed`. The lowercase
+`dinghy` token is the dangerous one — see the **Exception Table (§E)** first.
 
 ### A. Package identity (`works.mees.dinghy` → `works.mees.jiib`)
 
@@ -55,25 +56,33 @@ results.
 | `namespace` | `app/build.gradle.kts:33` | → `works.mees.jiib` |
 | `applicationId` | `app/build.gradle.kts:40` | → `works.mees.jiib` |
 | macrobench `namespace` | `macrobenchmark/build.gradle.kts:18` | → `works.mees.jiib.macrobenchmark` |
-| `package` decls + `import`s | all `.kt` (main 555 / test 244 / androidTest 9 / macrobench 3) | replace token `works.mees.dinghy` → `works.mees.jiib` |
-| Source dir trees | `app/src/{main,test,androidTest}/java/works/mees/dinghy/`, `macrobenchmark/src/main/java/works/mees/dinghy/` | `git mv` `…/dinghy` → `…/jiib` |
-| `lint-baseline.xml` paths | `app/lint-baseline.xml` | regenerate (preferred) or path-replace |
+| `package` decls + `import`s + FQNs | all `.kt`: **main 301 / test 244 / androidTest 9 / macrobench 2** | replace token `works.mees.dinghy` → `works.mees.jiib` |
+| Source dir trees (**4** — `src/debug` is gone) | `app/src/{main,test,androidTest}/java/works/mees/dinghy/`, `macrobenchmark/src/main/java/works/mees/dinghy/` | `git mv` `…/dinghy` → `…/jiib` |
+| `lint-baseline.xml` paths | `app/lint-baseline.xml` | regenerate |
 
-### B. Code symbols (PascalCase `Dinghy` → `Jiib`)
+### B. Code symbols (PascalCase `Dinghy` → `Jiib`) — **10 files**
 
-| Symbol → | Defined in | Notes |
-|----------|------------|-------|
-| `DinghyApp` → `JiibApp` | `DinghyApp.kt` → `JiibApp.kt` | also `AndroidManifest.xml:67` `android:name=".JiibApp"` |
-| `DinghyIcon` → `JiibIcon` | `designsystem/icons/DinghyIcon.kt` | rename file |
-| `DinghyIcons` → `JiibIcons` | `designsystem/icons/DinghyIcons.kt` | rename file |
-| `DinghyType` → `JiibType` | `theme/DinghyType.kt` | rename file |
-| `DinghyIconView` → `JiibIconView` | `designsystem/icons/DinghyIconView.kt` | rename file |
-| `Theme.DinghyDisplay` → `Theme.JiibDisplay` | `res/values/themes.xml:8` | also `AndroidManifest.xml:76` `android:theme` |
-| `DinghySpine` (log tag) → `JiibSpine` | `service/MoonrakerService.kt:339` | logcat only |
+All `Dinghy*.kt` files (8 main + 2 test) rename, plus every `Dinghy*` symbol
+reference (handled uniformly by a word-level `Dinghy` → `Jiib` pass over
+`.kt`/`.xml`):
 
-A word-level `Dinghy` → `Jiib` over `.kt`/`.xml` covers B uniformly (yields
-`JiibApp`, `JiibIcons`, `JiibType`, `JiibIconView`, `JiibDisplay`, `JiibSpine`),
-plus matching file renames.
+| File | Symbol |
+|------|--------|
+| `DinghyApp.kt` | `DinghyApp` (+ manifest `android:name=".JiibApp"`) |
+| `designsystem/icons/DinghyIcon.kt` | `DinghyIcon` |
+| `designsystem/icons/DinghyIcons.kt` | `DinghyIcons` |
+| `designsystem/icons/DinghyIconView.kt` | `DinghyIconView` |
+| `theme/DinghyType.kt` | `DinghyType` |
+| `theme/compose/DinghyTheme.kt` | `DinghyTheme` |
+| `theme/compose/DinghyTextStyle.kt` | `DinghyTextStyle` |
+| `preview/DinghyPreviews.kt` | `DinghyPreviews` |
+| `test/.../DinghyIconsTest.kt` | `DinghyIconsTest` |
+| `test/.../DinghyTypeTest.kt` | `DinghyTypeTest` |
+
+Also: `Theme.DinghyDisplay` → `Theme.JiibDisplay` (`res/values/themes.xml:8` +
+`AndroidManifest.xml:76`), `DinghySpine` log tag → `JiibSpine`
+(`service/MoonrakerService.kt:339`), and the `FontConformanceTest` allowlist
+paths that reference renamed files.
 
 ### C. Moonraker-visible / brand strings (lowercase `jiib`)
 
@@ -81,71 +90,121 @@ plus matching file renames.
 |---------|----------|-----|
 | `"Dinghy Display"` (CLIENT_NAME) | `net/ConnectionProbe.kt:80` | `"jiib"` |
 | `"Dinghy Display"` (clientName default) | `net/MoonrakerSession.kt:86` | `"jiib"` |
-| `"dinghy"` (frontendId) | `prompt/PromptModel.kt:24,29` | `"jiib"` |
+| `"dinghy"` (frontendId) | `prompt/PromptModel.kt:29` | `"jiib"` |
 | `"dinghy-mdns"` (multicast lock) | `DinghyApp.kt:182` (→ `JiibApp.kt`) | `"jiib-mdns"` |
+| frontendId identity prose | `prompt/PromptEngine.kt:53`, `PromptReducer.kt:38`, `PromptModel.kt:24` | `Dinghy`→`Jiib`, `dinghy`→`jiib` |
+| app-name prose | `theme/StatusSlot.kt:13` | `dinghy`→`jiib` |
 
-These are handled **before** the blanket `Dinghy`→`Jiib` pass so the client name
-becomes `jiib`, not `Jiib Display`.
+Handled **before** the blanket `Dinghy`→`Jiib` so the client name becomes
+`jiib`, not `Jiib Display`. **`CLIENT_URL` is NOT here — see Open decision.**
 
-### D. Config / doc comments (cosmetic, live files only)
+### D. Build tooling — `tools/` (FUNCTIONAL, not cosmetic)
 
-`gradle.properties:1`, `gradle/libs.versions.toml:2`, `app/proguard-rules.pro:1`,
-`app/build.gradle.kts:242`, `settings.gradle.kts:34` (`rootProject.name`),
-`strings.xml:11` & `:500` (comments), project `CLAUDE.md` header, and any doc
-that *states* the package/identity. **Excluded:** `.planning/**` history.
+These break silently if missed (compile never sees them):
+
+| File | Reference | Action |
+|------|-----------|--------|
+| `tools/verify_ligatures.py:43` | path `…/works/mees/dinghy/.../DinghyIcons.kt` + `DinghyIcons` prose | → `…/works/mees/jiib/.../JiibIcons.kt` + `JiibIcons` |
+| `tools/oklch-bake/bake_tokens.py:168,226` | **emits** `package works.mees.dinghy.theme` + path components | → `works.mees.jiib.theme` / `…,"jiib","theme",…` |
+| `tools/gfxinfo-parser/parse_framestats.py:29` | `dumpsys gfxinfo works.mees.dinghy` | → `works.mees.jiib` |
+| `tools/oklch-ramp-oracle.mjs:10` | comment `works.mees.dinghy.theme.Palette` | → `works.mees.jiib.theme.Palette` |
+| `tools/ws-capture.py:89`, `tools/spoolman-probe.py:40` | `CLIENT_URL` literal | tracks the §C Open decision (exempt/defer by default) |
+
+### E. ⚠ Lowercase `dinghy` EXCEPTION TABLE (leave these ALONE)
+
+A blind `s/dinghy/jiib/` would corrupt these. They are **exempt** from rename
+**and** from the grep-zero gate:
+
+| Pattern | Why exempt | Example |
+|---------|-----------|---------|
+| `[[dinghy-*]]` wiki-links | Cross-references to **assistant memory slugs** named `dinghy-*` (files outside the repo). ~40+ occurrences across KDoc. | `[[dinghy-never-pick-icons-ask]]`, `[[dinghy-compose-write-scope-cancellation]]`, `[[dinghy-display-gradle-hang-interop]]` |
+| `dinghy.js` / `../theme_theory/app/dinghy.js` | References a real file in the **sibling `theme_theory` repo** by its actual name. | `theme/TokenBridge.kt:8` |
+| `mees.works/dinghy-display` (CLIENT_URL) | §C Open decision — exempt/deferred by default. | `ConnectionProbe.kt:82`, `MoonrakerSession.kt:91`, `MoonrakerService.kt:149` (comment), 2 python tools |
+
+The lowercase pass renames the §C identity strings/prose ONLY; everything else
+lowercase is either the `works.mees.dinghy` package token (§A) or one of the
+exemptions above.
+
+### F. Macrobenchmark runtime launch constants (behavior-critical)
+
+String-qualified — caught by the §A token replace, but call out & verify on a
+real run (not just compile):
+
+| Location | Constant |
+|----------|----------|
+| `RenderBenchmark.kt:75,76` | `TARGET_PACKAGE`, `BENCH_ACTIVITY = "works.mees.dinghy[.bench.BenchActivity]"` |
+| `ToolkitBenchmark.kt:97,98` | same pair |
+| `RenderBenchmark.kt:24` | `gfxinfo works.mees.dinghy framestats` comment |
+
+### G. Config / doc comments (cosmetic, live files only)
+
+`gradle.properties:1`, `gradle/libs.versions.toml:2`, `app/proguard-rules.pro:1`
+(comment only — no package-keyed keep rules), `app/build.gradle.kts:242`,
+`settings.gradle.kts:34` (`rootProject.name`), `strings.xml:11` & `:500`
+(comments), project `CLAUDE.md` header. **Excluded:** `.planning/**` history.
+
+---
 
 ## Execution strategy (ordered, scripted, gated)
 
-1. **Backup point:** annotated tag `archive/dinghy-pre-rename` at current `HEAD`
-   (wholesale rollback: `git checkout` / `git reset` to the tag).
-2. **C first** — replace the four brand strings (so client name → `jiib`).
-3. **A** — `git mv` the four dir trees (main / test / androidTest / macrobench;
-   `src/debug` no longer exists); then token-replace `works.mees.dinghy` →
-   `works.mees.jiib` across all `.kt` (+ any FQN strings).
-4. **B** — word-replace `Dinghy` → `Jiib` across `.kt`/`.xml`; rename the five
-   `Dinghy*.kt` files; fix manifest `.JiibApp` and `Theme.JiibDisplay`.
-5. **Build config** — `namespace`/`applicationId`/macrobench namespace/
-   `rootProject.name`; comment sweep (D).
-6. **Lint baseline** — regenerate.
-7. **Docs** — CLAUDE.md + live identity statements.
+1. **Backup point:** annotated tag `archive/dinghy-pre-rename` at `HEAD`.
+2. **§C first** — replace the brand identity strings/prose (client name → `jiib`,
+   frontendId → `jiib`, mdns, identity prose). **Skip `CLIENT_URL`.**
+3. **§A** — `git mv` the four dir trees; token-replace `works.mees.dinghy` →
+   `works.mees.jiib` across all `.kt`, **excluding** the §E exemption lines.
+4. **§B** — word-replace `Dinghy` → `Jiib` over `.kt`/`.xml`; rename the 10
+   `Dinghy*.kt` files; fix manifest `.JiibApp` + `Theme.JiibDisplay`; update
+   `FontConformanceTest` allowlist.
+5. **§D** — update the `tools/` scripts (path/package/symbol).
+6. **Build config + §G** — `namespace`/`applicationId`/macrobench namespace/
+   `rootProject.name`; comment sweep.
+7. **Lint baseline** — regenerate.
+8. **Docs** — CLAUDE.md + live identity statements.
 
 ## Verification gate (evidence before "done")
 
-- `grep -rniE "works\.mees\.dinghy|dinghy|Dinghy"` over `app/src`,
-  `macrobenchmark`, and live config/res returns **zero** (excluding
-  `.planning/**`).
-- Clean `:app:assembleDebug` + `:app:assembleRelease` succeed.
-- Full `:app:testDebugUnitTest` suite green (≈250 files — the primary safety net
-  for the symbol rename; includes `FontConformanceTest`).
-- `:macrobenchmark` compiles.
-- Final unified diff reviewed; hand to **Codex** for a correctness pass before
-  declaring complete.
+1. **Targeted grep gate:** `grep -rniE "works\.mees\.dinghy|dinghy|Dinghy"` over
+   `app/src`, `macrobenchmark`, `tools`, and live config/res returns **only the
+   documented §E exemptions** (`[[dinghy-*]]`, `dinghy.js`/`theme_theory`, and —
+   if owner defers it — the `CLIENT_URL` lines). Anything else = fail.
+2. **Static build:** clean `:app:assembleDebug` + `:app:assembleRelease` +
+   `:app:testDebugUnitTest` (≈250 files) + `:macrobenchmark` compiles.
+3. **Runtime smoke (REQUIRED — unit tests do NOT cover manifest class loading
+   or macrobench launchability):** on **flox + moto**, install the renamed
+   **debug** APK, launch it (instantiates `JiibApp` via the manifest, starts
+   `MoonrakerService`), connect to a printer, drive one typed-Navigation hop.
+   Then repeat an **install + launch** smoke on the **release** APK (R8 path).
+4. **Optional:** `:app:connectedDebugAndroidTest` if a device is wired for it.
+5. Final unified diff → **Codex** correctness pass before declaring complete.
 
 ## Known consequences (physics, not bugs)
 
 - **Settings reset on existing installs.** New `applicationId` → new
-  `/data/data/works.mees.jiib/` data dir; all 13+ DataStore stores (printers,
-  theme, presets…) start fresh on flox/moto. No real users yet → just a
-  re-setup. (DataStore *store names* contain no `dinghy`, so no in-app data-key
-  migration is needed — only the OS-level data dir changes.)
-- **Side-by-side install.** The old `works.mees.dinghy` app remains installed
-  until manually uninstalled; the renamed app installs as a distinct package.
+  `/data/data/works.mees.jiib/` data dir; all 14 DataStore stores start fresh on
+  flox/moto (store *names* contain no `dinghy`, so no in-app key migration —
+  only the OS data dir changes). No real users yet → just a re-setup.
+- **Side-by-side install.** The old `works.mees.dinghy` app stays installed
+  until manually uninstalled.
 
 ## Risks & mitigations
 
 | Risk | Mitigation |
 |------|-----------|
-| A blind global replace mangles a string/log/identifier | Targeted, ordered replaces (C before B); literal `"Dinghy Display"` handled explicitly |
-| kotlinx.serialization / R8 keep rules keyed to old package | `proguard-rules.pro` reviewed in step 5; full release build + tests exercise serialization paths |
-| Reflection / string-qualified class refs missed by compiler | Post-rename grep gate catches residual `dinghy`; release smoke on-device |
-| History lost in the move | `git mv` for dir trees preserves blame/history |
+| Blind lowercase sweep corrupts memory links / external refs | §E exception table + grep gate that *expects* the exemptions |
+| `tools/` scripts silently break post-rename | §D treats them as functional, in-scope |
+| Manifest `.JiibApp` / macrobench `setClassName` wrong (compile-clean, runtime-broken) | Required on-device launch smoke (debug + release) |
+| R8/serialization keyed to old package | proguard confirmed comment-only; release build + tests exercise serialization |
+| History lost in the move | `git mv` preserves blame |
 | Regret / breakage | `archive/dinghy-pre-rename` tag = wholesale rollback |
 
 ## Out of scope / follow-ups
 
-- Repo directory + GitHub remote rename (`dinghy-display` → `jiib`) — separate
-  step; GitHub redirects old URLs, no urgency.
+- **Repo dir + GitHub remote rename** (`dinghy-display` → `jiib`) — separate
+  step; carries the deferred `CLIENT_URL` update with it.
+- **`.claude/skills/sketch-findings-dinghy-display`** — project skill whose
+  *directory name* is the project slug (invoked by name, referenced in
+  CLAUDE.md). Rename with the repo/dir step, not here.
 - Updating assistant memory + `/mnt/e/claude/CLAUDE.md` repo-path references —
-  tied to the directory rename above; do together later.
-- The deferred pre-release items from the prior cleanup pass (APK signing/
-  keystore, stale GSD-enforcement section in CLAUDE.md, e-stop modal gap).
+  tied to the directory rename.
+- Prior-pass deferrals: APK signing/keystore, stale GSD-enforcement section in
+  CLAUDE.md, e-stop modal gap.
