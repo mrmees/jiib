@@ -37,24 +37,24 @@
     </issue>
 
     <issue
-        id="NewApi"
-        message="Call requires API level 26 (current min is 23): `android.content.ContextWrapper#startForegroundService`"
-        errorLine1="        startForegroundService(Intent(this, MoonrakerService::class.java))"
-        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/works/mees/jiib/MainActivity.kt"
-            line="44"
-            column="9"/>
-    </issue>
-
-    <issue
         id="OldTargetApi"
         message="Not targeting the latest versions of Android; compatibility modes apply. Consider testing and updating this version. Consult the `android.os.Build.VERSION_CODES` javadoc for details."
         errorLine1="        targetSdk = 35                               // D-10/D-11 cleartext caveat applies on API 24+"
         errorLine2="        ~~~~~~~~~~~~~~">
         <location
             file="build.gradle.kts"
-            line="36"
+            line="42"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UnusedAttribute"
+        message="Attribute `enableOnBackInvokedCallback` is only used in API level 33 and higher (current min is 23)"
+        errorLine1="        android:enableOnBackInvokedCallback=&quot;true&quot;"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="68"
             column="9"/>
     </issue>
 
@@ -65,8 +65,19 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/AndroidManifest.xml"
-            line="58"
+            line="74"
             column="9"/>
+    </issue>
+
+    <issue
+        id="BatteryLife"
+        message="Use of `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` violates the Play Store Content Policy regarding acceptable use cases, as described in https://developer.android.com/training/monitoring-device-state/doze-standby.html"
+        errorLine1="                        Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,"
+        errorLine2="                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/works/mees/jiib/ui/screen/AppSettingsScreen.kt"
+            line="144"
+            column="34"/>
     </issue>
 
     <issue
@@ -76,7 +87,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/AndroidManifest.xml"
-            line="66"
+            line="82"
             column="13"/>
     </issue>
 
@@ -181,7 +192,7 @@
 
     <issue
         id="GradleDependency"
-        message="A newer version of androidx.compose:compose-bom than 2026.05.00 is available: 2026.05.01"
+        message="A newer version of androidx.compose:compose-bom than 2026.05.00 is available: 2026.06.00"
         errorLine1="composeBom = &quot;2026.05.00&quot;   # STABLE channel → Compose UI 1.11.1 (NOT the alpha channel)"
         errorLine2="             ~~~~~~~~~~~~">
         <location
@@ -192,7 +203,7 @@
 
     <issue
         id="GradleDependency"
-        message="A newer version of androidx.compose:compose-bom than 2026.05.00 is available: 2026.05.01"
+        message="A newer version of androidx.compose:compose-bom than 2026.05.00 is available: 2026.06.00"
         errorLine1="composeBom = &quot;2026.05.00&quot;   # STABLE channel → Compose UI 1.11.1 (NOT the alpha channel)"
         errorLine2="             ~~~~~~~~~~~~">
         <location
@@ -203,7 +214,7 @@
 
     <issue
         id="GradleDependency"
-        message="A newer version of androidx.compose:compose-bom than 2026.05.00 is available: 2026.05.01"
+        message="A newer version of androidx.compose:compose-bom than 2026.05.00 is available: 2026.06.00"
         errorLine1="composeBom = &quot;2026.05.00&quot;   # STABLE channel → Compose UI 1.11.1 (NOT the alpha channel)"
         errorLine2="             ~~~~~~~~~~~~">
         <location
@@ -247,7 +258,7 @@
 
     <issue
         id="GradleDependency"
-        message="A newer version of androidx.lifecycle:lifecycle-runtime-compose than 2.8.7 is available: 2.10.0"
+        message="A newer version of androidx.lifecycle:lifecycle-runtime-compose than 2.8.7 is available: 2.11.0"
         errorLine1="lifecycle = &quot;2.8.7&quot;"
         errorLine2="            ~~~~~~~">
         <location
@@ -258,7 +269,7 @@
 
     <issue
         id="GradleDependency"
-        message="A newer version of androidx.lifecycle:lifecycle-runtime-compose than 2.8.7 is available: 2.10.0"
+        message="A newer version of androidx.lifecycle:lifecycle-runtime-compose than 2.8.7 is available: 2.11.0"
         errorLine1="lifecycle = &quot;2.8.7&quot;"
         errorLine2="            ~~~~~~~">
         <location
@@ -269,7 +280,7 @@
 
     <issue
         id="GradleDependency"
-        message="A newer version of androidx.lifecycle:lifecycle-runtime-compose than 2.8.7 is available: 2.10.0"
+        message="A newer version of androidx.lifecycle:lifecycle-runtime-compose than 2.8.7 is available: 2.11.0"
         errorLine1="lifecycle = &quot;2.8.7&quot;"
         errorLine2="            ~~~~~~~">
         <location
@@ -280,7 +291,7 @@
 
     <issue
         id="GradleDependency"
-        message="A newer version of androidx.lifecycle:lifecycle-runtime-ktx than 2.8.7 is available: 2.10.0"
+        message="A newer version of androidx.lifecycle:lifecycle-runtime-ktx than 2.8.7 is available: 2.11.0"
         errorLine1="lifecycle = &quot;2.8.7&quot;"
         errorLine2="            ~~~~~~~">
         <location
@@ -291,7 +302,7 @@
 
     <issue
         id="GradleDependency"
-        message="A newer version of androidx.lifecycle:lifecycle-runtime-ktx than 2.8.7 is available: 2.10.0"
+        message="A newer version of androidx.lifecycle:lifecycle-runtime-ktx than 2.8.7 is available: 2.11.0"
         errorLine1="lifecycle = &quot;2.8.7&quot;"
         errorLine2="            ~~~~~~~">
         <location
@@ -302,7 +313,7 @@
 
     <issue
         id="GradleDependency"
-        message="A newer version of androidx.lifecycle:lifecycle-runtime-ktx than 2.8.7 is available: 2.10.0"
+        message="A newer version of androidx.lifecycle:lifecycle-runtime-ktx than 2.8.7 is available: 2.11.0"
         errorLine1="lifecycle = &quot;2.8.7&quot;"
         errorLine2="            ~~~~~~~">
         <location
@@ -807,14 +818,14 @@
     </issue>
 
     <issue
-        id="ChromeOsAbiSupport"
-        message="Missing x86_64 ABI support for ChromeOS"
-        errorLine1="            include(&quot;armeabi-v7a&quot;)"
-        errorLine2="                    ~~~~~~~~~~~~~">
+        id="PluralsCandidate"
+        message="Formatting %d followed by words (&quot;layers&quot;): This should probably be a plural rather than a string"
+        errorLine1="    &lt;string name=&quot;settings_babystep_layers_count&quot;>%1$d layers&lt;/string>"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="build.gradle.kts"
-            line="57"
-            column="21"/>
+            file="src/main/res/values/strings.xml"
+            line="744"
+            column="5"/>
     </issue>
 
     <issue
@@ -824,7 +835,7 @@
         errorLine2="                                            ~~~~">
         <location
             file="src/main/res/xml/network_security_config.xml"
-            line="17"
+            line="32"
             column="45"/>
     </issue>
 
@@ -874,24 +885,13 @@
 
     <issue
         id="UnusedResources"
-        message="The resource `R.string.common_save` appears to be unused"
-        errorLine1="    &lt;string name=&quot;common_save&quot;>Save&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        message="The resource `R.drawable.ic_launcher_foreground` appears to be unused"
+        errorLine1="&lt;vector xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;"
+        errorLine2="^">
         <location
-            file="src/main/res/values/strings.xml"
-            line="47"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="UnusedResources"
-        message="The resource `R.string.cd_back` appears to be unused"
-        errorLine1="    &lt;string name=&quot;cd_back&quot;>Back&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="51"
-            column="13"/>
+            file="src/main/res/drawable/ic_launcher_foreground.xml"
+            line="2"
+            column="1"/>
     </issue>
 
     <issue
@@ -901,7 +901,7 @@
         errorLine2="            ~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="52"
+            line="45"
             column="13"/>
     </issue>
 
@@ -912,7 +912,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="53"
+            line="46"
             column="13"/>
     </issue>
 
@@ -923,7 +923,51 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
+            line="53"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.printstatus_nozzle_label` appears to be unused"
+        errorLine1="    &lt;string name=&quot;printstatus_nozzle_label&quot;>Nozzle&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="54"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.printstatus_bed_label` appears to be unused"
+        errorLine1="    &lt;string name=&quot;printstatus_bed_label&quot;>Bed&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="55"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.printstatus_spool_label` appears to be unused"
+        errorLine1="    &lt;string name=&quot;printstatus_spool_label&quot;>Spool&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
             line="56"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.printstatus_print_time_label` appears to be unused"
+        errorLine1="    &lt;string name=&quot;printstatus_print_time_label&quot;>Print time&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="57"
             column="13"/>
     </issue>
 
@@ -934,7 +978,326 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="63"
+            line="68"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.printstatus_terminal_file_label` appears to be unused"
+        errorLine1="    &lt;string name=&quot;printstatus_terminal_file_label&quot;>File&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="85"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.printstatus_terminal_filament_label` appears to be unused"
+        errorLine1="    &lt;string name=&quot;printstatus_terminal_filament_label&quot;>Filament&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="86"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.printstatus_terminal_layers_label` appears to be unused"
+        errorLine1="    &lt;string name=&quot;printstatus_terminal_layers_label&quot;>Layers&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="87"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.printstatus_spool_remaining` appears to be unused"
+        errorLine1="    &lt;string name=&quot;printstatus_spool_remaining&quot;>Spool remaining %1$d g&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="90"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.printstatus_z_offset` appears to be unused"
+        errorLine1="    &lt;string name=&quot;printstatus_z_offset&quot;>Z offset %1$s&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="92"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.printstatus_foot_pausing` appears to be unused"
+        errorLine1="    &lt;string name=&quot;printstatus_foot_pausing&quot;>Pausing&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="102"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.printstatus_foot_resuming` appears to be unused"
+        errorLine1="    &lt;string name=&quot;printstatus_foot_resuming&quot;>Resuming&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="104"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.printstatus_foot_cancelling` appears to be unused"
+        errorLine1="    &lt;string name=&quot;printstatus_foot_cancelling&quot;>Cancelling&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="106"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.printstatus_foot_reprint` appears to be unused"
+        errorLine1="    &lt;string name=&quot;printstatus_foot_reprint&quot;>Reprint&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="108"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.printstatus_foot_reprinting` appears to be unused"
+        errorLine1="    &lt;string name=&quot;printstatus_foot_reprinting&quot;>Reprinting&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="109"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.printstatus_cancel_guard_keep` appears to be unused"
+        errorLine1="    &lt;string name=&quot;printstatus_cancel_guard_keep&quot;>Keep printing&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="115"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.cd_print_paused` appears to be unused"
+        errorLine1="    &lt;string name=&quot;cd_print_paused&quot;>Print paused&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="118"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.cd_cancel_print` appears to be unused"
+        errorLine1="    &lt;string name=&quot;cd_cancel_print&quot;>Cancel print&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="120"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.cd_babystep_compress` appears to be unused"
+        errorLine1="    &lt;string name=&quot;cd_babystep_compress&quot;>Compress — move nozzle closer to bed&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="121"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.cd_babystep_expand` appears to be unused"
+        errorLine1="    &lt;string name=&quot;cd_babystep_expand&quot;>Expand — move nozzle farther from bed&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="122"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.cd_babystep_step_size` appears to be unused"
+        errorLine1="    &lt;string name=&quot;cd_babystep_step_size&quot;>Babystep step size, %1$s millimeters — tap to change&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="123"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.cd_launcher_drawer` appears to be unused"
+        errorLine1="    &lt;string name=&quot;cd_launcher_drawer&quot;>More&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="132"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.home_foot_preheat` appears to be unused"
+        errorLine1="    &lt;string name=&quot;home_foot_preheat&quot;>Preheat&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="136"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.home_foot_cooldown` appears to be unused"
+        errorLine1="    &lt;string name=&quot;home_foot_cooldown&quot;>Cooldown&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="137"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.cd_tune` appears to be unused"
+        errorLine1="    &lt;string name=&quot;cd_tune&quot;>Tune&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="140"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.system_row_settings` appears to be unused"
+        errorLine1="    &lt;string name=&quot;system_row_settings&quot;>Settings&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="145"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.system_row_theme` appears to be unused"
+        errorLine1="    &lt;string name=&quot;system_row_theme&quot;>Theme&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="146"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.system_row_sysinfo` appears to be unused"
+        errorLine1="    &lt;string name=&quot;system_row_sysinfo&quot;>System Info&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="147"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.system_row_power` appears to be unused"
+        errorLine1="    &lt;string name=&quot;system_row_power&quot;>Power&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="149"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.system_row_power_sub` appears to be unused"
+        errorLine1="    &lt;string name=&quot;system_row_power_sub&quot;>Coming soon&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="150"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.system_row_label` appears to be unused"
+        errorLine1="    &lt;string name=&quot;system_row_label&quot;>System&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="152"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.finetune_title` appears to be unused"
+        errorLine1="    &lt;string name=&quot;finetune_title&quot;>Fine-Tune&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="158"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.finetune_motion_label` appears to be unused"
+        errorLine1="    &lt;string name=&quot;finetune_motion_label&quot;>Motion&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="159"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.finetune_extrusion_label` appears to be unused"
+        errorLine1="    &lt;string name=&quot;finetune_extrusion_label&quot;>Extrusion&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="160"
             column="13"/>
     </issue>
 
@@ -945,7 +1308,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="121"
+            line="163"
             column="13"/>
     </issue>
 
@@ -956,7 +1319,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="127"
+            line="169"
             column="13"/>
     </issue>
 
@@ -967,7 +1330,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="128"
+            line="170"
             column="13"/>
     </issue>
 
@@ -978,7 +1341,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="129"
+            line="171"
             column="13"/>
     </issue>
 
@@ -989,7 +1352,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="130"
+            line="172"
             column="13"/>
     </issue>
 
@@ -1000,7 +1363,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="131"
+            line="173"
             column="13"/>
     </issue>
 
@@ -1011,7 +1374,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="132"
+            line="174"
             column="13"/>
     </issue>
 
@@ -1022,7 +1385,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="133"
+            line="175"
             column="13"/>
     </issue>
 
@@ -1033,7 +1396,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="134"
+            line="176"
             column="13"/>
     </issue>
 
@@ -1044,7 +1407,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="135"
+            line="177"
             column="13"/>
     </issue>
 
@@ -1055,7 +1418,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="138"
+            line="180"
             column="13"/>
     </issue>
 
@@ -1066,7 +1429,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="139"
+            line="181"
             column="13"/>
     </issue>
 
@@ -1077,7 +1440,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="142"
+            line="184"
             column="13"/>
     </issue>
 
@@ -1088,7 +1451,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="143"
+            line="185"
             column="13"/>
     </issue>
 
@@ -1099,18 +1462,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="168"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="UnusedResources"
-        message="The resource `R.string.cd_spool_scan` appears to be unused"
-        errorLine1="    &lt;string name=&quot;cd_spool_scan&quot;>Scan a spool QR code&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="169"
+            line="203"
             column="13"/>
     </issue>
 
@@ -1121,40 +1473,40 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="170"
+            line="205"
             column="13"/>
     </issue>
 
     <issue
         id="UnusedResources"
-        message="The resource `R.string.cd_spool_home` appears to be unused"
-        errorLine1="    &lt;string name=&quot;cd_spool_home&quot;>Go to home screen&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
+        message="The resource `R.string.spool_estop_guard_title` appears to be unused"
+        errorLine1="    &lt;string name=&quot;spool_estop_guard_title&quot;>Emergency stop?&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="174"
+            line="213"
             column="13"/>
     </issue>
 
     <issue
         id="UnusedResources"
-        message="The resource `R.string.cd_spool_load` appears to be unused"
-        errorLine1="    &lt;string name=&quot;cd_spool_load&quot;>Load this spool&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
+        message="The resource `R.string.spool_estop_guard_message` appears to be unused"
+        errorLine1="    &lt;string name=&quot;spool_estop_guard_message&quot;>Immediately halts the printer (firmware E-stop). You will need to restart Klipper to print again.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="175"
+            line="214"
             column="13"/>
     </issue>
 
     <issue
         id="UnusedResources"
-        message="The resource `R.string.cd_spool_unload` appears to be unused"
-        errorLine1="    &lt;string name=&quot;cd_spool_unload&quot;>Unload the active spool&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
+        message="The resource `R.string.spool_estop_guard_confirm` appears to be unused"
+        errorLine1="    &lt;string name=&quot;spool_estop_guard_confirm&quot;>Emergency stop&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="176"
+            line="215"
             column="13"/>
     </issue>
 
@@ -1165,7 +1517,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="188"
+            line="223"
             column="13"/>
     </issue>
 
@@ -1176,7 +1528,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="189"
+            line="224"
             column="13"/>
     </issue>
 
@@ -1187,7 +1539,7 @@
         errorLine2="             ~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="216"
+            line="258"
             column="14"/>
     </issue>
 
@@ -1198,7 +1550,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="228"
+            line="270"
             column="13"/>
     </issue>
 
@@ -1209,7 +1561,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="234"
+            line="276"
             column="13"/>
     </issue>
 
@@ -1220,7 +1572,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="236"
+            line="278"
             column="13"/>
     </issue>
 
@@ -1231,7 +1583,40 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="240"
+            line="282"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.sysinfo_title` appears to be unused"
+        errorLine1="    &lt;string name=&quot;sysinfo_title&quot;>System Information&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="285"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.sysinfo_mcu_mainboard` appears to be unused"
+        errorLine1="    &lt;string name=&quot;sysinfo_mcu_mainboard&quot;>Mainboard&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="291"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.sysinfo_mcu_host` appears to be unused"
+        errorLine1="    &lt;string name=&quot;sysinfo_mcu_host&quot;>Host MCU&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="292"
             column="13"/>
     </issue>
 
@@ -1242,7 +1627,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="278"
+            line="315"
             column="13"/>
     </issue>
 
@@ -1253,7 +1638,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="305"
+            line="342"
             column="13"/>
     </issue>
 
@@ -1264,7 +1649,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="306"
+            line="343"
             column="13"/>
     </issue>
 
@@ -1275,7 +1660,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="308"
+            line="345"
             column="13"/>
     </issue>
 
@@ -1286,8 +1671,1009 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="368"
+            line="409"
             column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.cd_macros_unbookmarked` appears to be unused"
+        errorLine1="    &lt;string name=&quot;cd_macros_unbookmarked&quot;>Add to bookmarks&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="412"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.cd_macros_bookmarked` appears to be unused"
+        errorLine1="    &lt;string name=&quot;cd_macros_bookmarked&quot;>Bookmarked&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="413"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.extrude_distance_label` appears to be unused"
+        errorLine1="    &lt;string name=&quot;extrude_distance_label&quot;>Distance (mm)&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="439"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.extrude_speed_label` appears to be unused"
+        errorLine1="    &lt;string name=&quot;extrude_speed_label&quot;>Feedrate (mm/s)&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="440"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.extrude_tool_label` appears to be unused"
+        errorLine1="    &lt;string name=&quot;extrude_tool_label&quot;>Tool&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="441"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.extrude_distance_readout` appears to be unused"
+        errorLine1="    &lt;string name=&quot;extrude_distance_readout&quot;>Distance&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="443"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.extrude_spool_placeholder` appears to be unused"
+        errorLine1="    &lt;string name=&quot;extrude_spool_placeholder&quot;>Spool&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="450"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.extrude_preset_title` appears to be unused"
+        errorLine1="    &lt;string name=&quot;extrude_preset_title&quot;>Set nozzle temperature&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="455"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.extrude_loaded_prefix` appears to be unused"
+        errorLine1="    &lt;string name=&quot;extrude_loaded_prefix&quot;>%1$s (loaded)&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="457"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.extrude_distance_dec` appears to be unused"
+        errorLine1="    &lt;string name=&quot;extrude_distance_dec&quot;>Decrease distance&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="463"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.extrude_distance_inc` appears to be unused"
+        errorLine1="    &lt;string name=&quot;extrude_distance_inc&quot;>Increase distance&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="464"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.common_apply` appears to be unused"
+        errorLine1="    &lt;string name=&quot;common_apply&quot;>Apply&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="472"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.adjuster_reset` appears to be unused"
+        errorLine1="    &lt;string name=&quot;adjuster_reset&quot;>Reset&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="473"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.extrude_spoolman_coming_soon` appears to be unused"
+        errorLine1="    &lt;string name=&quot;extrude_spoolman_coming_soon&quot;>Spoolman integration coming soon&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="478"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.extrude_no_load_macro` appears to be unused"
+        errorLine1="    &lt;string name=&quot;extrude_no_load_macro&quot;>No %1$s macro configured&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="481"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.extrude_no_unload_macro` appears to be unused"
+        errorLine1="    &lt;string name=&quot;extrude_no_unload_macro&quot;>No %1$s macro configured&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="482"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.move_z_up` appears to be unused"
+        errorLine1="    &lt;string name=&quot;move_z_up&quot;>Z Up&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="485"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.move_z_down` appears to be unused"
+        errorLine1="    &lt;string name=&quot;move_z_down&quot;>Z Down&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="486"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.move_z_home` appears to be unused"
+        errorLine1="    &lt;string name=&quot;move_z_home&quot;>Home Z&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="487"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.move_distance_increase` appears to be unused"
+        errorLine1="    &lt;string name=&quot;move_distance_increase&quot;>Increase step&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="488"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.move_distance_decrease` appears to be unused"
+        errorLine1="    &lt;string name=&quot;move_distance_decrease&quot;>Decrease step&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="489"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.move_disable_steppers` appears to be unused"
+        errorLine1="    &lt;string name=&quot;move_disable_steppers&quot;>Disable Steppers&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="491"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.move_disable_confirm` appears to be unused"
+        errorLine1="    &lt;string name=&quot;move_disable_confirm&quot;>Disable steppers? This will un-home all axes.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="492"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.cd_move_jog_pad` appears to be unused"
+        errorLine1="    &lt;string name=&quot;cd_move_jog_pad&quot;>Move jog pad&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="493"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.move_focus_blurb` appears to be unused"
+        errorLine1="    &lt;string name=&quot;move_focus_blurb&quot;>Move the print head and bed.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="494"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.move_save_location` appears to be unused"
+        errorLine1="    &lt;string name=&quot;move_save_location&quot;>Save Location&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="496"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.cd_routine_probe_calibrate` appears to be unused"
+        errorLine1="    &lt;string name=&quot;cd_routine_probe_calibrate&quot;>Probe calibrate&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="502"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.cd_routine_bed_mesh` appears to be unused"
+        errorLine1="    &lt;string name=&quot;cd_routine_bed_mesh&quot;>Bed mesh&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="503"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.cd_routine_screws_tilt` appears to be unused"
+        errorLine1="    &lt;string name=&quot;cd_routine_screws_tilt&quot;>Screws tilt&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="504"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.cd_routine_z_tilt` appears to be unused"
+        errorLine1="    &lt;string name=&quot;cd_routine_z_tilt&quot;>Z tilt&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="505"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.cd_routine_qgl` appears to be unused"
+        errorLine1="    &lt;string name=&quot;cd_routine_qgl&quot;>Quad gantry level&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="506"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.cd_calibration_hub` appears to be unused"
+        errorLine1="    &lt;string name=&quot;cd_calibration_hub&quot;>Calibration routines&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="510"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.calibration_hub_title` appears to be unused"
+        errorLine1="    &lt;string name=&quot;calibration_hub_title&quot;>Calibration&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="511"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.mesh_save` appears to be unused"
+        errorLine1="    &lt;string name=&quot;mesh_save&quot;>Save&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="550"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.mesh_empty_state` appears to be unused"
+        errorLine1="    &lt;string name=&quot;mesh_empty_state&quot;>No saved profiles&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="557"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.mesh_empty_state_hint` appears to be unused"
+        errorLine1="    &lt;string name=&quot;mesh_empty_state_hint&quot;>Run Calibrate to create one.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="558"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.cd_mesh_heatmap` appears to be unused"
+        errorLine1="    &lt;string name=&quot;cd_mesh_heatmap&quot;>Bed mesh heatmap&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="559"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.settings_babystep_layers` appears to be unused"
+        errorLine1="    &lt;string name=&quot;settings_babystep_layers&quot;>First-layer window&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="600"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.settings_babystep_layers_hint` appears to be unused"
+        errorLine1="    &lt;string name=&quot;settings_babystep_layers_hint&quot;>Layers&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="601"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.settings_display_section` appears to be unused"
+        errorLine1="    &lt;string name=&quot;settings_display_section&quot;>Display&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="604"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.settings_keep_screen_on_sub_on` appears to be unused"
+        errorLine1="    &lt;string name=&quot;settings_keep_screen_on_sub_on&quot;>Screen stays on while jiib is open&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="606"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.settings_keep_screen_on_sub_off` appears to be unused"
+        errorLine1="    &lt;string name=&quot;settings_keep_screen_on_sub_off&quot;>System screen timeout applies&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="607"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.printers_use_secure` appears to be unused"
+        errorLine1="    &lt;string name=&quot;printers_use_secure&quot;>Use HTTPS/WSS&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="613"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.printers_use_secure_sub_on` appears to be unused"
+        errorLine1="    &lt;string name=&quot;printers_use_secure_sub_on&quot;>wss/https — requires a TLS reverse proxy in front of Moonraker&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="614"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.printers_use_secure_sub_off` appears to be unused"
+        errorLine1="    &lt;string name=&quot;printers_use_secure_sub_off&quot;>Plain ws/http on the local network&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="615"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.printers_edit_host` appears to be unused"
+        errorLine1="    &lt;string name=&quot;printers_edit_host&quot;>Host / IP address&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="625"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.printers_edit_port` appears to be unused"
+        errorLine1="    &lt;string name=&quot;printers_edit_port&quot;>Port&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="626"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.printers_edit_key` appears to be unused"
+        errorLine1="    &lt;string name=&quot;printers_edit_key&quot;>API Key (optional)&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="627"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.printers_error_host_required` appears to be unused"
+        errorLine1="    &lt;string name=&quot;printers_error_host_required&quot;>Host is required.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="632"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.printers_edit_key_keep_saved` appears to be unused"
+        errorLine1="    &lt;string name=&quot;printers_edit_key_keep_saved&quot;>API key (leave blank to keep saved key)&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="634"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.printers_key_saved` appears to be unused"
+        errorLine1="    &lt;string name=&quot;printers_key_saved&quot;>Key saved&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="635"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.theme_editor_title` appears to be unused"
+        errorLine1="    &lt;string name=&quot;theme_editor_title&quot;>Edit theme&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="652"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.theme_reset_confirm_title` appears to be unused"
+        errorLine1="    &lt;string name=&quot;theme_reset_confirm_title&quot;>Reset theme?&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="653"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.theme_reset_confirm_body` appears to be unused"
+        errorLine1="    &lt;string name=&quot;theme_reset_confirm_body&quot;>This clears your custom pool colors and randomize back to the default.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="654"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.theme_reset` appears to be unused"
+        errorLine1="    &lt;string name=&quot;theme_reset&quot;>Reset&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="655"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.theme_keep` appears to be unused"
+        errorLine1="    &lt;string name=&quot;theme_keep&quot;>Keep&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="656"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.theme_clear` appears to be unused"
+        errorLine1="    &lt;string name=&quot;theme_clear&quot;>Clear&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="658"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.theme_pool_color_title` appears to be unused"
+        errorLine1="    &lt;string name=&quot;theme_pool_color_title&quot;>Pool color %1$d&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="659"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.theme_status_color_title` appears to be unused"
+        errorLine1="    &lt;string name=&quot;theme_status_color_title&quot;>Status color — %1$s&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="660"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.theme_pick_a_color` appears to be unused"
+        errorLine1="    &lt;string name=&quot;theme_pick_a_color&quot;>Pick a color&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="661"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.theme_saturation_brightness` appears to be unused"
+        errorLine1="    &lt;string name=&quot;theme_saturation_brightness&quot;>Saturation / Brightness&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="662"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.theme_section_mode` appears to be unused"
+        errorLine1="    &lt;string name=&quot;theme_section_mode&quot;>Mode&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="663"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.theme_dark` appears to be unused"
+        errorLine1="    &lt;string name=&quot;theme_dark&quot;>Dark&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="664"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.theme_light` appears to be unused"
+        errorLine1="    &lt;string name=&quot;theme_light&quot;>Light&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="665"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.theme_section_text_size` appears to be unused"
+        errorLine1="    &lt;string name=&quot;theme_section_text_size&quot;>Text size&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="666"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.theme_section_palette_mode` appears to be unused"
+        errorLine1="    &lt;string name=&quot;theme_section_palette_mode&quot;>Palette mode&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="667"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.theme_section_seed_color` appears to be unused"
+        errorLine1="    &lt;string name=&quot;theme_section_seed_color&quot;>Seed color&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="668"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.theme_seed_hint` appears to be unused"
+        errorLine1="    &lt;string name=&quot;theme_seed_hint&quot;>Pick a hue on the ring, then adjust saturation and brightness below&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="669"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.theme_section_presets` appears to be unused"
+        errorLine1="    &lt;string name=&quot;theme_section_presets&quot;>Presets&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="670"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.theme_section_preview` appears to be unused"
+        errorLine1="    &lt;string name=&quot;theme_section_preview&quot;>Preview&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="671"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.theme_section_pool_colors` appears to be unused"
+        errorLine1="    &lt;string name=&quot;theme_section_pool_colors&quot;>Pool colors&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="672"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.theme_pool_hint` appears to be unused"
+        errorLine1="    &lt;string name=&quot;theme_pool_hint&quot;>Tap a color to customize&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="673"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.theme_section_status_colors` appears to be unused"
+        errorLine1="    &lt;string name=&quot;theme_section_status_colors&quot;>Status colors&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="674"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.theme_status_hint_colorful` appears to be unused"
+        errorLine1="    &lt;string name=&quot;theme_status_hint_colorful&quot;>Tap to customize — shape carries the meaning, so color is yours&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="675"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.theme_status_hint_gated` appears to be unused"
+        errorLine1="    &lt;string name=&quot;theme_status_hint_gated&quot;>Tap to customize (applies in Colorful; this mode shows the fixed safety palette)&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="676"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.theme_status_redundant_cue` appears to be unused"
+        errorLine1="    &lt;string name=&quot;theme_status_redundant_cue&quot;>Color is a redundant cue — shape carries the safety meaning. Pick any color.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="677"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.theme_seed_focus` appears to be unused"
+        errorLine1="    &lt;string name=&quot;theme_seed_focus&quot;>Pick a hue. The accent and pool are generated from it; lightness is set automatically for contrast.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="693"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.theme_colors_focus` appears to be unused"
+        errorLine1="    &lt;string name=&quot;theme_colors_focus&quot;>Tap a swatch to set its color. Randomize re-rolls the pool from the seed.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="694"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.cd_theme_saved_swatch` appears to be unused"
+        errorLine1="    &lt;string name=&quot;cd_theme_saved_swatch&quot;>Saved color&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="700"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.printers_rename` appears to be unused"
+        errorLine1="    &lt;string name=&quot;printers_rename&quot;>Rename&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="750"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.printers_edit_name` appears to be unused"
+        errorLine1="    &lt;string name=&quot;printers_edit_name&quot;>Printer name&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="751"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.cd_app_settings` appears to be unused"
+        errorLine1="    &lt;string name=&quot;cd_app_settings&quot;>App settings&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="754"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.cd_printer_settings` appears to be unused"
+        errorLine1="    &lt;string name=&quot;cd_printer_settings&quot;>Printer settings&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="755"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.cd_manage_printers` appears to be unused"
+        errorLine1="    &lt;string name=&quot;cd_manage_printers&quot;>Manage printers&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="756"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.cd_text_size` appears to be unused"
+        errorLine1="    &lt;string name=&quot;cd_text_size&quot;>Text size&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="757"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.cd_rename` appears to be unused"
+        errorLine1="    &lt;string name=&quot;cd_rename&quot;>Rename printer&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="758"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.increment_values_finetune` appears to be unused"
+        errorLine1="    &lt;string name=&quot;increment_values_finetune&quot;>Fine-Tune&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="775"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.increment_values_microstep` appears to be unused"
+        errorLine1="    &lt;string name=&quot;increment_values_microstep&quot;>Microstep&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="776"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.increment_values_babystep` appears to be unused"
+        errorLine1="    &lt;string name=&quot;increment_values_babystep&quot;>Babystep&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="777"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.increment_values_probe_testz` appears to be unused"
+        errorLine1="    &lt;string name=&quot;increment_values_probe_testz&quot;>Probe Z Test&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="778"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UseOfNonLambdaOffsetOverload"
+        message="State backed values should use the lambda overload of Modifier.offset"
+        errorLine1="                .offset(x = knobX)"
+        errorLine2="                 ~~~~~~">
+        <location
+            file="src/main/java/works/mees/jiib/designsystem/components/ToggleRow.kt"
+            line="205"
+            column="18"/>
     </issue>
 
     <issue
@@ -1297,7 +2683,7 @@
         errorLine2="                             ~~~">
         <location
             file="src/main/java/works/mees/jiib/ui/files/FileRowsAdapter.kt"
-            line="141"
+            line="151"
             column="30"/>
     </issue>
 

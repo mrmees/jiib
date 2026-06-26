@@ -31,7 +31,7 @@ dependencyResolutionManagement {
     // gradle/libs.versions.toml automatically as the default `libs` catalog.
 }
 
-rootProject.name = "dinghy-display"
+rootProject.name = "jiib"
 
 include(":app")
 include(":macrobenchmark")
