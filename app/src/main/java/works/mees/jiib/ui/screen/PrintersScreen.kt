@@ -138,14 +138,14 @@ fun PrintersContent(
                 ListBlock(modifier = Modifier.weight(1f)) {
                     item {
                         ListRow(selected = false, onClick = onAdd, uDp = grid.uDp,
-                            leadingContent = { ListRowIcon(JiibIcons.PrinterAdd, grid.uDp, t.accent2) }) {
+                            leadingContent = { ListRowIcon(JiibIcons.PrinterAdd, grid.uDp, t.accent) }) {
                             Text(stringResource(R.string.printers_add), color = t.text,
                                 style = JiibType.listLabel.toTextStyle(t), modifier = Modifier.fillMaxWidth())
                         }
                     }
                     item {
                         ListRow(selected = false, onClick = onFind, uDp = grid.uDp,
-                            leadingContent = { ListRowIcon(JiibIcons.Search, grid.uDp, t.accent2) }) {
+                            leadingContent = { ListRowIcon(JiibIcons.Search, grid.uDp, t.accent) }) {
                             Text(stringResource(R.string.conn_row_find), color = t.text,
                                 style = JiibType.listLabel.toTextStyle(t), modifier = Modifier.fillMaxWidth())
                         }

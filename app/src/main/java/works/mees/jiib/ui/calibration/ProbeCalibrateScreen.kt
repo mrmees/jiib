@@ -262,7 +262,7 @@ fun ProbeCalibrateContent(
                                 onClick = onTestZUp,
                                 modifier = Modifier.weight(1f).fillMaxWidth(),
                                 intent = Intent.Accent,
-                                iconTint = t.accent2,
+                                iconTint = t.accent,
                                 enabled = enabled,
                             )
                             // D-08 center cell: live-Z readout (Geist Mono, t.directional.z outline)
@@ -277,7 +277,7 @@ fun ProbeCalibrateContent(
                                 onClick = onTestZDown,
                                 modifier = Modifier.weight(1f).fillMaxWidth(),
                                 intent = Intent.Accent,
-                                iconTint = t.accent2,
+                                iconTint = t.accent,
                                 enabled = enabled,
                             )
                         }

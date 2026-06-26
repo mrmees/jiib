@@ -159,7 +159,7 @@ fun CalibrationHubContent(
                                     ListRowIcon(
                                         icon = routineIconToken(entry.routine),
                                         uDp = grid.uDp,
-                                        tint = if (entry.isSupported) t.accent2 else t.text3,
+                                        tint = if (entry.isSupported) t.accent else t.text3,
                                     )
                                 },
                             ) {

@@ -222,7 +222,7 @@ private fun OutputsContent(
                                 ListRowIcon(
                                     icon = glyphFor(row.descriptor.family),
                                     uDp = grid.uDp,
-                                    tint = t.accent2,
+                                    tint = t.accent,
                                     contentDescription = stringResource(R.string.cd_output_glyph),
                                 )
                             },
