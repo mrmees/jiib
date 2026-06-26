@@ -50,7 +50,7 @@ Neutral/outline is retired as a button intent. Back is always the **first** butt
 ## Visual north star of record
 
 The **as-built Spoolman screen**, the **jiib sketch sources**
-(`.claude/skills/sketch-findings-dinghy-display/sources/`, incl. `themes/default.css` and the
+(`.claude/skills/sketch-findings-jiib/sources/`, incl. `themes/default.css` and the
 `004-scrubber-style` control), and the **`THEMING.md` token law**. Type is Geist + Geist Mono
 (tabular numerals for live data).
 

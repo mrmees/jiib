@@ -1,10 +1,10 @@
 ---
-name: sketch-findings-dinghy-display
-description: Validated design decisions, CSS patterns, and visual direction from the jiib redesign sketch experiments (waterfall home, Spoolman lists/detail, Fine-Tune adjustment). Auto-load when building any redesigned UI on dinghy-display.
+name: sketch-findings-jiib
+description: Validated design decisions, CSS patterns, and visual direction from the jiib redesign sketch experiments (waterfall home, Spoolman lists/detail, Fine-Tune adjustment). Auto-load when building any redesigned UI on jiib.
 ---
 
 <context>
-## Project: dinghy-display (jiib redesign)
+## Project: jiib
 
 A fundamental visual redesign moving jiib from KlipperScreen-style tile grids + hub-and-spoke nav + a
 space-eating gutter to a **lists-first, conditional-waterfall** app on real semantic tokens

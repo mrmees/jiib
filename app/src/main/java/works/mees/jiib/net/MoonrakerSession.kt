@@ -88,7 +88,7 @@ class MoonrakerSession(
     // Moonraker's `server.connection.identify` REQUIRES a non-empty `url` argument alongside
     // client_name/version/type — omitting it returns `{code:400,"No data for argument: url"}`
     // (verified live against Moonraker v0.13). Recorded by Moonraker for its connection list only.
-    private val clientUrl: String = "https://github.com/mrmees/dinghy-display",
+    private val clientUrl: String = "https://github.com/mrmees/jiib",
 ) {
     private val _connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Disconnected)
     /** Always-observable five-state connection lifecycle (CONN-06). */

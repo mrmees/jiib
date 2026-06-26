@@ -1,6 +1,6 @@
 # Moonraker / Klipper capability catalog — what our printers actually expose
 
-**Purpose:** the source of truth for which Moonraker/Klipper objects + fields dinghy-display may rely
+**Purpose:** the source of truth for which Moonraker/Klipper objects + fields jiib may rely
 on, captured from the **real printers** (not docs, not assumptions). Built to kill the recurring
 mock-vs-reality bug class: build screens against fields confirmed present here, and flag
 slicer-/config-dependent fields as optional with fail-safe fallbacks.
@@ -95,7 +95,7 @@ print_start_time, job_id, gcode_start_byte/end_byte
 (filenames have spaces). Pick the LARGEST thumbnail (300×300) and let Coil downsample to the ring size.
 Coil 3 (`coil-compose` + `coil-network-okhttp`) is already in the stack and proven on-device.
 
-### What dinghy-display can rely on (Status screen)
+### What jiib can rely on (Status screen)
 - **Reliable (always present):** progress, print_duration (elapsed), filament_used, Z (gcode_position),
   temps/targets, filename, state, axis_min/max (volume), estimated_time + filament_total + layer_count +
   thumbnails (from metadata, per-file one-shot).
@@ -186,7 +186,7 @@ thumbnails[] 32/48/300, ".thumbs/<name>-WxH.png"
 
 ---
 
-## Ender 5 ↔ Ender 3 diff (what matters to dinghy-display)
+## Ender 5 ↔ Ender 3 diff (what matters to jiib)
 
 - **Print-status DATA MODEL is identical** across both: same `print_stats` / `virtual_sdcard` /
   `display_status` / `gcode_move` / `toolhead` / `extruder` / `heater_bed` / `motion_report` fields, same

@@ -79,7 +79,7 @@ class ConnectionProbe(
 
         private const val CLIENT_NAME = "jiib"
         private const val CLIENT_VERSION = "0.1.0"
-        private const val CLIENT_URL = "https://github.com/mrmees/dinghy-display"
+        private const val CLIENT_URL = "https://github.com/mrmees/jiib"
 
         /**
          * Build the production [ConnectionProbe] backed by a real OkHttp client.

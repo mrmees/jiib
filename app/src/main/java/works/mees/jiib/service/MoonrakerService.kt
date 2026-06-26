@@ -146,7 +146,7 @@ class MoonrakerService : Service() {
             socketEvents = socketEvents,
             auth = auth,
             baseWsUrl = cfg.wsUrl,
-            // clientUrl left at its live-verified default ("https://github.com/mrmees/dinghy-display") — DO NOT regress.
+            // clientUrl left at its live-verified default ("https://github.com/mrmees/jiib") — DO NOT regress.
         )
         val dispatcher = CommandDispatcher(rpc, serviceScope)
         val fileBrowserClient = MoonrakerFileBrowserClient(rpc, dispatcher)

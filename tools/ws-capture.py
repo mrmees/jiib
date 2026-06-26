@@ -86,7 +86,7 @@ except ImportError:
 CLIENT_NAME = "jiib (ws-capture)"
 CLIENT_VERSION = "0.1.0"
 CLIENT_TYPE = "display"
-CLIENT_URL = "https://github.com/mrmees/dinghy-display"
+CLIENT_URL = "https://github.com/mrmees/jiib"
 
 # The v1 core subset the app queries/subscribes (DeriveCapabilities.V1_SUBSCRIBE_CORE,
 # intersected on-device with objects.list; here we send the full superset — the printer

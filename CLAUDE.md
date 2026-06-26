@@ -224,7 +224,7 @@ Mapped in `.planning/codebase/ARCHITECTURE.md` (layer map, data flow, state hold
 <!-- GSD:skills-start source:skills/ -->
 ## Project Skills
 
-- **Sketch findings (jiib redesign)** (design decisions, CSS patterns, component classes, visual direction from the 001–003 sketches — waterfall home, Spoolman lists/detail, Fine-Tune adjustment) → `Skill("sketch-findings-dinghy-display")`. **Auto-load before building any redesigned UI** (Layer-1 onward). Companion source-of-truth notes: `.planning/notes/2026-06-09-*.md`.
+- **Sketch findings (jiib redesign)** (design decisions, CSS patterns, component classes, visual direction from the 001–003 sketches — waterfall home, Spoolman lists/detail, Fine-Tune adjustment) → `Skill("sketch-findings-jiib")`. **Auto-load before building any redesigned UI** (Layer-1 onward). Companion source-of-truth notes: `.planning/notes/2026-06-09-*.md`.
 <!-- GSD:skills-end -->
 
 <!-- GSD:workflow-start source:GSD defaults -->

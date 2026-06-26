@@ -1,6 +1,6 @@
-# Request-cadence contract — what dinghy-display actually puts on the wire
+# Request-cadence contract — what jiib actually puts on the wire
 
-**Purpose:** the wire-truth guardrail for *how often* and *under what trigger* dinghy-display talks to
+**Purpose:** the wire-truth guardrail for *how often* and *under what trigger* jiib talks to
 Moonraker — the sibling of `docs/moonraker-capabilities.md` (which governs *which* objects/fields we may
 rely on). It exists to kill the recurring **chattiness / mock-vs-reality** bug class: build a screen and
 you are tempted to "just poll the printer when this page opens." Don't. Live data comes from ONE persistent

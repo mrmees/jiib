@@ -550,7 +550,7 @@ icon tiles, count-driven labels"). Key invariants (leading TYPE tile RETIRED 202
 ### Stepper and AdjusterPanel
 
 A step-based adjuster (preferred over drag on the perf floor). See
-`.claude/skills/sketch-findings-dinghy-display/references/adjustment-controls.md` for the locked
+`.claude/skills/sketch-findings-jiib/references/adjustment-controls.md` for the locked
 design. Phase 26 executed the adjustment-screen rebuild (Fine-Tune, Temperature, Outputs) on it.
 
 **AdjusterPanel — two-zone layout (compliance pass, 2026-06-13):**
@@ -651,7 +651,7 @@ The canonical drag-adjust control, owner-referenced Android-SeekBar style ported
 - **Load-bearing impl rule (the `fa97efb` lesson):** build the element ONCE; update fill width,
   thumb position, and value **in place** during drag. NEVER rebuild/recompose the dragged element
   per move — it detaches the node / stales the drag closure and the gesture dies.
-- Source sketch: `.claude/skills/sketch-findings-dinghy-display/sources/004-scrubber-style/`.
+- Source sketch: `.claude/skills/sketch-findings-jiib/sources/004-scrubber-style/`.
 
 **Status (R9 — migration COMPLETE 2026-06-12):** the canonical implementation is
 `designsystem/components/Scrubber.kt`. The legacy fill-bar composables (`ScrubberPage`, then

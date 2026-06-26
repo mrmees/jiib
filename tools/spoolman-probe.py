@@ -37,7 +37,7 @@ from typing import Any
 CLIENT_NAME = "jiib Spoolman Probe"
 CLIENT_VERSION = "0.1.0"
 CLIENT_TYPE = "display"
-CLIENT_URL = "https://github.com/mrmees/dinghy-display"
+CLIENT_URL = "https://github.com/mrmees/jiib"
 
 NOTIFY_ACTIVE_SPOOL_SET = "notify_active_spool_set"
 NOTIFY_SPOOLMAN_STATUS_CHANGED = "notify_spoolman_status_changed"

@@ -10,7 +10,7 @@ import org.junit.Test
  * GREEN tests for the [ListRow] fill/border state-selection helpers (23-05).
  *
  * ListRow is the single-row scrollable-list primitive in the jiib redesign grammar.
- * The fill convention (from sketch-findings-dinghy-display/references/foundations.md):
+ * The fill convention (from sketch-findings-jiib/references/foundations.md):
  *   - unselected: background = Color.Transparent, border = t.outline (1.5dp)
  *   - selected:   background = t.accentSoft, border = t.accentLine (2dp)
  *

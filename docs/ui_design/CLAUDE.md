@@ -167,6 +167,6 @@
   (The LED `ColorWheel` was retired 2026-06-21 — Outputs LEDs use static H/S/V(+W) slider tracks.)
   Any new continuous animation must name a sanctioned exception here before ship.
 - North star of record: the as-built Spoolman screen + sketch sources
-  (`.claude/skills/sketch-findings-dinghy-display/sources/`) + THEMING.md. The old hi-fi bundle
+  (`.claude/skills/sketch-findings-jiib/sources/`) + THEMING.md. The old hi-fi bundle
   (`reference/hifi.css`, `Print Status Hi-Fi.html`, `images/`) is HISTORICAL — superseded by the
   2026-06-09 jiib redesign; do not build from it.
