@@ -26,15 +26,16 @@ public release (Phase 29) — the only clean moment to set a permanent
    `.planning/` execution log.
 5. **Repo dir + GitHub remote rename:** **DEFERRED** to a separate step.
 
-### Open decision (needs owner sign-off — see §C / §G)
+### CLIENT_URL decision (RESOLVED with owner)
 
-- **`CLIENT_URL` / `clientUrl` = `https://mees.works/dinghy-display`.** This is a
-  Moonraker-announced URL carrying a `DO NOT regress` marker, and it couples
-  *both* the personal `mees.works` domain *and* the (deferred) repo path. The
-  same literal is mirrored in `tools/ws-capture.py` and `tools/spoolman-probe.py`.
-  **Recommendation: EXEMPT it from this pass** and fold it into the deferred
-  repo-rename step (the URL tracks the project home, which is still
-  `dinghy-display`). Owner may instead elect `https://mees.works/jiib` now.
+- The project will be **hosted on GitHub**, not the personal `mees.works` site.
+  So `CLIENT_URL` / `clientUrl` changes `https://mees.works/dinghy-display` →
+  **`https://github.com/mrmees/dinghy-display`** (drops the personal domain;
+  `mees` survives only as the GitHub *handle* `mrmees`). Same update to
+  `tools/ws-capture.py`, `tools/spoolman-probe.py`, and the `DO NOT regress`
+  comment at `MoonrakerService.kt:149`. The trailing `dinghy-display` is the
+  **current GitHub repo slug** — it stays until the deferred repo rename (GitHub
+  auto-redirects), and is therefore a documented grep-gate exemption (§E).
 
 ## Naming convention note
 
@@ -96,7 +97,11 @@ paths that reference renamed files.
 | app-name prose | `theme/StatusSlot.kt:13` | `dinghy`→`jiib` |
 
 Handled **before** the blanket `Dinghy`→`Jiib` so the client name becomes
-`jiib`, not `Jiib Display`. **`CLIENT_URL` is NOT here — see Open decision.**
+`jiib`, not `Jiib Display`. **`CLIENT_URL`** (`ConnectionProbe.kt:82`,
+`MoonrakerSession.kt:91`, `MoonrakerService.kt:149` comment) changes its host:
+`https://mees.works/dinghy-display` → `https://github.com/mrmees/dinghy-display`
+(per the resolved CLIENT_URL decision; the `dinghy-display` slug is retained and
+exempt — §E).
 
 ### D. Build tooling — `tools/` (FUNCTIONAL, not cosmetic)
 
@@ -108,7 +113,7 @@ These break silently if missed (compile never sees them):
 | `tools/oklch-bake/bake_tokens.py:168,226` | **emits** `package works.mees.dinghy.theme` + path components | → `works.mees.jiib.theme` / `…,"jiib","theme",…` |
 | `tools/gfxinfo-parser/parse_framestats.py:29` | `dumpsys gfxinfo works.mees.dinghy` | → `works.mees.jiib` |
 | `tools/oklch-ramp-oracle.mjs:10` | comment `works.mees.dinghy.theme.Palette` | → `works.mees.jiib.theme.Palette` |
-| `tools/ws-capture.py:89`, `tools/spoolman-probe.py:40` | `CLIENT_URL` literal | tracks the §C Open decision (exempt/defer by default) |
+| `tools/ws-capture.py:89`, `tools/spoolman-probe.py:40` | `CLIENT_URL` literal | → `https://github.com/mrmees/dinghy-display` (mirror the app) |
 
 ### E. ⚠ Lowercase `dinghy` EXCEPTION TABLE (leave these ALONE)
 
@@ -119,7 +124,7 @@ A blind `s/dinghy/jiib/` would corrupt these. They are **exempt** from rename
 |---------|-----------|---------|
 | `[[dinghy-*]]` wiki-links | Cross-references to **assistant memory slugs** named `dinghy-*` (files outside the repo). ~40+ occurrences across KDoc. | `[[dinghy-never-pick-icons-ask]]`, `[[dinghy-compose-write-scope-cancellation]]`, `[[dinghy-display-gradle-hang-interop]]` |
 | `dinghy.js` / `../theme_theory/app/dinghy.js` | References a real file in the **sibling `theme_theory` repo** by its actual name. | `theme/TokenBridge.kt:8` |
-| `mees.works/dinghy-display` (CLIENT_URL) | §C Open decision — exempt/deferred by default. | `ConnectionProbe.kt:82`, `MoonrakerSession.kt:91`, `MoonrakerService.kt:149` (comment), 2 python tools |
+| `dinghy-display` slug in CLIENT_URL | After the host swap to `github.com/mrmees/dinghy-display`, the trailing slug is the **current repo name** — follows the deferred repo rename. | `ConnectionProbe.kt:82`, `MoonrakerSession.kt:91`, `MoonrakerService.kt:149` (comment), 2 python tools |
 
 The lowercase pass renames the §C identity strings/prose ONLY; everything else
 lowercase is either the `works.mees.dinghy` package token (§A) or one of the
@@ -149,7 +154,9 @@ real run (not just compile):
 
 1. **Backup point:** annotated tag `archive/dinghy-pre-rename` at `HEAD`.
 2. **§C first** — replace the brand identity strings/prose (client name → `jiib`,
-   frontendId → `jiib`, mdns, identity prose). **Skip `CLIENT_URL`.**
+   frontendId → `jiib`, mdns, identity prose) **and** swap the `CLIENT_URL` host
+   to `https://github.com/mrmees/dinghy-display` (app + 2 python tools + the
+   `MoonrakerService.kt:149` comment), keeping the `dinghy-display` slug.
 3. **§A** — `git mv` the four dir trees; token-replace `works.mees.dinghy` →
    `works.mees.jiib` across all `.kt`, **excluding** the §E exemption lines.
 4. **§B** — word-replace `Dinghy` → `Jiib` over `.kt`/`.xml`; rename the 10
@@ -165,8 +172,9 @@ real run (not just compile):
 
 1. **Targeted grep gate:** `grep -rniE "works\.mees\.dinghy|dinghy|Dinghy"` over
    `app/src`, `macrobenchmark`, `tools`, and live config/res returns **only the
-   documented §E exemptions** (`[[dinghy-*]]`, `dinghy.js`/`theme_theory`, and —
-   if owner defers it — the `CLIENT_URL` lines). Anything else = fail.
+   documented §E exemptions** (`[[dinghy-*]]` memory links,
+   `dinghy.js`/`theme_theory` refs, and the `dinghy-display` repo slug inside the
+   GitHub `CLIENT_URL`). Anything else = fail.
 2. **Static build:** clean `:app:assembleDebug` + `:app:assembleRelease` +
    `:app:testDebugUnitTest` (≈250 files) + `:macrobenchmark` compiles.
 3. **Runtime smoke (REQUIRED — unit tests do NOT cover manifest class loading
