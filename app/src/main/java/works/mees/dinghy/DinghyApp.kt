@@ -179,7 +179,7 @@ class DinghyApp : Application() {
                 },
                 multicastLockProvider = {
                     (applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager)
-                        ?.createMulticastLock("dinghy-mdns")
+                        ?.createMulticastLock("jiib-mdns")
                 },
             ),
         )

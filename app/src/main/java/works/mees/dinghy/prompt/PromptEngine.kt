@@ -50,7 +50,7 @@ import kotlinx.serialization.json.JsonElement
  * @param store  the already-assembled Phase-2/9 spine; the engine CONSUMES it, never opens a session.
  * @param events the live session's dispatcher event stream (a `prompt:`-keyed Failure folds into
  *               [latestPromptError] for the overlay toast); null skips the fold.
- * @param opts   the engine identity + behavior (Dinghy = `dinghy` + `[touch]`, liveAppend; D-08/D-02).
+ * @param opts   the engine identity + behavior (Dinghy = `jiib` + `[touch]`, liveAppend; D-08/D-02).
  */
 class PromptEngine(
     scope: CoroutineScope,

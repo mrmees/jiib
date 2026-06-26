@@ -16,7 +16,7 @@ import org.junit.Test
  */
 class PromptReducerTest {
 
-    private val dinghy = PromptOpts(frontendId = "dinghy", frontendCategories = listOf("touch"), liveAppend = true)
+    private val dinghy = PromptOpts(frontendId = "jiib", frontendCategories = listOf("touch"), liveAppend = true)
 
     /** Fold a list of raw action lines under [opts] (default Dinghy identity). */
     private fun run(lines: List<String>, opts: PromptOpts = dinghy): PromptStateData {

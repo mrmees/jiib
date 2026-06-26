@@ -4,7 +4,7 @@
     "jsonrpc": "2.0",
     "method": "server.connection.identify",
     "params": {
-      "client_name": "Dinghy Display",
+      "client_name": "jiib",
       "version": "0.1.0",
       "type": "display",
       "url": "https://github.com/example/dinghy-display"

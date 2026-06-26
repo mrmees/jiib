@@ -8,9 +8,9 @@
         "jsonrpc": "2.0",
         "method": "server.connection.identify",
         "params": {
-          "client_name": "Dinghy Display Spoolman Probe",
+          "client_name": "jiib Spoolman Probe",
           "type": "display",
-          "url": "https://mees.works/dinghy-display",
+          "url": "https://github.com/mrmees/dinghy-display",
           "version": "0.1.0"
         }
       },

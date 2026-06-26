@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Dinghy Display — Material Symbols ligature-resolution gate (D-04 / Phase 18.1).
+jiib — Material Symbols ligature-resolution gate (D-04 / Phase 18.1).
 
 WHY THIS EXISTS
 ---------------

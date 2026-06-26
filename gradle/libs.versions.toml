@@ -1,5 +1,5 @@
 # =============================================================================
-# Dinghy Display — pinned version catalog (PKG-02, D-04/D-09)
+# jiib — pinned version catalog (PKG-02, D-04/D-09)
 #
 # This is the SINGLE SOURCE OF VERSIONS for the whole build. The project's
 # central risk is "a modern AndroidX/Compose lib silently raises the minSdk

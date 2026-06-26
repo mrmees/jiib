@@ -31,3 +31,6 @@ tools/__pycache__/
 
 # Brainstorming visual-companion mockups (local only)
 .superpowers/
+
+# Kotlin daemon/build scratch
+.kotlin/

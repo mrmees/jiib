@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Dinghy Display — one-time oklch -> sRGB token bake (D-03, Phase 3 / THEME-01).
+jiib — one-time oklch -> sRGB token bake (D-03, Phase 3 / THEME-01).
 
 WHY THIS EXISTS
 ---------------
@@ -223,7 +223,7 @@ def main():
         import os
         dest = os.path.join(
             os.path.dirname(__file__), "..", "..",
-            "app", "src", "main", "java", "works", "mees", "dinghy", "theme", "BakedTokens.kt",
+            "app", "src", "main", "java", "works", "mees", "jiib", "theme", "BakedTokens.kt",
         )
         dest = os.path.normpath(dest)
         with open(dest, "w", newline="\n") as f:

@@ -3,7 +3,7 @@
 <!-- GSD:project-start source:PROJECT.md -->
 ## Project
 
-**Dinghy Display**
+**jiib**
 
 A native Android app that turns cheap, old Android hardware (Nexus 7 2013 class) into a
 touchscreen control surface for a Klipper 3D printer, talking directly to the Moonraker API

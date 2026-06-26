@@ -1,4 +1,4 @@
-# R8 / ProGuard keep rules for Dinghy Display (release build is the MEASURED
+# R8 / ProGuard keep rules for jiib (release build is the MEASURED
 # and SHIPPED artifact). Keep just enough that kotlinx.serialization codegen and
 # Retrofit model reflection survive shrinking — without these the cleartext
 # smoke test (01-02) would fail at runtime as a false negative (RESEARCH

@@ -23,8 +23,8 @@ import org.junit.Test
  * distinct from absent; fully-specified arrays compare exact-length; `scale:1` is a numeric Int-vs-Double
  * compare). The EXACT-6-keys structural guard proves no internal reducer field leaks (T-12-07).
  *
- * Dinghy frontend identity (D-08): `frontendId = "dinghy"`, `frontendCategories = ["touch"]` — so Dinghy
- * matches `all`, `dinghy`, and `touch`. The JS driver maps `klipperscreen → ["touch"]` and everything else
+ * Dinghy frontend identity (D-08): `frontendId = "jiib"`, `frontendCategories = ["touch"]` — so Dinghy
+ * matches `all`, `jiib`, and `touch`. The JS driver maps `klipperscreen → ["touch"]` and everything else
  * → `["web"]`; the Kotlin port adds a `dinghy → ["touch"]` row. Because Dinghy carries category `touch`,
  * `target-touch-only` (targets `klipperscreen,touch`) is VISIBLE for Dinghy (it behaves like `klipperscreen`,
  * not the hidden `mainsail`/`fluidd`).
@@ -62,7 +62,7 @@ class PromptFixtureTest {
             val byFrontend = fx["expected_by_frontend"]?.jsonObject
             if (byFrontend != null) {
                 for ((frontendKey, expectedForFrontend) in byFrontend) {
-                    val categories = if (frontendKey in setOf("klipperscreen", "dinghy")) {
+                    val categories = if (frontendKey in setOf("klipperscreen", "jiib")) {
                         listOf("touch")
                     } else {
                         listOf("web")
@@ -75,7 +75,7 @@ class PromptFixtureTest {
                     ?: error("fixture $id has neither `expected` nor `expected_by_frontend`")
                 // Replay single-run fixtures under Dinghy's own identity (D-08); all carry targets:["all"]
                 // so they are visible regardless, but this exercises the real Dinghy opts.
-                runOne(id, "dinghy", events, dinghyOpts(), expected, failures)
+                runOne(id, "jiib", events, dinghyOpts(), expected, failures)
             }
         }
         if (failures.isNotEmpty()) {
@@ -83,7 +83,7 @@ class PromptFixtureTest {
         }
     }
 
-    private fun dinghyOpts() = PromptOpts(frontendId = "dinghy", frontendCategories = listOf("touch"), liveAppend = true)
+    private fun dinghyOpts() = PromptOpts(frontendId = "jiib", frontendCategories = listOf("touch"), liveAppend = true)
 
     /** Fold one fixture's events under [opts], project the view, assert shape + partial value match. */
     private fun runOne(

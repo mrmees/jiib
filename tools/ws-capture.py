@@ -83,10 +83,10 @@ except ImportError:
 
 # MoonrakerSession defaults (clientName/clientVersion/clientUrl ~79-84). The `url`
 # MUST be non-empty — omitting it was the Phase-2 live bug the whole project learned from.
-CLIENT_NAME = "Dinghy Display (ws-capture)"
+CLIENT_NAME = "jiib (ws-capture)"
 CLIENT_VERSION = "0.1.0"
 CLIENT_TYPE = "display"
-CLIENT_URL = "https://mees.works/dinghy-display"
+CLIENT_URL = "https://github.com/mrmees/dinghy-display"
 
 # The v1 core subset the app queries/subscribes (DeriveCapabilities.V1_SUBSCRIBE_CORE,
 # intersected on-device with objects.list; here we send the full superset — the printer

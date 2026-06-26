@@ -127,7 +127,7 @@ class SyntheticFeed(
     }
 
     companion object {
-        const val DEFAULT_SEED: Long = 0xD1_46_47_59L          // "DINGHY"-ish, fixed
+        const val DEFAULT_SEED: Long = 0xD1_46_47_59L          // fixed deterministic seed
         const val DEFAULT_EVENT_COUNT: Int = 600                // ≈ 200 s @ 3 Hz
         const val DEFAULT_PERIOD_MS: Long = 333                 // ≈ 3 Hz (inside 2–4 Hz)
 

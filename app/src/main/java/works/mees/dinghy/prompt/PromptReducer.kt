@@ -35,7 +35,7 @@ private fun freshIdle(epoch: Int, opts: PromptOpts): PromptStateData = PromptSta
 /**
  * True if [targets] makes this prompt visible to the configured frontend identity: matches the literal
  * `all`, the lowercased [PromptOpts.frontendId], or any lowercased [PromptOpts.frontendCategories] member.
- * (Dinghy: `dinghy` + `touch`.) Mirrors `targetsMatch`.
+ * (Dinghy: `jiib` + `touch`.) Mirrors `targetsMatch`.
  */
 private fun targetsMatch(targets: List<String>, opts: PromptOpts): Boolean {
     if (targets.contains("all")) return true

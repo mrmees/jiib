@@ -21,12 +21,12 @@ import androidx.compose.runtime.Immutable
 enum class PromptLifecycle { IDLE, BUILDING, SHOWN, SUPPRESSED }
 
 /**
- * The engine identity + behavior options. Dinghy's identity (D-08) is `frontendId = "dinghy"`,
+ * The engine identity + behavior options. Dinghy's identity (D-08) is `frontendId = "jiib"`,
  * `frontendCategories = ["touch"]`, with [liveAppend] true (D-02 — content keeps appending after show).
  */
 @Immutable
 data class PromptOpts(
-    val frontendId: String = "dinghy",
+    val frontendId: String = "jiib",
     val frontendCategories: List<String> = listOf("touch"),
     val liveAppend: Boolean = true,
 )

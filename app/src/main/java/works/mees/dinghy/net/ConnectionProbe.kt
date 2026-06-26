@@ -77,9 +77,9 @@ class ConnectionProbe(
         /** Per-leg probe timeout (ms). Both legs get this independent deadline. */
         const val DEFAULT_TIMEOUT_MS = 5_000L
 
-        private const val CLIENT_NAME = "Dinghy Display"
+        private const val CLIENT_NAME = "jiib"
         private const val CLIENT_VERSION = "0.1.0"
-        private const val CLIENT_URL = "https://mees.works/dinghy-display"
+        private const val CLIENT_URL = "https://github.com/mrmees/dinghy-display"
 
         /**
          * Build the production [ConnectionProbe] backed by a real OkHttp client.
