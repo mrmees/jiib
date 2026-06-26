@@ -34,3 +34,12 @@ tools/__pycache__/
 
 # Kotlin daemon/build scratch
 .kotlin/
+
+# Internal planning / AI dev artifacts (local only — not in clones)
+.planning/
+/CLAUDE.md
+.claude/skills/
+docs/superpowers/
+docs/commands/
+docs/view_specific_notes/
+docs/top-down-audit-roadmap.md
