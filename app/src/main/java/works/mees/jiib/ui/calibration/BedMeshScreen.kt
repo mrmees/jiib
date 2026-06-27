@@ -445,6 +445,11 @@ internal fun BedMeshContent(
             }
         }
         val isLocked = meshLockedLabel != null
+        // Unknown (abnormal HardLock exit) — scope to BedMesh-owned keys so an unrelated screen's
+        // unresolved op doesn't surface "still running" here.
+        val unknownOwned = (gating as? GatingState.Unknown)?.key?.let {
+            it == "bed_mesh_calibrate" || it.startsWith("home")
+        } == true
 
         Box(Modifier.fillMaxSize()) {
             ScreenScaffold(
@@ -465,7 +470,7 @@ internal fun BedMeshContent(
                         // Unknown Focus morph (precedence: Unknown > Locked > normal content): when
                         // the link or firmware can't confirm the HardLock completed, show "Still
                         // running" and require explicit dismissal. E-stop stays live above.
-                        if (gating is GatingState.Unknown) {
+                        if (unknownOwned) {
                             UnknownStatusCard(grid.uDp, onDismiss = onAcknowledgeUnknown, Modifier.fillMaxSize())
                             return@FocusFrame
                         }

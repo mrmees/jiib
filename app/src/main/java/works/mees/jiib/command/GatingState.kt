@@ -10,8 +10,12 @@ sealed interface GatingState {
     data class Busy(val key: String) : GatingState
     /** A HardLock command is running and the link is healthy — Focus morph + confirm-on-back. */
     data class Locked(val key: String) : GatingState
-    /** A HardLock op may still be running but the link/firmware can't confirm — do NOT unlock silently. */
-    data object Unknown : GatingState
+    /**
+     * A HardLock op may still be running but the link/firmware can't confirm — do NOT unlock silently.
+     * Carries the offending command [key] so a screen surfaces "still running" only for a key it owns
+     * (mirrors [Locked]); a keyless object would light up every HardLock screen at once.
+     */
+    data class Unknown(val key: String) : GatingState
 }
 
 /**
@@ -28,10 +32,10 @@ fun deriveGatingState(
     connection: ConnectionState,
     klippy: KlippyState,
 ): GatingState {
-    if (unresolvedHardLock != null) return GatingState.Unknown
+    if (unresolvedHardLock != null) return GatingState.Unknown(unresolvedHardLock)
     val healthy = connection == ConnectionState.Connected && klippy == KlippyState.Ready
     val hard = active.firstOrNull { it.gating == GatingMode.HardLock }
-    if (hard != null) return if (healthy) GatingState.Locked(hard.key) else GatingState.Unknown
+    if (hard != null) return if (healthy) GatingState.Locked(hard.key) else GatingState.Unknown(hard.key)
     val soft = active.firstOrNull { it.gating == GatingMode.SoftBusy }
     if (soft != null) return GatingState.Busy(soft.key)
     return GatingState.Idle

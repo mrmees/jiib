@@ -1,7 +1,6 @@
 package works.mees.jiib.command
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import works.mees.jiib.state.ConnectionState
 import works.mees.jiib.state.KlippyState
@@ -24,13 +23,14 @@ class GatingStateTest {
             deriveGatingState(jogActive, null, ConnectionState.Connected, KlippyState.Ready))
     }
 
-    @Test fun unresolvedLatch_isUnknown_evenWhenActiveEmpty() {
-        assertEquals(GatingState.Unknown,
+    @Test fun unresolvedLatch_isUnknown_carriesKey_evenWhenActiveEmpty() {
+        assertEquals(GatingState.Unknown("bed_mesh_calibrate"),
             deriveGatingState(emptyList(), "bed_mesh_calibrate", ConnectionState.Disconnected, KlippyState.Disconnected))
     }
 
-    @Test fun hardLock_whileDisconnected_isUnknown() {
-        assertTrue(deriveGatingState(homeActive, null, ConnectionState.Disconnected, KlippyState.Ready) is GatingState.Unknown)
+    @Test fun hardLock_whileDisconnected_isUnknown_carriesActiveKey() {
+        assertEquals(GatingState.Unknown("home_all"),
+            deriveGatingState(homeActive, null, ConnectionState.Disconnected, KlippyState.Ready))
     }
 
     @Test fun hardLock_beatsSoftBusy_whenBothActive() {

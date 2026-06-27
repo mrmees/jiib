@@ -244,6 +244,9 @@ fun ProbeCalibrateContent(
         // are NOT HardLock commands — the interactive probe session stays fully live; only homing
         // (dispatched from the foot when unhomed) triggers the lock morph.
         val isHoming = (gating as? GatingState.Locked)?.key?.startsWith("home") == true
+        // Unknown (abnormal HardLock exit) — ProbeCalibrate owns home_* only; scope the "still
+        // running" card so an unrelated screen's unresolved op doesn't surface here.
+        val unknownOwned = (gating as? GatingState.Unknown)?.key?.startsWith("home") == true
 
         Box(Modifier.fillMaxSize()) {
             ScreenScaffold(
@@ -261,7 +264,7 @@ fun ProbeCalibrateContent(
                         // Unknown Focus morph (precedence: Unknown > Locked > normal content): when
                         // the link or firmware can't confirm the HardLock completed, show "Still
                         // running" and require explicit dismissal. E-stop stays live above.
-                        if (gating is GatingState.Unknown) {
+                        if (unknownOwned) {
                             UnknownStatusCard(grid.uDp, onDismiss = onAcknowledgeUnknown, Modifier.fillMaxSize())
                             return@FocusFrame
                         }

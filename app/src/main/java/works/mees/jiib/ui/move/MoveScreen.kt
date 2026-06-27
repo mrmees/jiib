@@ -275,6 +275,9 @@ internal fun MoveHubContent(
         val lockedKey = (gating as? GatingState.Locked)?.key
         val homingLabelRes = lockedKey?.let { if (it.startsWith("home")) R.string.gating_homing else null }
         val isHoming = homingLabelRes != null
+        // Unknown (abnormal HardLock exit) — scope to Move-owned keys (home_*) so an unrelated
+        // screen's unresolved op doesn't surface "still running" here.
+        val unknownOwned = (gating as? GatingState.Unknown)?.key?.startsWith("home") == true
 
         ScreenScaffold(
             focus = {
@@ -294,7 +297,7 @@ internal fun MoveHubContent(
                     // Unknown Focus morph (precedence: Unknown > Locked > normal content): when the
                     // link or firmware can't confirm the HardLock completed, replace the Focus body
                     // with a "Still running" card that requires explicit dismissal.
-                    if (gating is GatingState.Unknown) {
+                    if (unknownOwned) {
                         UnknownStatusCard(grid.uDp, onDismiss = onAcknowledgeUnknown, Modifier.fillMaxSize())
                         return@FocusFrame
                     }
