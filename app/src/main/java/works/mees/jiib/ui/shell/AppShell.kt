@@ -42,6 +42,7 @@ import works.mees.jiib.calibration.BedMeshHolder
 import works.mees.jiib.calibration.CalibrationHubHolder
 import works.mees.jiib.calibration.CalibrationRoutine
 import works.mees.jiib.calibration.ProbeCalibrateHolder
+import works.mees.jiib.calibration.ProbeHubHolder
 import works.mees.jiib.calibration.ScrewsTiltHolder
 import works.mees.jiib.calibration.TiltHolder
 import works.mees.jiib.command.CommandRegistry
@@ -77,6 +78,7 @@ import works.mees.jiib.ui.macros.MacroHolder
 import works.mees.jiib.ui.calibration.BedMeshScreen
 import works.mees.jiib.ui.calibration.CalibrationHubScreen
 import works.mees.jiib.ui.calibration.ProbeCalibrateScreen
+import works.mees.jiib.ui.calibration.ProbeHubScreen
 import works.mees.jiib.ui.calibration.ScrewsTiltScreen
 import works.mees.jiib.ui.calibration.TiltScreen
 import works.mees.jiib.ui.calibration.TiltVariant
@@ -398,6 +400,12 @@ fun AppShell(
     val probeCalibrateHolder = remember(store) {
         ProbeCalibrateHolder(scope = scope, store = store, events = calibEvents)
     }
+    // Probe sub-hub holder (Task 14): built alongside the calibration holders, re-keyed on the
+    // live per-session store. Mirrors CalibrationHubHolder exactly — ctor(scope, store,
+    // showUnsupportedTools) — so a reconnect re-derives the tool list from fresh capabilities.
+    val probeHubHolder = remember(store) {
+        ProbeHubHolder(scope = scope, store = store, showUnsupportedTools = container.showUnsupportedTools)
+    }
     // D-01 move #2 (22-07): the four calibration *Vm collections are removed; TiltScreen/BedMeshScreen/
     // ProbeCalibrateScreen now take their holder directly and collect holder.vm internally (mirroring the
     // existing ScrewsTiltScreen pattern). The holder builds above (lines 366-385) stay in AppShell.
@@ -643,7 +651,17 @@ fun AppShell(
                 CalibrationHubScreen(
                     holder = calibrationHubHolder,
                     container = container,
-                    onOpen = { routine -> navController.navigate(routine.toNavDest()) },
+                    // Task 14: PROBE_CALIBRATE reparented — the Calibration hub's "Probe" row now
+                    // opens the Probe sub-hub (NavDest.ProbeHub) instead of going directly to the
+                    // Z-Offset calibration routine (NavDest.CalibrationProbe). All other routines
+                    // navigate to their own NavDest via the standard toNavDest() mapping.
+                    onOpen = { routine ->
+                        if (routine == CalibrationRoutine.PROBE_CALIBRATE) {
+                            navController.navigate(NavDest.ProbeHub)
+                        } else {
+                            navController.navigate(routine.toNavDest())
+                        }
+                    },
                     onBack = { navController.popBackStack() },
                 )
             }
@@ -700,6 +718,17 @@ fun AppShell(
                     container = container,
                     holder = qglHolder,
                     variant = TiltVariant.Qgl,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            // Task 14: Probe sub-hub. Reached from Calibration hub (PROBE_CALIBRATE row reparented)
+            // and exposes 6 tool sub-routes (Z_OFFSET routes to the existing CalibrationProbe screen;
+            // the other 5 tool screens are built in Tasks 17–20 and not registered here yet).
+            composable<NavDest.ProbeHub> {
+                ProbeHubScreen(
+                    holder = probeHubHolder,
+                    container = container,
+                    onOpen = { tool -> navController.navigate(tool.toNavDest()) },
                     onBack = { navController.popBackStack() },
                 )
             }
@@ -842,6 +871,14 @@ fun AppShell(
                 d.isRoute<NavDest.CalibrationScrewsTilt>()  -> NavDest.CalibrationScrewsTilt
                 d.isRoute<NavDest.CalibrationZTilt>()       -> NavDest.CalibrationZTilt
                 d.isRoute<NavDest.CalibrationQgl>()         -> NavDest.CalibrationQgl
+                // Task 14 (Codex plan-review #2): ALL six Probe routes mapped so pop-to-root fires
+                // from any probe sub-hub depth, not just the top-level hub.
+                d.isRoute<NavDest.ProbeHub>()              -> NavDest.ProbeHub
+                d.isRoute<NavDest.ProbeTest>()             -> NavDest.ProbeTest
+                d.isRoute<NavDest.ProbeApplyBabystep>()    -> NavDest.ProbeApplyBabystep
+                d.isRoute<NavDest.ProbeEddyCalibrate>()    -> NavDest.ProbeEddyCalibrate
+                d.isRoute<NavDest.ProbeEddyTap>()          -> NavDest.ProbeEddyTap
+                d.isRoute<NavDest.ProbeEddyDriveCurrent>() -> NavDest.ProbeEddyDriveCurrent
                 // Non-foot-gun destinations — shouldPopToRoot returns false for these.
                 else -> null
             }
@@ -982,6 +1019,13 @@ fun AppShell(
             estopDest.isRoute<NavDest.CalibrationScrewsTilt>() ||
             estopDest.isRoute<NavDest.CalibrationZTilt>() ||
             estopDest.isRoute<NavDest.CalibrationQgl>() ||
+            // Task 14: Probe sub-hub + tool routes own their e-stop via FocusFrame header dock.
+            estopDest.isRoute<NavDest.ProbeHub>() ||
+            estopDest.isRoute<NavDest.ProbeTest>() ||
+            estopDest.isRoute<NavDest.ProbeApplyBabystep>() ||
+            estopDest.isRoute<NavDest.ProbeEddyCalibrate>() ||
+            estopDest.isRoute<NavDest.ProbeEddyTap>() ||
+            estopDest.isRoute<NavDest.ProbeEddyDriveCurrent>() ||
             estopDest.isRoute<NavDest.System>() ||
             estopDest.isRoute<NavDest.SystemInfo>() ||
             estopDest.isRoute<NavDest.AppSettings>() ||

@@ -246,6 +246,25 @@ object SampleFixtures {
         RoutineEntry(CalibrationRoutine.QUAD_GANTRY_LEVEL, isSupported = false),
     )
 
+    /**
+     * Probe tool hub list fixture (Task 14 — ProbeHubContent previews).
+     *
+     * E3/E5 test printer profile: Z_OFFSET (manual_probe), PROBE_TEST (probe), and
+     * APPLY_BABYSTEP (gcode_move) are supported; the three EDDY_* tools are unsupported
+     * (no eddy probe on these printers). Supported tools sort first (D-06 convention).
+     *
+     * The [showUnsupportedTools] flag is true in preview so all six rows render — unsupported
+     * entries are visible but dimmed, exercising the D-06 greyed-but-listed path.
+     */
+    val probeToolList: List<works.mees.jiib.calibration.ProbeToolEntry> = listOf(
+        works.mees.jiib.calibration.ProbeToolEntry(works.mees.jiib.calibration.ProbeTool.Z_OFFSET, isSupported = true),
+        works.mees.jiib.calibration.ProbeToolEntry(works.mees.jiib.calibration.ProbeTool.PROBE_TEST, isSupported = true),
+        works.mees.jiib.calibration.ProbeToolEntry(works.mees.jiib.calibration.ProbeTool.APPLY_BABYSTEP, isSupported = true),
+        works.mees.jiib.calibration.ProbeToolEntry(works.mees.jiib.calibration.ProbeTool.EDDY_CALIBRATE, isSupported = false),
+        works.mees.jiib.calibration.ProbeToolEntry(works.mees.jiib.calibration.ProbeTool.EDDY_TAP, isSupported = false),
+        works.mees.jiib.calibration.ProbeToolEntry(works.mees.jiib.calibration.ProbeTool.EDDY_DRIVE_CURRENT, isSupported = false),
+    )
+
     // ---------------------------------------------------------------------------------------------
     // ProbeCalibrateContent fixtures (per-state stub snapshots — no live VM — 27-04)
     // ---------------------------------------------------------------------------------------------

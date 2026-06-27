@@ -4,11 +4,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import works.mees.jiib.calibration.CalibrationRoutine
 import works.mees.jiib.calibration.ProbePageState
+import works.mees.jiib.calibration.ProbeTool
 import works.mees.jiib.calibration.TiltState
 import works.mees.jiib.ui.calibration.BedMeshContent
 import works.mees.jiib.ui.calibration.CalibrationHubContent
 import works.mees.jiib.ui.calibration.MeshFieldMode
 import works.mees.jiib.ui.calibration.ProbeCalibrateContent
+import works.mees.jiib.ui.calibration.ProbeHubContent
 import works.mees.jiib.ui.calibration.ScrewsTiltContent
 import works.mees.jiib.ui.calibration.TiltContent
 import works.mees.jiib.ui.calibration.TiltVariant
@@ -1027,5 +1029,194 @@ private fun TiltPseudolocaleSpotCheck() = PreviewBox(colorfulDark) {
         vm = SampleFixtures.tiltContent(TiltVariant.ZTilt, TiltState.Idle, homedGate = true),
         variant = TiltVariant.ZTilt,
         state = TiltState.Idle,
+    )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ProbeHubContent previews (Task 14)
+//
+// Targets the STATELESS ProbeHubContent seam (WARNING-5). No live Moonraker, no VM, no holder.
+// Fixture data from [SampleFixtures.probeToolList] — six tools, three supported / three greyed.
+//
+// ProbeHub axes:
+//  - Tool matrix: Z_OFFSET-selected / PROBE_TEST-selected / EDDY_CALIBRATE-selected (unsupported)
+//    — exercises D-05 pre-select + D-06 greyed-but-listed
+//  - 6 theme combos on Z_OFFSET-selected (the most common hub entry for E3/E5 printers)
+//  - fs = L overflow: verifies title + description text don't clip the Focus card
+//  - Pseudolocale en-XA: i18n completeness sweep
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Preview(
+    name = "ProbeHub: Z_OFFSET selected (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ProbeHubZOffsetSelected() = PreviewBox(colorfulDark) {
+    ProbeHubContent(
+        tools = SampleFixtures.probeToolList,
+        selected = ProbeTool.Z_OFFSET,
+        onSelect = {},
+        onOpen = {},
+        onBack = {},
+    )
+}
+
+@Preview(
+    name = "ProbeHub: PROBE_TEST selected (Nexus7 landscape)",
+    device = NEXUS7,
+    showBackground = true,
+)
+@Composable
+private fun ProbeHubProbeTestSelected() = PreviewBox(colorfulDark) {
+    ProbeHubContent(
+        tools = SampleFixtures.probeToolList,
+        selected = ProbeTool.PROBE_TEST,
+        onSelect = {},
+        onOpen = {},
+        onBack = {},
+    )
+}
+
+@Preview(
+    name = "ProbeHub: EDDY_CALIBRATE selected (unsupported-greyed visible, Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ProbeHubUnsupportedGreyed() = PreviewBox(colorfulDark) {
+    ProbeHubContent(
+        tools = SampleFixtures.probeToolList,
+        selected = ProbeTool.EDDY_CALIBRATE, // unsupported — greyed in list
+        onSelect = {},
+        onOpen = {},
+        onBack = {},
+    )
+}
+
+// ── 6-theme matrix on Z_OFFSET-selected ─────────────────────────────────────
+
+@Nexus7Previews
+@Composable
+private fun ProbeHubThemeColorfulDark() = PreviewBox(colorfulDark) {
+    ProbeHubContent(
+        tools = SampleFixtures.probeToolList,
+        selected = ProbeTool.Z_OFFSET,
+        onSelect = {},
+        onOpen = {},
+        onBack = {},
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun ProbeHubThemeColorfulLight() = PreviewBox(colorfulLight) {
+    ProbeHubContent(
+        tools = SampleFixtures.probeToolList,
+        selected = ProbeTool.Z_OFFSET,
+        onSelect = {},
+        onOpen = {},
+        onBack = {},
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun ProbeHubThemeSimpleDark() = PreviewBox(simpleDark) {
+    ProbeHubContent(
+        tools = SampleFixtures.probeToolList,
+        selected = ProbeTool.Z_OFFSET,
+        onSelect = {},
+        onOpen = {},
+        onBack = {},
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun ProbeHubThemeSimpleLight() = PreviewBox(simpleLight) {
+    ProbeHubContent(
+        tools = SampleFixtures.probeToolList,
+        selected = ProbeTool.Z_OFFSET,
+        onSelect = {},
+        onOpen = {},
+        onBack = {},
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun ProbeHubThemeHighContrastDark() = PreviewBox(highContrastDark) {
+    ProbeHubContent(
+        tools = SampleFixtures.probeToolList,
+        selected = ProbeTool.Z_OFFSET,
+        onSelect = {},
+        onOpen = {},
+        onBack = {},
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun ProbeHubThemeHighContrastLight() = PreviewBox(highContrastLight) {
+    ProbeHubContent(
+        tools = SampleFixtures.probeToolList,
+        selected = ProbeTool.Z_OFFSET,
+        onSelect = {},
+        onOpen = {},
+        onBack = {},
+    )
+}
+
+// ── fs = L overflow check ─────────────────────────────────────────────────────
+
+@Preview(
+    name = "ProbeHub fs=L portrait overflow check",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ProbeHubFsLargeOverflowPortrait() = PreviewBox(fsLargeSeed) {
+    ProbeHubContent(
+        tools = SampleFixtures.probeToolList,
+        selected = ProbeTool.Z_OFFSET,
+        onSelect = {},
+        onOpen = {},
+        onBack = {},
+    )
+}
+
+@Preview(
+    name = "ProbeHub fs=L landscape overflow check",
+    device = NEXUS7,
+    showBackground = true,
+)
+@Composable
+private fun ProbeHubFsLargeOverflowLandscape() = PreviewBox(fsLargeSeed) {
+    ProbeHubContent(
+        tools = SampleFixtures.probeToolList,
+        selected = ProbeTool.Z_OFFSET,
+        onSelect = {},
+        onOpen = {},
+        onBack = {},
+    )
+}
+
+// ── Pseudolocale en-XA ────────────────────────────────────────────────────────
+
+@Preview(
+    name = "ProbeHub pseudolocale en-XA",
+    device = NEXUS7_PORTRAIT,
+    locale = "en-XA",
+    showBackground = true,
+)
+@Composable
+private fun ProbeHubPseudolocaleSpotCheck() = PreviewBox(colorfulDark) {
+    ProbeHubContent(
+        tools = SampleFixtures.probeToolList,
+        selected = ProbeTool.Z_OFFSET,
+        onSelect = {},
+        onOpen = {},
+        onBack = {},
     )
 }
