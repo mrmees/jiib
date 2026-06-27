@@ -9,6 +9,8 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import works.mees.jiib.di.AppContainer
+import works.mees.jiib.state.ConnectionState
+import works.mees.jiib.state.KlippyState
 import works.mees.jiib.state.PrinterState
 import works.mees.jiib.ui.route.NavDest
 import works.mees.jiib.ui.route.TopRoute
@@ -53,9 +55,13 @@ import works.mees.jiib.ui.screen.SplashScreen
  * @param startDest OPTIONAL dev-gated initial screen (null = default home); seeded once into [nav].
  */
 @Composable
-fun RootController(container: AppContainer, startDest: NavDest? = null) {
+fun RootController(
+    container: AppContainer,
+    startDest: NavDest? = null,
+    initialHasConfig: Boolean = false,
+) {
     val state by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
-    val hasConfig by container.hasConfig.collectAsStateWithLifecycle(initialValue = false)
+    val hasConfig by container.hasConfig.collectAsStateWithLifecycle(initialValue = initialHasConfig)
 
     // The ONE "open Settings outside the Shell" escape (review #2) — used by first-run/Connect AND by
     // the Splash "Set up / Edit connection" action. No other surface owns an open-Settings path.
@@ -67,6 +73,22 @@ fun RootController(container: AppContainer, startDest: NavDest? = null) {
     // The dev-gated [startDest] (null in release) seeds [ShellNavState.dest] ONCE in the holder's
     // initializer — it runs at first composition and never re-fires (18-04, SC-4b/D-06).
     val nav = rememberShellNavState(startDest)
+
+    // LAUNCH-ONLY brand splash (black/white "Connecting…") gate. everConnected latches true on the
+    // first Connected and never resets (so every LATER reconnect uses the themed recovery splash —
+    // RootController stays composed across the Splash/Shell flip, so the remember survives). graceExpired
+    // bounds how long we sit on a brand "Connecting…" before falling to themed recovery (e.g. the printer
+    // is actually off at launch). See [computeBrandMode].
+    var everConnected by remember { mutableStateOf(false) }
+    LaunchedEffect(state.connection) {
+        if (state.connection is ConnectionState.Connected) everConnected = true
+    }
+    var graceExpired by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(BRAND_GRACE_MS)
+        graceExpired = true
+    }
+    val brandMode = computeBrandMode(everConnected, graceExpired, state)
 
     val rawRoute = derive(hasConfig, state)
 
@@ -137,6 +159,7 @@ fun RootController(container: AppContainer, startDest: NavDest? = null) {
                 hasConfig = hasConfig,
                 state = state,
                 onEditConnection = { settingsEscape = true },
+                brandMode = brandMode,
             )
         }
 
@@ -154,3 +177,30 @@ fun RootController(container: AppContainer, startDest: NavDest? = null) {
  * delays HIDING the splash — it never delays the actual reconnect/resync.
  */
 private const val SPLASH_MIN_DWELL_MS = 600L
+
+/**
+ * How long the launch-only brand "Connecting…" splash stays before falling to the themed recovery
+ * screen if no connection has been made (e.g. the printer is off at launch). Bounds the brand moment.
+ */
+private const val BRAND_GRACE_MS = 10_000L
+
+/**
+ * Whether the LAUNCH-ONLY black/white brand "Connecting…" splash should show (launch only, not
+ * mid-session). True only during the initial connect: never connected this process AND still within
+ * the grace window AND no actionable fault present. Once connected, or after the grace window, or on a
+ * hard fault, it returns false and the existing THEMED recovery screen takes over (Codex spec review
+ * #2: a raw `recoveryMode==Connecting` check would never fire at cold start, where state is
+ * Disconnected/Disconnected → Unreachable). This NEVER changes routing — it only suppresses the
+ * black/white paint; [derive] is untouched.
+ */
+internal fun computeBrandMode(
+    everConnected: Boolean,
+    graceExpired: Boolean,
+    state: PrinterState,
+): Boolean {
+    if (everConnected || graceExpired) return false
+    val hardFault = state.connection is ConnectionState.Error ||
+        state.klippyState == KlippyState.Shutdown ||
+        state.klippyState == KlippyState.Error
+    return !hardFault
+}

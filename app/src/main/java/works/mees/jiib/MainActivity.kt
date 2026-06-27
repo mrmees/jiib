@@ -18,9 +18,16 @@ import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import works.mees.jiib.di.AppContainer
@@ -69,6 +76,16 @@ class MainActivity : ComponentActivity() {
     private var notificationPermAsked = false
 
     /**
+     * The first real `hasConfig` value, resolved off DataStore before the splash lifts. `null` until
+     * resolved → the OS splash is held and [RootController] is not composed yet, so the premature
+     * `hasConfig=false` route never paints (the wrong-screen flash fix; Codex spec review #1). A
+     * snapshot state so setting it (on the main thread, from the resolver coroutine) recomposes
+     * `setContent` and lifts the splash. Forced non-null in a `finally` so a stalled/failed read can
+     * never hang the splash (#5).
+     */
+    private var bootHasConfig by mutableStateOf<Boolean?>(null)
+
+    /**
      * Launch the POST_NOTIFICATIONS request iff: API >= 33 (the permission does not exist below
      * TIRAMISU — auto-granted there, including the API-23 floor), not already granted, and not
      * already asked this process. Called on the FIRST transition to [ConnectionState.Connected].
@@ -85,14 +102,39 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // R1 (26.5-04, roadmap §R1 step 2): edge-to-edge MUST be the FIRST statement, before
-        // super.onCreate (Pitfall 1 — window decor flags are configured before the view
-        // hierarchy attaches). The AndroidX backport no-ops gracefully pre-API-35; on
-        // Android 15+ (targetSdk 35) edge-to-edge is forced anyway — this makes it correct.
+        // installSplashScreen() MUST come first — before enableEdgeToEdge() (which touches window
+        // flags) and before super.onCreate() (AndroidX requirement). It swaps the launch
+        // Theme.JiibDisplay.Splash to postSplashScreenTheme (Theme.JiibDisplay) once we let it
+        // dismiss. We HOLD it until the first real route input (hasConfig) is resolved so the
+        // premature hasConfig=false frames compose BEHIND the splash and are never seen.
+        val splashScreen = installSplashScreen()
+        // R1 (26.5-04, roadmap §R1 step 2): edge-to-edge MUST precede super.onCreate (Pitfall 1 —
+        // window decor flags are configured before the view hierarchy attaches). The AndroidX backport
+        // no-ops gracefully pre-API-35; on Android 15+ (targetSdk 35) edge-to-edge is forced anyway.
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        splashScreen.setKeepOnScreenCondition { bootHasConfig == null }
 
         val container = (application as JiibApp).container
+
+        // Resolve the first real hasConfig off DataStore (fast — tens of ms), bounded so a stalled
+        // read can never hang the splash, then set it (recomposes setContent → lifts the splash).
+        // Passed into RootController as its initial value so its FIRST composed frame is on the correct
+        // route (closes the separate-collector race — Codex spec review #1). Set in `finally` so no
+        // timeout, error, or cancellation can leave the splash stuck (#5); real cancellation rethrows.
+        lifecycleScope.launch {
+            var resolved = false
+            try {
+                resolved =
+                    withTimeoutOrNull(BOOT_HASCONFIG_TIMEOUT_MS) { container.hasConfig.first() } ?: false
+            } catch (ce: CancellationException) {
+                throw ce
+            } catch (t: Throwable) {
+                resolved = false
+            } finally {
+                bootHasConfig = resolved
+            }
+        }
 
         // Start the FGS that owns the spine (SHELL-03/D-01). Idempotent: the started service is
         // START_STICKY and re-delivers cleanly; the spine is process-held in the AppContainer.
@@ -162,7 +204,16 @@ class MainActivity : ComponentActivity() {
                 ) {
                     // ALL routing is delegated to the single root authority (review #2). The dev-gated
                     // [startDest] (null in release / when the gate is off) seeds the initial screen ONCE.
-                    RootController(container, startDest = startDest)
+                    // Composed only once the boot route input is known; until then the OS splash holds
+                    // (setKeepOnScreenCondition above) so no premature hasConfig=false frame is seen.
+                    val resolved = bootHasConfig
+                    if (resolved != null) {
+                        RootController(
+                            container,
+                            startDest = startDest,
+                            initialHasConfig = resolved,
+                        )
+                    }
                 }
             }
         }
@@ -175,6 +226,9 @@ class MainActivity : ComponentActivity() {
          * Launch: `adb shell am start -n works.mees.jiib/.MainActivity --es start_dest FineTune`.
          */
         const val EXTRA_START_DEST = "start_dest"
+
+        /** Bound on the cold-start hasConfig read (ms) — the splash never holds longer than this. */
+        private const val BOOT_HASCONFIG_TIMEOUT_MS = 1000L
     }
 }
 

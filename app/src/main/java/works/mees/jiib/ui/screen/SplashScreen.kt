@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -68,13 +69,16 @@ fun SplashScreen(
     hasConfig: Boolean,
     state: PrinterState,
     onEditConnection: () -> Unit,
+    brandMode: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
     val sessionControl = container.sessionControl
-    val mode = recoveryMode(hasConfig, state)
+    // brandMode (launch only) forces the no-button "Connecting…" layout + black/white paint; else the
+    // real themed recovery set. brandMode is gated upstream so it is true ONLY during the initial connect.
+    val mode = if (brandMode) RecoveryMode.Connecting else recoveryMode(hasConfig, state)
 
-    Box(modifier.fillMaxSize().background(t.bg)) {
+    Box(modifier.fillMaxSize().background(if (brandMode) Color.Black else t.bg)) {
         // Gutter omitted (LAYOUT.md): the Field's recovery buttons ARE the navigation (hard override).
         ScreenScaffold(
             fieldFramed = false,
@@ -86,10 +90,11 @@ fun SplashScreen(
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    SplashBrandLockup()
+                    SplashBrandLockup(forceWhite = brandMode)
                     Text(
-                        text = reasonText(hasConfig, state),
-                        color = t.text2,
+                        text = if (brandMode) stringResource(R.string.splash_connecting)
+                            else reasonText(hasConfig, state),
+                        color = if (brandMode) Color.White else t.text2,
                         // GeistMono: the reason often carries a verbatim Klippy/MCU message (tabular).
                         style = JiibType.dataInline.toTextStyle(t),
                         textAlign = TextAlign.Center,
@@ -175,12 +180,12 @@ fun SplashScreen(
  * centers it horizontally.
  */
 @Composable
-internal fun SplashBrandLockup() {
+internal fun SplashBrandLockup(forceWhite: Boolean = false) {
     val t = LocalTokens.current
     Icon(
         painter = painterResource(R.drawable.jiib_lockup),
         contentDescription = stringResource(R.string.cd_jiib_logo),
-        tint = brandTint(t.accent, t.bg, t.text),
+        tint = if (forceWhite) Color.White else brandTint(t.accent, t.bg, t.text),
         modifier = Modifier
             .fillMaxWidth(0.6f)
             .wrapContentHeight(),

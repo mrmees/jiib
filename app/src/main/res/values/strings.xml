@@ -705,6 +705,7 @@
     <!-- Splash recovery surface (wide-pass string extraction, R14) -->
     <string name="splash_setup_printer">Set up your printer</string>
     <string name="splash_retry">Retry</string>
+    <string name="splash_connecting">Connecting…</string>
     <string name="splash_restart_firmware">Restart firmware</string>
     <string name="splash_restart_klipper">Restart Klipper</string>
     <string name="splash_edit_connection">Edit connection</string>
