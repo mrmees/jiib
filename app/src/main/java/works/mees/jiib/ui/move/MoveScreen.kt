@@ -62,6 +62,7 @@ import works.mees.jiib.designsystem.components.ConfirmOnBack
 import works.mees.jiib.designsystem.components.AxisSelectorRow
 import works.mees.jiib.designsystem.components.FocusFrame
 import works.mees.jiib.designsystem.components.HardLockStatusCard
+import works.mees.jiib.designsystem.components.UnknownStatusCard
 import works.mees.jiib.designsystem.layout.FocusInset
 import works.mees.jiib.designsystem.components.FootAction
 import works.mees.jiib.designsystem.components.FootButtonBar
@@ -168,6 +169,7 @@ fun MoveScreen(
             savedLocations = savedLocations,
             isPrinting = isPrinting,
             gating = gating,
+            onAcknowledgeUnknown = { dispatcher?.acknowledgeUnresolved() },
             onMoveTo = { x, y, z ->
                 dispatchCommand(
                     CommandRegistry.moveTo,
@@ -214,6 +216,7 @@ internal fun MoveHubContent(
     savedLocations: List<SavedLocation>,
     isPrinting: Boolean,
     gating: GatingState = GatingState.Idle,
+    onAcknowledgeUnknown: () -> Unit = {},
     onMoveTo: (Double?, Double?, Double?) -> Unit,
     onJog: (String, Double) -> Unit,
     onHomeAll: () -> Unit,
@@ -296,6 +299,13 @@ internal fun MoveHubContent(
                     trailingStatusIcon = if (moveBusy) JiibIcons.MoveTouch else null,
                     trailingStatusContentDescription = if (moveBusy) stringResource(R.string.gating_moving) else null,
                 ) {
+                    // Unknown Focus morph (precedence: Unknown > Locked > normal content): when the
+                    // link or firmware can't confirm the HardLock completed, replace the Focus body
+                    // with a "Still running" card that requires explicit dismissal.
+                    if (gating is GatingState.Unknown) {
+                        UnknownStatusCard(grid.uDp, onDismiss = onAcknowledgeUnknown, Modifier.fillMaxSize())
+                        return@FocusFrame
+                    }
                     // HardLock Focus morph: while homing, replace the entire Focus body with a
                     // centered status card. E-stop stays live in the FocusFrame header (above).
                     if (homingLabelRes != null) {

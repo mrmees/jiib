@@ -55,6 +55,7 @@ import works.mees.jiib.command.dispatch
 import works.mees.jiib.designsystem.ConfirmGuard
 import works.mees.jiib.designsystem.components.ConfirmOnBack
 import works.mees.jiib.designsystem.components.HardLockStatusCard
+import works.mees.jiib.designsystem.components.UnknownStatusCard
 import works.mees.jiib.designsystem.Severity
 import works.mees.jiib.designsystem.SeverityToast
 import works.mees.jiib.designsystem.components.FootAction
@@ -223,6 +224,7 @@ fun BedMeshScreen(
             isPrinting = isPrinting,
             dispatcherPresent = dispatcher != null,
             gating = gating,
+            onAcknowledgeUnknown = { dispatcher?.acknowledgeUnresolved() },
             onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
             onCycleScaleMode = { holder.cycleScaleMode() },
             onSelectProfile = { name ->
@@ -393,6 +395,7 @@ internal fun BedMeshContent(
     isPrinting: Boolean,
     dispatcherPresent: Boolean,
     gating: GatingState = GatingState.Idle,
+    onAcknowledgeUnknown: () -> Unit = {},
     onEmergencyStop: () -> Unit,
     onCycleScaleMode: () -> Unit,
     onSelectProfile: (String) -> Unit,
@@ -449,6 +452,13 @@ internal fun BedMeshContent(
                         onTrailingAction = if (!isPrinting && !isLocked && fieldMode !is MeshFieldMode.MeshConfig && fieldMode !is MeshFieldMode.MeshConfigEditor) onEditOpen else null,
                         trailingActionContentDescription = "Edit mesh profile",
                     ) {
+                        // Unknown Focus morph (precedence: Unknown > Locked > normal content): when
+                        // the link or firmware can't confirm the HardLock completed, show "Still
+                        // running" and require explicit dismissal. E-stop stays live above.
+                        if (gating is GatingState.Unknown) {
+                            UnknownStatusCard(grid.uDp, onDismiss = onAcknowledgeUnknown, Modifier.fillMaxSize())
+                            return@FocusFrame
+                        }
                         // HardLock Focus morph: while calibrating, replace the entire Focus body
                         // with a centered status card. E-stop stays live in the FocusFrame header.
                         if (isLocked) {

@@ -40,6 +40,7 @@ import works.mees.jiib.command.dispatch
 import works.mees.jiib.designsystem.components.ConfirmOnBack
 import works.mees.jiib.designsystem.components.FootAction
 import works.mees.jiib.designsystem.components.HardLockStatusCard
+import works.mees.jiib.designsystem.components.UnknownStatusCard
 import works.mees.jiib.designsystem.components.FocusFrame
 import works.mees.jiib.designsystem.components.FootButtonBar
 import works.mees.jiib.designsystem.components.footAction
@@ -112,6 +113,7 @@ fun TiltScreen(
             running = running,
             isPrinting = isPrinting,
             gating = gating,
+            onAcknowledgeUnknown = { dispatcher?.acknowledgeUnresolved() },
             onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
             onRun = {
                 val d = dispatcher ?: return@TiltContent
@@ -143,6 +145,7 @@ fun TiltContent(
     running: Boolean = false,
     isPrinting: Boolean = false,
     gating: GatingState = GatingState.Idle,
+    onAcknowledgeUnknown: () -> Unit = {},
     onEmergencyStop: () -> Unit = {},
     onRun: () -> Unit = {},
     onHome: () -> Unit = {},
@@ -188,6 +191,13 @@ fun TiltContent(
                         onEmergencyStop = onEmergencyStop,
                         onPanic = onEmergencyStop,
                     ) {
+                        // Unknown Focus morph (precedence: Unknown > Locked > normal content): when
+                        // the link or firmware can't confirm the HardLock completed, show "Still
+                        // running" and require explicit dismissal. E-stop stays live above.
+                        if (gating is GatingState.Unknown) {
+                            UnknownStatusCard(grid.uDp, onDismiss = onAcknowledgeUnknown, Modifier.fillMaxSize())
+                            return@FocusFrame
+                        }
                         // HardLock Focus morph: while running, replace the entire Focus body with
                         // a centered status card. E-stop stays live in the FocusFrame header.
                         if (tiltLockedLabel != null) {

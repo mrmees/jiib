@@ -42,6 +42,7 @@ import works.mees.jiib.command.GatingState
 import works.mees.jiib.command.dispatch
 import works.mees.jiib.designsystem.components.ConfirmOnBack
 import works.mees.jiib.designsystem.components.HardLockStatusCard
+import works.mees.jiib.designsystem.components.UnknownStatusCard
 import works.mees.jiib.designsystem.Severity
 import works.mees.jiib.designsystem.SeverityToast
 import works.mees.jiib.designsystem.components.FootAction
@@ -131,6 +132,7 @@ fun ScrewsTiltScreen(
             errorText = errorText,
             isPrinting = isPrinting,
             gating = gating,
+            onAcknowledgeUnknown = { dispatcher?.acknowledgeUnresolved() },
             onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
             onRun = {
                 if (!running) {
@@ -165,6 +167,7 @@ fun ScrewsTiltContent(
     errorText: String? = null,
     isPrinting: Boolean = false,
     gating: GatingState = GatingState.Idle,
+    onAcknowledgeUnknown: () -> Unit = {},
     onEmergencyStop: () -> Unit = {},
     onRun: () -> Unit = {},
     onHome: () -> Unit = {},
@@ -191,6 +194,13 @@ fun ScrewsTiltContent(
                         onEmergencyStop = onEmergencyStop,
                         onPanic = onEmergencyStop,
                     ) {
+                        // Unknown Focus morph (precedence: Unknown > Locked > normal content): when
+                        // the link or firmware can't confirm the HardLock completed, show "Still
+                        // running" and require explicit dismissal. E-stop stays live above.
+                        if (gating is GatingState.Unknown) {
+                            UnknownStatusCard(grid.uDp, onDismiss = onAcknowledgeUnknown, Modifier.fillMaxSize())
+                            return@FocusFrame
+                        }
                         // HardLock Focus morph: while measuring, replace the entire Focus body
                         // with a centered status card. E-stop stays live in the FocusFrame header.
                         if (isLocked) {
