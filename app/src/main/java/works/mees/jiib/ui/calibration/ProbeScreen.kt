@@ -24,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -39,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.util.Locale
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import works.mees.jiib.R
 import works.mees.jiib.calibration.ApplyBabystepHolder
 import works.mees.jiib.calibration.ApplyBabystepVm
@@ -51,6 +53,9 @@ import works.mees.jiib.calibration.ProbeTool
 import works.mees.jiib.calibration.ProbeToolEntry
 import works.mees.jiib.calibration.ProbeTestHolder
 import works.mees.jiib.calibration.ProbeTestVm
+import works.mees.jiib.calibration.eddyProbeDescriptor
+import works.mees.jiib.command.EddyChipArgs
+import works.mees.jiib.command.EddyTapArgs
 import works.mees.jiib.command.ProbeAccuracyArgs
 import works.mees.jiib.command.CommandDispatcher
 import works.mees.jiib.command.CommandRegistry
@@ -59,6 +64,7 @@ import works.mees.jiib.command.PrinterCommands
 import works.mees.jiib.command.TestZArgs
 import works.mees.jiib.command.dispatch
 import works.mees.jiib.designsystem.ConfirmGuard
+import works.mees.jiib.designsystem.components.ConsoleTail
 import works.mees.jiib.designsystem.components.FocusFrame
 import works.mees.jiib.designsystem.components.FootAction
 import works.mees.jiib.designsystem.components.FootButtonBar
@@ -73,6 +79,7 @@ import works.mees.jiib.designsystem.layout.ListBlock
 import works.mees.jiib.designsystem.layout.ScreenScaffold
 import works.mees.jiib.designsystem.layout.rememberUnitGrid
 import works.mees.jiib.di.AppContainer
+import works.mees.jiib.state.Capabilities
 import works.mees.jiib.state.PrintState
 import works.mees.jiib.state.PrinterState
 import works.mees.jiib.theme.JiibType
@@ -80,6 +87,14 @@ import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 import works.mees.jiib.theme.fsSp
 import works.mees.jiib.ui.increments.IncrementControls
+
+// Internal tap-stage API keys (Klipper STAGE= parameter values for eddyTapCalibrate).
+// Mirrors CalibrationRunScreen's TAP_STAGE_KEYS; kept here so ProbeContent can build
+// the correct EddyTapArgs without a public dependency on CalibrationRunScreen's private val.
+private val EDDY_TAP_STAGE_KEYS = listOf("guess", "refine", "verify")
+
+// Maximum gcode-response lines retained per eddy run — keeps memory bounded on 2 GB devices.
+private const val EDDY_CONSOLE_CAP = 200
 
 // Samples steps for the ProbeTest samples stepper in [ProbeTestBody].
 private val SAMPLES_STEPS: List<Int> = listOf(1, 2, 3, 5, 10, 20, 30, 50)
@@ -129,6 +144,7 @@ fun ProbeScreen(
     applyBabystepHolder: ApplyBabystepHolder,
     probeTestHolder: ProbeTestHolder,
     probeCalibrateHolder: ProbeCalibrateHolder,
+    gcodeResponses: SharedFlow<String>,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -140,6 +156,25 @@ fun ProbeScreen(
         printerState.printState == PrintState.Paused
     val applyBabystepVm by applyBabystepHolder.vm.collectAsStateWithLifecycle()
     val probeTestVm by probeTestHolder.vm.collectAsStateWithLifecycle()
+
+    // R5: Tail gcodeResponses into a capped 200-line list for the eddy run bodies.
+    // Mirrors EddyDriveCurrentScreen / EddyTapScreen in CalibrationRunScreen.kt exactly.
+    val eddyLines = remember { mutableStateListOf<String>() }
+    LaunchedEffect(gcodeResponses) {
+        gcodeResponses.collect { line ->
+            eddyLines.add(line)
+            if (eddyLines.size > EDDY_CONSOLE_CAP) {
+                eddyLines.removeRange(0, eddyLines.size - EDDY_CONSOLE_CAP)
+            }
+        }
+    }
+
+    // R5: Derive the eddy chip name from live capabilities (same pattern as EddyDriveCurrentScreen).
+    val capabilities by container.capabilities.collectAsStateWithLifecycle(initialValue = Capabilities())
+    val eddyChip = remember(capabilities) { eddyProbeDescriptor(capabilities)?.chip ?: "" }
+
+    // R5: Eddy Tap stage selector state — index into EDDY_TAP_STAGE_KEYS (default = 0 = "guess").
+    var eddySelectedStageIdx by remember { mutableStateOf(0) }
 
     // Z-Offset Calibrate session VM + step controls (R4).
     val probeCalibrateVm by probeCalibrateHolder.vm.collectAsStateWithLifecycle()
@@ -196,6 +231,10 @@ fun ProbeScreen(
         dispatcher = dispatcher,
         isPrinting = isPrinting,
         gating = gating,
+        eddyLines = eddyLines,
+        eddyChip = eddyChip,
+        eddySelectedStageIdx = eddySelectedStageIdx,
+        onEddySelectStageIdx = { eddySelectedStageIdx = it },
         onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
         onSelect = { selected = it },
         onSamplesUp = { samplesIdx = (samplesIdx + 1).coerceAtMost(SAMPLES_STEPS.lastIndex) },
@@ -256,6 +295,11 @@ internal fun ProbeContent(
     dispatcher: CommandDispatcher? = null,
     isPrinting: Boolean = false,
     gating: GatingState = GatingState.Idle,
+    // R5: eddy run state — capped console lines, chip name, Tap stage index.
+    eddyLines: List<String> = emptyList(),
+    eddyChip: String = "",
+    eddySelectedStageIdx: Int = 0,
+    onEddySelectStageIdx: (Int) -> Unit = {},
     onEmergencyStop: () -> Unit = {},
     onSelect: (ProbeTool) -> Unit,
     onSamplesUp: () -> Unit = {},
@@ -307,6 +351,18 @@ internal fun ProbeContent(
             onConfirm = { dispatcher?.dispatch(CommandRegistry.saveConfig, Unit) },
         )
     }
+
+    // R5: Eddy run body resources — loaded here so they're available in composable context when
+    // building EddyRunBody lambdas. String resources MUST be read in composable context, not lambdas.
+    val eddyBuildBlindNote = stringResource(R.string.calibration_run_build_blind_note)
+    val eddyDriveCurrentDesc = stringResource(R.string.probe_tool_eddy_drive_current_desc)
+    val eddyTapDesc = stringResource(R.string.probe_tool_eddy_tap_desc)
+    // Tap stage display labels (order matches EDDY_TAP_STAGE_KEYS: guess/refine/verify).
+    val tapStageLabels = listOf(
+        stringResource(R.string.calibration_run_tap_stage_guess),
+        stringResource(R.string.calibration_run_tap_stage_refine),
+        stringResource(R.string.calibration_run_tap_stage_verify),
+    )
 
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
@@ -366,8 +422,54 @@ internal fun ProbeContent(
                             onSamplesDown = onSamplesDown,
                             modifier = Modifier.fillMaxSize(),
                         )
+                        // R5: Eddy Drive Current — build-blind run + console-tail body (no stages).
+                        ProbeTool.EDDY_DRIVE_CURRENT -> EddyRunBody(
+                            description = eddyDriveCurrentDesc,
+                            buildBlindNote = eddyBuildBlindNote,
+                            lines = eddyLines,
+                            tapStages = null,
+                            selectedStage = null,
+                            onSelectStage = {},
+                            onRun = {
+                                dispatcher?.dispatch(
+                                    CommandRegistry.ldcDriveCurrent,
+                                    EddyChipArgs(eddyChip),
+                                )
+                            },
+                            onSave = onSaveConfig,
+                            uDp = grid.uDp,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                        // R5: Eddy Tap Threshold — build-blind run + console-tail body + stage selector.
+                        ProbeTool.EDDY_TAP -> EddyRunBody(
+                            description = eddyTapDesc,
+                            buildBlindNote = eddyBuildBlindNote,
+                            lines = eddyLines,
+                            tapStages = tapStageLabels,
+                            selectedStage = tapStageLabels.getOrElse(eddySelectedStageIdx) {
+                                tapStageLabels.first()
+                            },
+                            onSelectStage = { label ->
+                                onEddySelectStageIdx(
+                                    tapStageLabels.indexOf(label).coerceAtLeast(0)
+                                )
+                            },
+                            onRun = {
+                                dispatcher?.dispatch(
+                                    CommandRegistry.eddyTapCalibrate,
+                                    EddyTapArgs(
+                                        EDDY_TAP_STAGE_KEYS.getOrElse(eddySelectedStageIdx) {
+                                            "guess"
+                                        }
+                                    ),
+                                )
+                            },
+                            onSave = onSaveConfig,
+                            uDp = grid.uDp,
+                            modifier = Modifier.fillMaxSize(),
+                        )
                         else -> {
-                            // Placeholder body for tools not yet wired (R5/R6 tasks).
+                            // Placeholder body for tools not yet wired (R6 task — EDDY_CALIBRATE).
                             // onRequestConfirm = { pending = it } is available for future bodies
                             // that need a guard; pass it in here when wiring them.
                             if (selected != null) {
@@ -987,6 +1089,133 @@ internal fun ProbeTestBody(
                     modifier = Modifier.weight(1f),
                 )
             }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EddyRunBody — Focus content shared by Eddy Drive Current + Eddy Tap (Task R5)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Focus body shared by [ProbeTool.EDDY_DRIVE_CURRENT] and [ProbeTool.EDDY_TAP] (Task R5).
+ *
+ * Renders up to four rows inside the [FocusFrame] content area:
+ *  Row1 — [description] text ([JiibType.body], [t.text2]) + [buildBlindNote] amber-caption
+ *          line ([JiibType.caption], [t.heat]) signaling that validation requires eddy hardware.
+ *          The ⚠ in [buildBlindNote] is a unicode character in the string resource — NOT a new
+ *          glyph (icon-law: never choose a glyph without owner approval).
+ *  Row2 — [ConsoleTail] filling available space (weight=1f, newest lines at bottom).
+ *  Row3 — (EDDY_TAP only, when [tapStages] is non-null) three stage-selector chips:
+ *          Guess / Refine / Verify. Selected chip is highlighted accent (Intent.Accent +
+ *          [t.accentSoft] fill); others are neutral-outlined. Mirrors [CalibrationRunContent]'s
+ *          stage selector treatment exactly.
+ *  Row4 — [Run] ([Intent.Go]) + [Save Config] ([Intent.Warn]) buttons. Run dispatches the
+ *          tool-specific command (caller-supplied [onRun]). Save Config raises the shared
+ *          full-screen [ProbeConfirm] guard via the caller-supplied [onSave] = [onSaveConfig].
+ *
+ * **BUILD-BLIND:** Both eddy commands require eddy-current hardware. [buildBlindNote] is shown
+ * in [t.heat] (amber) as a text-only caution; no extra glyph is added.
+ *
+ * No [ConfirmGuard] rendered here — the guard is hosted full-screen in [ProbeContent] via
+ * [onSave] → [onSaveConfig] (matches the [ApplyBabystepBody] / [ZOffsetBody] hosting pattern).
+ *
+ * @param description   one-line tool description rendered at the top of the Focus body.
+ * @param buildBlindNote amber caution caption (from [R.string.calibration_run_build_blind_note]).
+ * @param lines         ordered console lines (newest last); capped/managed by the stateful
+ *                      [ProbeScreen] caller (≤[EDDY_CONSOLE_CAP]).
+ * @param tapStages     display labels for the stage selector; null = no selector (Drive Current).
+ * @param selectedStage the currently selected stage display label; must be one of [tapStages].
+ * @param onSelectStage called with the tapped stage display label.
+ * @param onRun         called when [Run] is tapped; dispatches the tool's calibration command.
+ * @param onSave        called when [Save Config] is tapped; raises the shared ProbeConfirm guard.
+ * @param uDp           one unit U from the screen's unit grid (passed to [ConsoleTail]).
+ */
+@Composable
+internal fun EddyRunBody(
+    description: String,
+    buildBlindNote: String,
+    lines: List<String>,
+    tapStages: List<String>?,
+    selectedStage: String?,
+    onSelectStage: (String) -> Unit,
+    onRun: () -> Unit,
+    onSave: () -> Unit,
+    uDp: Dp,
+    modifier: Modifier = Modifier,
+) {
+    val t = LocalTokens.current
+
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        // ── Row1: description + build-blind caution ──────────────────────────────
+        Text(
+            text = description,
+            style = JiibType.body.toTextStyle(t),
+            color = t.text2,
+        )
+        // Build-blind note: amber caption (t.heat) — text-only caution.
+        // NO new glyph added (icon-law: never pick a glyph without owner approval).
+        // The ⚠ is a unicode character embedded in the string resource.
+        Text(
+            text = buildBlindNote,
+            style = JiibType.caption.toTextStyle(t),
+            color = t.heat,
+        )
+
+        // ── Row2: ConsoleTail — fills available space ─────────────────────────────
+        ConsoleTail(
+            lines = lines,
+            uDp = uDp,
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .padding(top = 4.dp),
+        )
+
+        // ── Row3 (EDDY_TAP only): stage selector chips ─────────────────────────────
+        // null tapStages = no selector (Drive Current path). Mirrors CalibrationRunContent's
+        // stage selector: selected chip = accent border + accentSoft fill; others = neutral.
+        if (tapStages != null && selectedStage != null) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                tapStages.forEach { stage ->
+                    val isSelected = stage == selectedStage
+                    OutlinedControl(
+                        label = stage,
+                        onClick = { onSelectStage(stage) },
+                        modifier = Modifier.weight(1f),
+                        intent = if (isSelected) Intent.Accent else Intent.Neutral,
+                        fill = if (isSelected) t.accentSoft else null,
+                    )
+                }
+            }
+        }
+
+        // ── Row4: Run (go) + Save Config (warn) buttons ─────────────────────────────
+        // Intent R5: Run = go (expected action), Save Config = warn (Klipper restart — hazard).
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            OutlinedControl(
+                label = stringResource(R.string.calibration_run),
+                icon = JiibIcons.CalibrationRun,
+                onClick = onRun,
+                intent = Intent.Go,
+                modifier = Modifier.weight(1f),
+            )
+            OutlinedControl(
+                label = stringResource(R.string.calibration_save_config),
+                icon = JiibIcons.Save,
+                onClick = onSave,
+                intent = Intent.Warn,
+                modifier = Modifier.weight(1f),
+            )
         }
     }
 }

@@ -722,6 +722,7 @@ fun AppShell(
                     applyBabystepHolder = applyBabystepHolder,
                     probeTestHolder = probeTestHolder,
                     probeCalibrateHolder = probeCalibrateHolder,
+                    gcodeResponses = store.gcodeResponses,
                     onBack = { navController.popBackStack() },
                 )
             }

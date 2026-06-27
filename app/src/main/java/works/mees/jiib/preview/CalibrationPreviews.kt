@@ -15,6 +15,7 @@ import works.mees.jiib.calibration.ProbeTestVm
 import works.mees.jiib.calibration.ProbeCalibrateVm
 import works.mees.jiib.ui.calibration.ApplyBabystepBody
 import works.mees.jiib.ui.calibration.ApplyBabystepContent
+import works.mees.jiib.ui.calibration.EddyRunBody
 import works.mees.jiib.ui.calibration.ProbeTestBody
 import works.mees.jiib.ui.calibration.ZOffsetBody
 import works.mees.jiib.ui.calibration.BedMeshContent
@@ -2597,5 +2598,286 @@ private fun ProbeTestBodyFsLargeAccuracyLandscape() = PreviewBox(fsLargeSeed) {
         onSamplesUp = {},
         onSamplesDown = {},
         modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+    )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EddyRunBody previews (Task R5)
+//
+// Targets the stateless EddyRunBody seam (WARNING-5 preview-first convention).
+// No live Moonraker, no VM — pure fixture data and sample console lines.
+// BUILD-BLIND: eddy hardware required; build-blind note always visible.
+//
+// Two variants:
+//  - Drive Current: no stage selector (tapStages = null)
+//  - Eddy Tap: with stage selector (Guess / Refine / Verify chips)
+//
+// Preview axes:
+//  - Variant × portrait/landscape (drive current empty/filled; tap guess-selected)
+//  - 6 theme combos on Tap-with-stages portrait (richest state — stage chips + buttons)
+//  - fs = L overflow check on Drive Current portrait (description + build-blind note + tail)
+// ─────────────────────────────────────────────────────────────────────────────
+
+private val sampleEddyConsoleLines = listOf(
+    "LDC_CALIBRATE_DRIVE_CURRENT CHIP=btt_eddy",
+    "// Preparing calibration…",
+    "// Testing drive current: 15",
+    "// Testing drive current: 20",
+    "// Optimal drive current: 20",
+    "// Done.",
+)
+
+private val sampleTapStageLabels = listOf("Guess", "Refine", "Verify")
+
+private const val SAMPLE_BUILD_BLIND_NOTE =
+    "⚠ Requires eddy current hardware — not validated on device (build-blind)."
+
+// ── Drive Current: no stage selector, empty console ─────────────────────────
+
+@Preview(
+    name = "EddyRunBody: Drive Current empty console (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun EddyRunBodyDriveCurrentEmpty() = PreviewBox(colorfulDark) {
+    EddyRunBody(
+        description = "Adjust the Eddy current coil drive current for optimal signal amplitude.",
+        buildBlindNote = SAMPLE_BUILD_BLIND_NOTE,
+        lines = emptyList(),
+        tapStages = null,
+        selectedStage = null,
+        onSelectStage = {},
+        onRun = {},
+        onSave = {},
+        uDp = 56.dp,
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+// ── Drive Current: no stage selector, filled console ────────────────────────
+
+@Preview(
+    name = "EddyRunBody: Drive Current filled console (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun EddyRunBodyDriveCurrentFilled() = PreviewBox(colorfulDark) {
+    EddyRunBody(
+        description = "Adjust the Eddy current coil drive current for optimal signal amplitude.",
+        buildBlindNote = SAMPLE_BUILD_BLIND_NOTE,
+        lines = sampleEddyConsoleLines,
+        tapStages = null,
+        selectedStage = null,
+        onSelectStage = {},
+        onRun = {},
+        onSave = {},
+        uDp = 56.dp,
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Preview(
+    name = "EddyRunBody: Drive Current filled console (Nexus7 landscape)",
+    device = NEXUS7,
+    showBackground = true,
+)
+@Composable
+private fun EddyRunBodyDriveCurrentFilledLandscape() = PreviewBox(colorfulDark) {
+    EddyRunBody(
+        description = "Adjust the Eddy current coil drive current for optimal signal amplitude.",
+        buildBlindNote = SAMPLE_BUILD_BLIND_NOTE,
+        lines = sampleEddyConsoleLines,
+        tapStages = null,
+        selectedStage = null,
+        onSelectStage = {},
+        onRun = {},
+        onSave = {},
+        uDp = 56.dp,
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+// ── Eddy Tap: stage selector, Guess selected ──────────────────────────────
+
+@Preview(
+    name = "EddyRunBody: Tap Guess-selected empty console (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun EddyRunBodyTapGuessEmpty() = PreviewBox(colorfulDark) {
+    EddyRunBody(
+        description = "Set the Eddy current tap threshold used to detect bed contact.",
+        buildBlindNote = SAMPLE_BUILD_BLIND_NOTE,
+        lines = emptyList(),
+        tapStages = sampleTapStageLabels,
+        selectedStage = "Guess",
+        onSelectStage = {},
+        onRun = {},
+        onSave = {},
+        uDp = 56.dp,
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Preview(
+    name = "EddyRunBody: Tap Refine-selected filled console (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun EddyRunBodyTapRefineSelected() = PreviewBox(colorfulDark) {
+    EddyRunBody(
+        description = "Set the Eddy current tap threshold used to detect bed contact.",
+        buildBlindNote = SAMPLE_BUILD_BLIND_NOTE,
+        lines = sampleEddyConsoleLines,
+        tapStages = sampleTapStageLabels,
+        selectedStage = "Refine",
+        onSelectStage = {},
+        onRun = {},
+        onSave = {},
+        uDp = 56.dp,
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Preview(
+    name = "EddyRunBody: Tap Guess-selected filled console (Nexus7 landscape)",
+    device = NEXUS7,
+    showBackground = true,
+)
+@Composable
+private fun EddyRunBodyTapGuessFilledLandscape() = PreviewBox(colorfulDark) {
+    EddyRunBody(
+        description = "Set the Eddy current tap threshold used to detect bed contact.",
+        buildBlindNote = SAMPLE_BUILD_BLIND_NOTE,
+        lines = sampleEddyConsoleLines,
+        tapStages = sampleTapStageLabels,
+        selectedStage = "Guess",
+        onSelectStage = {},
+        onRun = {},
+        onSave = {},
+        uDp = 56.dp,
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+// ── 6-theme matrix on Tap Guess-selected portrait (richest state) ─────────
+
+@Nexus7Previews
+@Composable
+private fun EddyRunBodyTapThemeColorfulDark() = PreviewBox(colorfulDark) {
+    EddyRunBody(
+        description = "Set the Eddy current tap threshold used to detect bed contact.",
+        buildBlindNote = SAMPLE_BUILD_BLIND_NOTE,
+        lines = sampleEddyConsoleLines, tapStages = sampleTapStageLabels,
+        selectedStage = "Guess", onSelectStage = {}, onRun = {}, onSave = {}, uDp = 56.dp,
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun EddyRunBodyTapThemeColorfulLight() = PreviewBox(colorfulLight) {
+    EddyRunBody(
+        description = "Set the Eddy current tap threshold used to detect bed contact.",
+        buildBlindNote = SAMPLE_BUILD_BLIND_NOTE,
+        lines = sampleEddyConsoleLines, tapStages = sampleTapStageLabels,
+        selectedStage = "Guess", onSelectStage = {}, onRun = {}, onSave = {}, uDp = 56.dp,
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun EddyRunBodyTapThemeSimpleDark() = PreviewBox(simpleDark) {
+    EddyRunBody(
+        description = "Set the Eddy current tap threshold used to detect bed contact.",
+        buildBlindNote = SAMPLE_BUILD_BLIND_NOTE,
+        lines = sampleEddyConsoleLines, tapStages = sampleTapStageLabels,
+        selectedStage = "Guess", onSelectStage = {}, onRun = {}, onSave = {}, uDp = 56.dp,
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun EddyRunBodyTapThemeSimpleLight() = PreviewBox(simpleLight) {
+    EddyRunBody(
+        description = "Set the Eddy current tap threshold used to detect bed contact.",
+        buildBlindNote = SAMPLE_BUILD_BLIND_NOTE,
+        lines = sampleEddyConsoleLines, tapStages = sampleTapStageLabels,
+        selectedStage = "Guess", onSelectStage = {}, onRun = {}, onSave = {}, uDp = 56.dp,
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun EddyRunBodyTapThemeHighContrastDark() = PreviewBox(highContrastDark) {
+    EddyRunBody(
+        description = "Set the Eddy current tap threshold used to detect bed contact.",
+        buildBlindNote = SAMPLE_BUILD_BLIND_NOTE,
+        lines = sampleEddyConsoleLines, tapStages = sampleTapStageLabels,
+        selectedStage = "Guess", onSelectStage = {}, onRun = {}, onSave = {}, uDp = 56.dp,
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun EddyRunBodyTapThemeHighContrastLight() = PreviewBox(highContrastLight) {
+    EddyRunBody(
+        description = "Set the Eddy current tap threshold used to detect bed contact.",
+        buildBlindNote = SAMPLE_BUILD_BLIND_NOTE,
+        lines = sampleEddyConsoleLines, tapStages = sampleTapStageLabels,
+        selectedStage = "Guess", onSelectStage = {}, onRun = {}, onSave = {}, uDp = 56.dp,
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+// ── fs = L overflow check ─────────────────────────────────────────────────────
+
+@Preview(
+    name = "EddyRunBody: Drive Current fs=L portrait overflow check",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun EddyRunBodyDriveCurrentFsLargePortrait() = PreviewBox(fsLargeSeed) {
+    EddyRunBody(
+        description = "Adjust the Eddy current coil drive current for optimal signal amplitude.",
+        buildBlindNote = SAMPLE_BUILD_BLIND_NOTE,
+        lines = sampleEddyConsoleLines,
+        tapStages = null,
+        selectedStage = null,
+        onSelectStage = {},
+        onRun = {},
+        onSave = {},
+        uDp = 56.dp,
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Preview(
+    name = "EddyRunBody: Tap fs=L portrait overflow check",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun EddyRunBodyTapFsLargePortrait() = PreviewBox(fsLargeSeed) {
+    EddyRunBody(
+        description = "Set the Eddy current tap threshold used to detect bed contact.",
+        buildBlindNote = SAMPLE_BUILD_BLIND_NOTE,
+        lines = sampleEddyConsoleLines,
+        tapStages = sampleTapStageLabels,
+        selectedStage = "Guess",
+        onSelectStage = {},
+        onRun = {},
+        onSave = {},
+        uDp = 56.dp,
+        modifier = Modifier.fillMaxSize(),
     )
 }
