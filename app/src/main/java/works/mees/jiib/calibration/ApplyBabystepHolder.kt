@@ -17,8 +17,9 @@ import works.mees.jiib.state.PrinterStateStore
  *
  *  - [savedOffset] the current probe z_offset from config (null when probe-less / not yet loaded).
  *  - [liveBabystep] the live `gcode_move.homing_origin[2]` (null when not yet reported).
- *  - [newOffset] `savedOffset + liveBabystep` when both non-null; null otherwise.
- *    Mirrors Klipper's own `Z_OFFSET_APPLY_PROBE` macro: `new = z_offset + homing_origin.z`.
+ *  - [newOffset] `savedOffset - liveBabystep` when both non-null; null otherwise.
+ *    Mirrors Klipper's own `Z_OFFSET_APPLY_PROBE`: `new_calibrate = z_offset - homing_origin.z`.
+ *    Example: saved = 2.04, babystep = -0.06 → newOffset = 2.04 - (-0.06) = 2.10.
  *  - [applyCommand] the gcode command to dispatch: "Z_OFFSET_APPLY_PROBE" when a `probe` object
  *    is present; "Z_OFFSET_APPLY_ENDSTOP" for probe-less printers (same gate as [probeCalibrateGate]).
  *  - [canApply] true only when [liveBabystep] is non-null AND non-zero AND [savedOffset] is non-null.
@@ -76,8 +77,8 @@ class ApplyBabystepHolder(
         val savedOffset = probeZOffset?.toDouble()
         val liveBabystep = printerState.gcodeZOffset
 
-        // Klipper: new_z_offset = saved_z_offset + gcode_move.homing_origin.z
-        val newOffset = if (savedOffset != null && liveBabystep != null) savedOffset + liveBabystep else null
+        // Klipper: new_calibrate = z_offset - homing_origin.z  (babystep shifts the frame; subtract it)
+        val newOffset = if (savedOffset != null && liveBabystep != null) savedOffset - liveBabystep else null
 
         val canApply = liveBabystep != null && liveBabystep != 0.0 && savedOffset != null
 

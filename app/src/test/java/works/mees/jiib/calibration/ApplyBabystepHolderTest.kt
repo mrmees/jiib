@@ -18,8 +18,8 @@ import works.mees.jiib.state.PrinterStateStore
  * new probe z_offset by baking the live babystep offset into the saved value.
  *
  * Rules under test:
- *  - saved + babystep → newOffset = saved - babystep (subtract because babystep shifts the whole
- *    coordinate frame); canApply = true when both non-null and babystep != 0.0.
+ *  - saved, babystep → newOffset = saved - babystep (subtract: babystep shifts the whole
+ *    coordinate frame; mirrors Klipper Z_OFFSET_APPLY_PROBE); canApply = true when both non-null and babystep != 0.0.
  *  - babystep == 0.0 → canApply false (nothing to bake).
  *  - either value null → newOffset null, canApply false.
  *  - probe caps → applyCommand "Z_OFFSET_APPLY_PROBE"; probe-less → "Z_OFFSET_APPLY_ENDSTOP".
@@ -43,9 +43,24 @@ class ApplyBabystepHolderTest {
         // savedOffset is probeZOffset (Float) converted to Double — Float precision ~1e-7, use 1e-5
         assertEquals("savedOffset", 2.04, vm.savedOffset!!, 1e-5)
         assertEquals("liveBabystep", -0.06, vm.liveBabystep!!, 1e-9)
-        // Klipper: new_z_offset = saved + gcode_z_offset → 2.04 + (-0.06) = 1.98
-        assertEquals("newOffset = saved + babystep ≈ 1.98", 1.98, vm.newOffset!!, 1e-5)
+        // Klipper: new_calibrate = z_offset - homing_origin.z → 2.04 - (-0.06) = 2.10
+        assertEquals("newOffset = saved - babystep ≈ 2.10", 2.10, vm.newOffset!!, 1e-5)
         assertTrue("canApply when both non-null and babystep != 0.0", vm.canApply)
+    }
+
+    @Test
+    fun positiveBabystepSubtractsFromSaved() = runTest(UnconfinedTestDispatcher()) {
+        val store = PrinterStateStore(backgroundScope)
+        val holder = ApplyBabystepHolder(backgroundScope, store)
+
+        store.setProbeZOffset(1.00f)
+        store.seed(PrinterState(gcodeZOffset = 0.10))
+        runCurrent()
+
+        val vm = holder.vm.value
+        // 1.00 - 0.10 = 0.90
+        assertEquals("newOffset = saved - babystep ≈ 0.90", 0.90, vm.newOffset!!, 1e-5)
+        assertTrue("canApply when babystep non-zero", vm.canApply)
     }
 
     @Test
