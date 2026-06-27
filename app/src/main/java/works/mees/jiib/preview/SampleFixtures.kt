@@ -1,5 +1,6 @@
 package works.mees.jiib.preview
 
+import works.mees.jiib.calibration.ApplyBabystepVm
 import works.mees.jiib.calibration.BedMeshModel
 import works.mees.jiib.calibration.BedMeshVm
 import works.mees.jiib.calibration.CalibrationRoutine
@@ -515,4 +516,27 @@ object SampleFixtures {
             port = 7125,
         ),
     )
+
+    // ---------------------------------------------------------------------------------------------
+    // ApplyBabystepContent fixtures (Task 18)
+    // Two variants: canApply=true with realistic values; canApply=false with null values.
+    // ---------------------------------------------------------------------------------------------
+
+    /**
+     * [ApplyBabystepVm] with a realistic live babystep — saved = 2.040 mm, babystep = −0.060 mm,
+     * new offset = 2.040 − (−0.060) = 2.100 mm. [canApply] = true (both values present, babystep ≠ 0).
+     */
+    val applyBabystepCanApply: ApplyBabystepVm = ApplyBabystepVm(
+        savedOffset = 2.040,
+        liveBabystep = -0.060,
+        newOffset = 2.100,
+        applyCommand = "Z_OFFSET_APPLY_PROBE",
+        canApply = true,
+    )
+
+    /**
+     * [ApplyBabystepVm] with no data yet — all values null, canApply = false.
+     * Represents the screen opened before Klipper has reported any offset data.
+     */
+    val applyBabystepNoData: ApplyBabystepVm = ApplyBabystepVm()
 }

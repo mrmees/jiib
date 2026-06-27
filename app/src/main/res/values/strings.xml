@@ -858,6 +858,14 @@
     <string name="probe_test_cd_samples_increase">More samples</string>
     <string name="probe_test_cd_samples_decrease">Fewer samples</string>
 
+    <!-- ApplyBabystepScreen (Task 18) -->
+    <string name="probe_apply_babystep_saved_label">Saved z_offset</string>
+    <string name="probe_apply_babystep_live_label">Live babystep</string>
+    <string name="probe_apply_babystep_new_label">New z_offset</string>
+    <string name="probe_apply_babystep_action">Apply</string>
+    <string name="probe_apply_babystep_confirm_title">Apply Babystepping?</string>
+    <string name="probe_apply_babystep_confirm_message">Writes the live babystep into the saved z_offset. Use Save &amp; Restart to persist the change to config.</string>
+
     <!-- Gating / ready-for-action UI (B1 + later B tasks) -->
     <string name="gating_moving">Moving…</string>
     <string name="gating_extruding">Extruding…</string>

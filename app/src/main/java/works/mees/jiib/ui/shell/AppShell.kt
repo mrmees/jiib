@@ -42,6 +42,7 @@ import works.mees.jiib.calibration.BedMeshHolder
 import works.mees.jiib.calibration.CalibrationHubHolder
 import works.mees.jiib.calibration.CalibrationRoutine
 import works.mees.jiib.calibration.ProbeCalibrateHolder
+import works.mees.jiib.calibration.ApplyBabystepHolder
 import works.mees.jiib.calibration.ProbeHubHolder
 import works.mees.jiib.calibration.ProbeTestHolder
 import works.mees.jiib.calibration.ScrewsTiltHolder
@@ -76,6 +77,7 @@ import works.mees.jiib.ui.files.FileBrowserHolder
 import works.mees.jiib.ui.files.FilesScreen
 import works.mees.jiib.ui.macros.BookmarkedMacrosScreen
 import works.mees.jiib.ui.macros.MacroHolder
+import works.mees.jiib.ui.calibration.ApplyBabystepScreen
 import works.mees.jiib.ui.calibration.BedMeshScreen
 import works.mees.jiib.ui.calibration.CalibrationHubScreen
 import works.mees.jiib.ui.calibration.ProbeCalibrateScreen
@@ -411,6 +413,9 @@ fun AppShell(
     // ProbeTest holder (Task 17): collects probe.last_query / probe.last_z_result from printerState
     // and parses PROBE_ACCURACY summaries from the gcode stream. Re-keyed on `store` like its siblings.
     val probeTestHolder = remember(store) { ProbeTestHolder(scope = scope, store = store) }
+    // ApplyBabystep holder (Task 18): derives savedOffset / liveBabystep / newOffset and the
+    // applyCommand gate (Z_OFFSET_APPLY_PROBE vs. Z_OFFSET_APPLY_ENDSTOP). Re-keyed on `store`.
+    val applyBabystepHolder = remember(store) { ApplyBabystepHolder(scope = scope, store = store) }
     // D-01 move #2 (22-07): the four calibration *Vm collections are removed; TiltScreen/BedMeshScreen/
     // ProbeCalibrateScreen now take their holder directly and collect holder.vm internally (mirroring the
     // existing ScrewsTiltScreen pattern). The holder builds above (lines 366-385) stay in AppShell.
@@ -742,6 +747,15 @@ fun AppShell(
                 ProbeTestScreen(
                     container = container,
                     holder = probeTestHolder,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            // Task 18: Apply Babystepping screen — bakes the live babystep into the saved z_offset
+            // via Z_OFFSET_APPLY_PROBE / Z_OFFSET_APPLY_ENDSTOP + SAVE_CONFIG. Two-phase amber guard.
+            composable<NavDest.ProbeApplyBabystep> {
+                ApplyBabystepScreen(
+                    container = container,
+                    holder = applyBabystepHolder,
                     onBack = { navController.popBackStack() },
                 )
             }

@@ -10,6 +10,7 @@ import works.mees.jiib.calibration.CalibrationRoutine
 import works.mees.jiib.calibration.ProbePageState
 import works.mees.jiib.calibration.ProbeTool
 import works.mees.jiib.calibration.TiltState
+import works.mees.jiib.ui.calibration.ApplyBabystepContent
 import works.mees.jiib.ui.calibration.BedMeshContent
 import works.mees.jiib.ui.calibration.CalibrationHubContent
 import works.mees.jiib.ui.calibration.MeshFieldMode
@@ -1367,6 +1368,153 @@ private fun ProbeTestFsLargeOverflowLandscape() = PreviewBox(fsLargeSeed) {
 @Composable
 private fun ProbeTestPseudolocaleSpotCheck() = PreviewBox(colorfulDark) {
     probeTestPreview(vm = SampleFixtures.probeTestWithAccuracy)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ApplyBabystepContent previews (Task 18)
+//
+// Targets the STATELESS ApplyBabystepContent seam (WARNING-5). No live Moonraker, no VM.
+// Fixture data from [SampleFixtures.applyBabystepCanApply] and [SampleFixtures.applyBabystepNoData].
+//
+// ApplyBabystep axes:
+//  - State matrix: canApply=true with values / canApply=false with null values
+//  - 6 theme combos on canApply=true (most complex state — both values + new offset shown)
+//  - fs = L overflow: verifies three-row readout doesn't clip Focus
+//  - Pseudolocale en-XA
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun applyBabystepPreview(
+    vm: works.mees.jiib.calibration.ApplyBabystepVm = SampleFixtures.applyBabystepCanApply,
+    applyGuard: Boolean = false,
+    saveGuard: Boolean = false,
+) {
+    ApplyBabystepContent(
+        vm = vm,
+        applyGuard = applyGuard,
+        saveGuard = saveGuard,
+        onSaveGuardShow = {},
+        onApplyConfirm = {},
+        onApplyCancel = {},
+        onSaveConfirm = {},
+        onSaveCancel = {},
+        onBack = {},
+    )
+}
+
+// ── State matrix ─────────────────────────────────────────────────────────────
+
+@Preview(
+    name = "ApplyBabystep: canApply=true with values (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ApplyBabystepCanApply() = PreviewBox(colorfulDark) {
+    applyBabystepPreview(vm = SampleFixtures.applyBabystepCanApply)
+}
+
+@Preview(
+    name = "ApplyBabystep: canApply=false / null values (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ApplyBabystepNoData() = PreviewBox(colorfulDark) {
+    applyBabystepPreview(vm = SampleFixtures.applyBabystepNoData)
+}
+
+@Preview(
+    name = "ApplyBabystep: apply guard open (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ApplyBabystepApplyGuard() = PreviewBox(colorfulDark) {
+    applyBabystepPreview(vm = SampleFixtures.applyBabystepCanApply, applyGuard = true)
+}
+
+@Preview(
+    name = "ApplyBabystep: save guard open (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ApplyBabystepSaveGuard() = PreviewBox(colorfulDark) {
+    applyBabystepPreview(vm = SampleFixtures.applyBabystepCanApply, saveGuard = true)
+}
+
+// ── 6-theme matrix on canApply=true ──────────────────────────────────────────
+
+@Nexus7Previews
+@Composable
+private fun ApplyBabystepThemeColorfulDark() = PreviewBox(colorfulDark) {
+    applyBabystepPreview(vm = SampleFixtures.applyBabystepCanApply)
+}
+
+@Nexus7Previews
+@Composable
+private fun ApplyBabystepThemeColorfulLight() = PreviewBox(colorfulLight) {
+    applyBabystepPreview(vm = SampleFixtures.applyBabystepCanApply)
+}
+
+@Nexus7Previews
+@Composable
+private fun ApplyBabystepThemeSimpleDark() = PreviewBox(simpleDark) {
+    applyBabystepPreview(vm = SampleFixtures.applyBabystepCanApply)
+}
+
+@Nexus7Previews
+@Composable
+private fun ApplyBabystepThemeSimpleLight() = PreviewBox(simpleLight) {
+    applyBabystepPreview(vm = SampleFixtures.applyBabystepCanApply)
+}
+
+@Nexus7Previews
+@Composable
+private fun ApplyBabystepThemeHighContrastDark() = PreviewBox(highContrastDark) {
+    applyBabystepPreview(vm = SampleFixtures.applyBabystepCanApply)
+}
+
+@Nexus7Previews
+@Composable
+private fun ApplyBabystepThemeHighContrastLight() = PreviewBox(highContrastLight) {
+    applyBabystepPreview(vm = SampleFixtures.applyBabystepCanApply)
+}
+
+// ── fs = L overflow check ─────────────────────────────────────────────────────
+
+@Preview(
+    name = "ApplyBabystep fs=L portrait overflow check",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ApplyBabystepFsLargeOverflowPortrait() = PreviewBox(fsLargeSeed) {
+    applyBabystepPreview(vm = SampleFixtures.applyBabystepCanApply)
+}
+
+@Preview(
+    name = "ApplyBabystep fs=L landscape overflow check",
+    device = NEXUS7,
+    showBackground = true,
+)
+@Composable
+private fun ApplyBabystepFsLargeOverflowLandscape() = PreviewBox(fsLargeSeed) {
+    applyBabystepPreview(vm = SampleFixtures.applyBabystepCanApply)
+}
+
+// ── Pseudolocale en-XA ────────────────────────────────────────────────────────
+
+@Preview(
+    name = "ApplyBabystep pseudolocale en-XA canApply",
+    device = NEXUS7_PORTRAIT,
+    locale = "en-XA",
+    showBackground = true,
+)
+@Composable
+private fun ApplyBabystepPseudolocaleSpotCheck() = PreviewBox(colorfulDark) {
+    applyBabystepPreview(vm = SampleFixtures.applyBabystepCanApply)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
