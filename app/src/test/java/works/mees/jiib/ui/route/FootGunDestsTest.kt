@@ -17,9 +17,11 @@ import org.junit.Test
 class FootGunDestsTest {
 
     @Test
-    fun footGunDests_containsExactlyEightMembers() {
-        assertEquals("FOOT_GUN_DESTS must have exactly 8 members (Move + Extrude + 6 CalibrationXxx)",
-            8, FOOT_GUN_DESTS.size)
+    fun footGunDests_containsExactlyFourteenMembers() {
+        assertEquals(
+            "FOOT_GUN_DESTS must have exactly 14 members " +
+                "(Move + Extrude + 6 CalibrationXxx + ProbeHub + 5 ProbeXxx tool dests)",
+            14, FOOT_GUN_DESTS.size)
     }
 
     @Test fun move_isInFootGunDests()                { assertTrue(NavDest.Move in FOOT_GUN_DESTS) }
@@ -30,6 +32,14 @@ class FootGunDestsTest {
     @Test fun calibrationScrewsTilt_isInFootGunDests() { assertTrue(NavDest.CalibrationScrewsTilt in FOOT_GUN_DESTS) }
     @Test fun calibrationZTilt_isInFootGunDests()    { assertTrue(NavDest.CalibrationZTilt in FOOT_GUN_DESTS) }
     @Test fun calibrationQgl_isInFootGunDests()      { assertTrue(NavDest.CalibrationQgl in FOOT_GUN_DESTS) }
+
+    // Probe sub-hub + tool destinations (Task 13) — all foot-gun (calibration-class, hazardous mid-print)
+    @Test fun probeHub_isInFootGunDests()              { assertTrue(NavDest.ProbeHub in FOOT_GUN_DESTS) }
+    @Test fun probeTest_isInFootGunDests()             { assertTrue(NavDest.ProbeTest in FOOT_GUN_DESTS) }
+    @Test fun probeApplyBabystep_isInFootGunDests()    { assertTrue(NavDest.ProbeApplyBabystep in FOOT_GUN_DESTS) }
+    @Test fun probeEddyCalibrate_isInFootGunDests()    { assertTrue(NavDest.ProbeEddyCalibrate in FOOT_GUN_DESTS) }
+    @Test fun probeEddyTap_isInFootGunDests()          { assertTrue(NavDest.ProbeEddyTap in FOOT_GUN_DESTS) }
+    @Test fun probeEddyDriveCurrent_isInFootGunDests() { assertTrue(NavDest.ProbeEddyDriveCurrent in FOOT_GUN_DESTS) }
 
     /** Valid mid-print destinations must NOT be in FOOT_GUN_DESTS. */
     @Test

@@ -2,6 +2,7 @@ package works.mees.jiib.ui.route
 
 import kotlinx.serialization.Serializable
 import works.mees.jiib.calibration.CalibrationRoutine
+import works.mees.jiib.calibration.ProbeTool
 
 /**
  * Type-safe Navigation-Compose route hierarchy for the in-shell destinations (Phase 24, D-01).
@@ -59,6 +60,13 @@ sealed interface NavDest {
     @Serializable data object ManagePrinters         : NavDest
     @Serializable data object HeatPresets            : NavDest
     @Serializable data object IncrementValues        : NavDest
+    // Probe sub-hub + tool routes (Task 13): ProbeHub + 5 tool dests
+    @Serializable data object ProbeHub               : NavDest
+    @Serializable data object ProbeTest              : NavDest
+    @Serializable data object ProbeApplyBabystep     : NavDest
+    @Serializable data object ProbeEddyCalibrate     : NavDest
+    @Serializable data object ProbeEddyTap           : NavDest
+    @Serializable data object ProbeEddyDriveCurrent  : NavDest
 }
 
 /**
@@ -98,6 +106,13 @@ val knownNavDests: List<NavDest> = listOf(
     NavDest.ManagePrinters,
     NavDest.HeatPresets,
     NavDest.IncrementValues,
+    // Probe sub-hub + tool routes (Task 13)
+    NavDest.ProbeHub,
+    NavDest.ProbeTest,
+    NavDest.ProbeApplyBabystep,
+    NavDest.ProbeEddyCalibrate,
+    NavDest.ProbeEddyTap,
+    NavDest.ProbeEddyDriveCurrent,
 )
 
 // ---------------------------------------------------------------------------
@@ -110,6 +125,24 @@ val knownNavDests: List<NavDest> = listOf(
  * Used by AppShell's CalibrationHub composable `onOpen` lambda to navigate to the selected routine
  * via [navController.navigate(routine.toNavDest())].
  */
+/**
+ * Maps a [ProbeTool] to its [NavDest] sub-route (Task 13).
+ *
+ * Used by AppShell's ProbeHub composable `onOpen` lambda to navigate to the selected tool
+ * via [navController.navigate(tool.toNavDest())].
+ *
+ * Note: [ProbeTool.Z_OFFSET] routes to the existing [NavDest.CalibrationProbe] ("Z-Offset
+ * Calibrate"), which is now opened from the Probe hub in addition to the CalibrationHub.
+ */
+fun ProbeTool.toNavDest(): NavDest = when (this) {
+    ProbeTool.Z_OFFSET           -> NavDest.CalibrationProbe
+    ProbeTool.PROBE_TEST         -> NavDest.ProbeTest
+    ProbeTool.APPLY_BABYSTEP     -> NavDest.ProbeApplyBabystep
+    ProbeTool.EDDY_CALIBRATE     -> NavDest.ProbeEddyCalibrate
+    ProbeTool.EDDY_TAP           -> NavDest.ProbeEddyTap
+    ProbeTool.EDDY_DRIVE_CURRENT -> NavDest.ProbeEddyDriveCurrent
+}
+
 fun CalibrationRoutine.toNavDest(): NavDest = when (this) {
     CalibrationRoutine.PROBE_CALIBRATE   -> NavDest.CalibrationProbe
     CalibrationRoutine.BED_MESH          -> NavDest.CalibrationBedMesh
@@ -149,6 +182,13 @@ val FOOT_GUN_DESTS: Set<NavDest> = setOf(
     NavDest.CalibrationScrewsTilt,
     NavDest.CalibrationZTilt,
     NavDest.CalibrationQgl,
+    // Probe sub-hub + tool dests (Task 13) — calibration-class, hazardous mid-print
+    NavDest.ProbeHub,
+    NavDest.ProbeTest,
+    NavDest.ProbeApplyBabystep,
+    NavDest.ProbeEddyCalibrate,
+    NavDest.ProbeEddyTap,
+    NavDest.ProbeEddyDriveCurrent,
 )
 
 /**

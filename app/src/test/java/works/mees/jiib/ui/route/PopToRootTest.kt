@@ -127,9 +127,10 @@ class PopToRootTest {
     // ---------------------------------------------------------------------------
 
     // D-07 (Phase 27): FOOT_GUN_DESTS expanded from 3 to 8 members (Move + Extrude + 6 CalibrationXxx).
+    // Task 13: further expanded to 14 members (+ ProbeHub + 5 ProbeXxx tool dests).
     @Test
-    fun footGunDests_containsExactlyEightMembers() {
-        assertEquals(8, FOOT_GUN_DESTS.size)
+    fun footGunDests_containsExactlyFourteenMembers() {
+        assertEquals(14, FOOT_GUN_DESTS.size)
         assertTrue(NavDest.Move                  in FOOT_GUN_DESTS)
         assertTrue(NavDest.Extrude               in FOOT_GUN_DESTS)
         assertTrue(NavDest.CalibrationHub        in FOOT_GUN_DESTS)
@@ -138,6 +139,12 @@ class PopToRootTest {
         assertTrue(NavDest.CalibrationScrewsTilt in FOOT_GUN_DESTS)
         assertTrue(NavDest.CalibrationZTilt      in FOOT_GUN_DESTS)
         assertTrue(NavDest.CalibrationQgl        in FOOT_GUN_DESTS)
+        assertTrue(NavDest.ProbeHub              in FOOT_GUN_DESTS)
+        assertTrue(NavDest.ProbeTest             in FOOT_GUN_DESTS)
+        assertTrue(NavDest.ProbeApplyBabystep    in FOOT_GUN_DESTS)
+        assertTrue(NavDest.ProbeEddyCalibrate    in FOOT_GUN_DESTS)
+        assertTrue(NavDest.ProbeEddyTap          in FOOT_GUN_DESTS)
+        assertTrue(NavDest.ProbeEddyDriveCurrent in FOOT_GUN_DESTS)
     }
 
     // Not importing assertEquals from JUnit Assert because it's the plain comparison flavor
