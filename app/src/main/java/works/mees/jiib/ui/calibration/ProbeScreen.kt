@@ -92,6 +92,9 @@ import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 import works.mees.jiib.theme.fsSp
+import works.mees.jiib.designsystem.components.ConfirmOnBack
+import works.mees.jiib.designsystem.components.HardLockStatusCard
+import works.mees.jiib.designsystem.components.UnknownStatusCard
 import works.mees.jiib.ui.increments.IncrementControls
 
 // Internal tap-stage API keys (Klipper STAGE= parameter values for eddyTapCalibrate).
@@ -158,6 +161,8 @@ fun ProbeScreen(
     val dispatcher by container.dispatcher.collectAsStateWithLifecycle(initialValue = null)
     val printerState by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
     val gating by container.gatingState.collectAsStateWithLifecycle(initialValue = GatingState.Idle)
+    // FIX-2: home_* HardLock — ProbeScreen owns Home All on Z-Offset and Eddy Calibrate bodies.
+    val isHoming = (gating as? GatingState.Locked)?.key?.startsWith("home") == true
     val isPrinting = printerState.printState == PrintState.Printing ||
         printerState.printState == PrintState.Paused
     val applyBabystepVm by applyBabystepHolder.vm.collectAsStateWithLifecycle()
@@ -208,6 +213,17 @@ fun ProbeScreen(
     val eddyCalibrateVm by eddyCalibrateHolder.vm.collectAsStateWithLifecycle()
     val eddyStarting = eddyCalibrateVm.state == ProbePageState.Idle && "eddy_calibrate" in inFlight
 
+    // FIX-3: track which tool owns the active session so ProbeContent can force the correct Focus
+    // body when a session fires while a NON-session tool is selected (lock-without-escape guard).
+    var activeSessionTool by remember { mutableStateOf<ProbeTool?>(null) }
+    // Clear owner when no session is active (session ended, aborted, or never started).
+    val sessionActiveForTracking =
+        (probeCalibrateVm.state == ProbePageState.Active || starting) ||
+        (eddyCalibrateVm.state == ProbePageState.Active || eddyStarting)
+    LaunchedEffect(sessionActiveForTracking) {
+        if (!sessionActiveForTracking) activeSessionTool = null
+    }
+
     var selected by remember { mutableStateOf<ProbeTool?>(null) }
     var samplesIdx by remember { mutableStateOf(SAMPLES_DEFAULT_IDX) }
     // D-05: pre-select first tool + reconcile against the current visible list.
@@ -244,6 +260,9 @@ fun ProbeScreen(
         }
     }
 
+    // FIX-2: ConfirmOnBack intercepts system-Back while homing (matching old ProbeCalibrateScreen).
+    // requestBack is the (possibly) confirm-gated version of onBack passed into ProbeContent.
+    ConfirmOnBack(enabled = isHoming, onBack = onBack) { requestBack ->
     ProbeContent(
         tools = tools,
         selected = selected,
@@ -260,6 +279,9 @@ fun ProbeScreen(
         dispatcher = dispatcher,
         isPrinting = isPrinting,
         gating = gating,
+        isHoming = isHoming,
+        onAcknowledgeUnknown = { dispatcher?.acknowledgeUnresolved() },
+        activeSessionTool = activeSessionTool,
         eddyLines = eddyLines,
         eddyChip = eddyChip,
         eddySelectedStageIdx = eddySelectedStageIdx,
@@ -269,6 +291,7 @@ fun ProbeScreen(
         onSamplesUp = { samplesIdx = (samplesIdx + 1).coerceAtMost(SAMPLES_STEPS.lastIndex) },
         onSamplesDown = { samplesIdx = (samplesIdx - 1).coerceAtLeast(0) },
         onStart = {
+            activeSessionTool = ProbeTool.Z_OFFSET  // FIX-3: mark owner before dispatch
             val d = dispatcher ?: return@ProbeContent
             if (probeCalibrateVm.startCommand == PrinterCommands.Z_ENDSTOP_CALIBRATE) {
                 d.dispatch(CommandRegistry.zEndstopCalibrate, Unit)
@@ -281,7 +304,10 @@ fun ProbeScreen(
             probeCalibrateHolder.markAborted()
             dispatcher?.dispatch(CommandRegistry.abort, Unit)
         },
-        onEddyStart = { dispatcher?.dispatch(CommandRegistry.eddyCalibrate, EddyChipArgs(eddyChip)) },
+        onEddyStart = {
+            activeSessionTool = ProbeTool.EDDY_CALIBRATE  // FIX-3: mark owner before dispatch
+            dispatcher?.dispatch(CommandRegistry.eddyCalibrate, EddyChipArgs(eddyChip))
+        },
         onEddyAccept = { dispatcher?.dispatch(CommandRegistry.accept, Unit) },
         onEddyAbort = {
             eddyCalibrateHolder.markAborted()
@@ -298,9 +324,10 @@ fun ProbeScreen(
             val idx = testzSteps.indexOf(step).let { if (it < 0) 0 else it }
             step = testzSteps[(idx - 1).coerceAtLeast(0)]
         },
-        onBack = onBack,
+        onBack = requestBack,
         modifier = modifier,
     )
+    } // ConfirmOnBack
 }
 
 /**
@@ -333,6 +360,12 @@ internal fun ProbeContent(
     dispatcher: CommandDispatcher? = null,
     isPrinting: Boolean = false,
     gating: GatingState = GatingState.Idle,
+    // FIX-2: home_* HardLock morph + ConfirmOnBack (ported from old ProbeCalibrateScreen).
+    isHoming: Boolean = false,
+    onAcknowledgeUnknown: () -> Unit = {},
+    // FIX-3: owning session tool — forces Focus to the session body when a session is active
+    // on a non-session tool selection (lock-without-escape guard).
+    activeSessionTool: ProbeTool? = null,
     // R5: eddy run state — capped console lines, chip name, Tap stage index.
     eddyLines: List<String> = emptyList(),
     eddyChip: String = "",
@@ -392,6 +425,14 @@ internal fun ProbeContent(
     // Matches the BedMesh / ScrewsTilt pattern exactly.
     var pending by remember { mutableStateOf<ProbeConfirm?>(null) }
 
+    // FIX-2: home_* Unknown — scope the "still running" card to home_* only (mirrors BedMesh).
+    val unknownOwned = (gating as? GatingState.Unknown)?.key?.startsWith("home") == true
+
+    // FIX-3: while any session is active, force the Focus body to the owning tool's screen.
+    // Prevents a "locked in the wrong body" state when a session fires on a non-session tool.
+    // Falls back to Z_OFFSET if the owner wasn't tracked (externally-started session edge case).
+    val effectiveSelected = if (sessionActive) (activeSessionTool ?: ProbeTool.Z_OFFSET) else selected
+
     // onSaveConfig: raises the full-screen ProbeConfirm guard for SAVE_CONFIG (same pattern as
     // ApplyBabystepBody's save path — built here so string resources are read in composable context).
     val onSaveConfig: () -> Unit = {
@@ -435,12 +476,30 @@ internal fun ProbeContent(
                     onPanic = onEmergencyStop,
                     contentInset = FocusInset / 2,
                 ) {
-                    // Per-tool Focus body dispatch.
-                    // D-09 BackHandler: the nav-layer BackHandler in composable<NavDest.Probe>
-                    // (AppShell.kt) owns system-Back suppression while zActiveOrStarting (R4).
-                    // TODO(R6): when Eddy Calibrate body is wired, OR in eddyActiveOrStarting
-                    //  here and in the AppShell BackHandler for the combined sessionActive flag.
-                    when (selected) {
+                    // FIX-2: home_* HardLock Focus morph (ported from old ProbeCalibrateScreen +
+                    // BedMeshScreen). Precedence: Unknown > Locked > normal body.
+                    // E-stop stays live in the FocusFrame header above this content area.
+                    if (unknownOwned) {
+                        UnknownStatusCard(
+                            uDp = grid.uDp,
+                            onDismiss = onAcknowledgeUnknown,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                        return@FocusFrame
+                    }
+                    if (isHoming) {
+                        HardLockStatusCard(
+                            label = stringResource(R.string.gating_homing),
+                            uDp = grid.uDp,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                        return@FocusFrame
+                    }
+                    // FIX-3: render from effectiveSelected (session-forced tool) rather than the
+                    // raw user selection, so a live session always shows its Accept/Abort body.
+                    // D-09 BackHandler: the nav-layer BackHandler in AppShell.kt owns system-Back
+                    // suppression while sessionActive.
+                    when (effectiveSelected) {
                         ProbeTool.Z_OFFSET -> ZOffsetBody(
                             vm = probeCalibrateVm,
                             step = step,
@@ -542,9 +601,9 @@ internal fun ProbeContent(
                         else -> {
                             // Null-selected guard (all enum values handled above).
                             // Kept for future-proofing (new ProbeTool values before wiring).
-                            if (selected != null) {
+                            if (effectiveSelected != null) {
                                 Text(
-                                    text = stringResource(probeToolTitleRes(selected)),
+                                    text = stringResource(probeToolTitleRes(effectiveSelected)),
                                     style = JiibType.body.toTextStyle(t),
                                     color = t.text,
                                 )
@@ -566,7 +625,9 @@ internal fun ProbeContent(
                         // (Z-Offset OR Eddy Calibrate), dim all rows and make them non-tappable.
                         val rowLocked = sessionActive
                         ListRow(
-                            selected = if (rowLocked) false else (entry.tool == selected),
+                            // FIX-3: while locked, highlight the effective (session-owning) tool
+                            // so the Field tracks the forced Focus body.
+                            selected = if (rowLocked) (entry.tool == effectiveSelected) else (entry.tool == selected),
                             onClick = if (!rowLocked) { { onSelect(entry.tool) } } else { {} },
                             uDp = grid.uDp,
                             modifier = if (rowLocked) {
@@ -659,7 +720,10 @@ internal fun ProbeContent(
                 message = c.message,
                 confirmLabel = c.confirmLabel,
                 warn = c.warn,
-                onConfirm = { c.onConfirm(); pending = null },
+                // FIX-1: null pending BEFORE invoking the callback so a callback that chains a
+                // second guard (Apply → SAVE_CONFIG) sets the new pending and it survives.
+                // Old order { c.onConfirm(); pending = null } overwrote any new pending = null.
+                onConfirm = { val cb = c.onConfirm; pending = null; cb() },
                 onCancel = { pending = null },
             )
         }
