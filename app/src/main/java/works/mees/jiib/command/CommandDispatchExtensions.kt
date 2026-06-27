@@ -7,7 +7,7 @@ fun <P> CommandDispatcher.dispatch(command: CommandSpec<P>, args: P) {
     val method = requireNotNull(command.method) {
         "Command ${command.catalogId} does not define a JSON-RPC method"
     }
-    dispatch(command.dispatchKey(args), method, command.params(args))
+    dispatch(command.dispatchKey(args), method, command.params(args), command.gating, command.gatingTimeoutMs)
 }
 
 suspend fun <P> JsonRpcClient.request(

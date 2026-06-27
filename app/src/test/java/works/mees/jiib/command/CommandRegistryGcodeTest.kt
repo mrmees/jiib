@@ -281,6 +281,9 @@ class CommandRegistryGcodeTest {
     ) {
         assertEquals("registry gcode commands must dispatch through gcode.script", JsonRpcMethods.GCODE_SCRIPT, spec.method)
         val params = spec.params(args)!!.jsonObject
-        assertEquals(expectedScript, params["script"]!!.jsonPrimitive.content)
+        // Fenced commands get a trailing \nM400 appended by the gcode() builder (D-11: body is still
+        // byte-identical to the PrinterCommands builder; M400 is an orthogonal fence suffix).
+        val expected = if (spec.fence) "$expectedScript\nM400" else expectedScript
+        assertEquals(expected, params["script"]!!.jsonPrimitive.content)
     }
 }
