@@ -3,6 +3,7 @@ package works.mees.jiib.ui.calibration
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -35,6 +37,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -73,6 +76,9 @@ import works.mees.jiib.designsystem.components.ListRowIcon
 import works.mees.jiib.designsystem.components.ListRowLabel
 import works.mees.jiib.designsystem.control.Intent
 import works.mees.jiib.designsystem.control.OutlinedControl
+import works.mees.jiib.designsystem.icons.IconRef
+import works.mees.jiib.designsystem.icons.JiibIcon
+import works.mees.jiib.designsystem.icons.JiibIconView
 import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.FocusInset
 import works.mees.jiib.designsystem.layout.ListBlock
@@ -89,8 +95,7 @@ import works.mees.jiib.theme.fsSp
 import works.mees.jiib.ui.increments.IncrementControls
 
 // Internal tap-stage API keys (Klipper STAGE= parameter values for eddyTapCalibrate).
-// Mirrors CalibrationRunScreen's TAP_STAGE_KEYS; kept here so ProbeContent can build
-// the correct EddyTapArgs without a public dependency on CalibrationRunScreen's private val.
+// Kept here (ProbeScreen) so ProbeContent can build the correct EddyTapArgs.
 private val EDDY_TAP_STAGE_KEYS = listOf("guess", "refine", "verify")
 
 // Maximum gcode-response lines retained per eddy run — keeps memory bounded on 2 GB devices.
@@ -301,9 +306,8 @@ fun ProbeScreen(
 /**
  * Stateless Probe rendering surface — the @Preview matrix targets this composable.
  *
- * [probeToolIconToken] and [probeToolTitleRes] are the same helpers defined in
- * [ProbeHubScreen.kt]; they live there until that file is deleted in Phase 2, after which the
- * definitions will be moved here. Both are `internal` and therefore visible module-wide.
+ * [probeToolIconToken] and [probeToolTitleRes] are `internal` helpers defined at the bottom
+ * of this file (moved here from the now-deleted ProbeHubScreen.kt).
  *
  * @param applyBabystepVm the resolved Apply Babystepping view-model. Defaults to a null-value
  *   instance so previews that don't exercise this tool don't need to pass one.
@@ -1609,3 +1613,224 @@ private fun ProbeTestSamplesDisplay(samples: Int, modifier: Modifier = Modifier)
         }
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// probeToolIconToken / probeToolTitleRes — moved here from ProbeHubScreen (now deleted)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Maps a [ProbeTool] to its owner-confirmed [JiibIcons] token. */
+internal fun probeToolIconToken(tool: ProbeTool) = when (tool) {
+    ProbeTool.Z_OFFSET           -> JiibIcons.RoutineProbeCalibrate
+    ProbeTool.PROBE_TEST         -> JiibIcons.ProbeTestTool
+    ProbeTool.APPLY_BABYSTEP     -> JiibIcons.Babystep
+    ProbeTool.EDDY_CALIBRATE     -> JiibIcons.EddyCalibrate
+    ProbeTool.EDDY_TAP           -> JiibIcons.EddyTap
+    ProbeTool.EDDY_DRIVE_CURRENT -> JiibIcons.EddyDriveCurrent
+}
+
+/** Maps a [ProbeTool] to its title string resource ID. */
+internal fun probeToolTitleRes(tool: ProbeTool): Int = when (tool) {
+    ProbeTool.Z_OFFSET           -> R.string.probe_tool_z_offset_calibrate_title
+    ProbeTool.PROBE_TEST         -> R.string.probe_tool_test_title
+    ProbeTool.APPLY_BABYSTEP     -> R.string.probe_tool_babystep_title
+    ProbeTool.EDDY_CALIBRATE     -> R.string.probe_tool_eddy_calibrate_title
+    ProbeTool.EDDY_TAP           -> R.string.probe_tool_eddy_tap_title
+    ProbeTool.EDDY_DRIVE_CURRENT -> R.string.probe_tool_eddy_drive_current_title
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ManualProbeJog + helpers — moved here from ProbeCalibrateScreen (now deleted)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Reusable two-column jog widget (D-08 Move motif):
+ *  - Column 1 (Z-nudge): Z-up (TESTZ +step) / [ZReadoutDisplay] / Z-down (TESTZ -step)
+ *  - Column 2 (step selector): Increase / [StepDisplay] / Decrease
+ *
+ * Used by [ZOffsetBody] and [EddyCalibrateBody].
+ */
+@Composable
+internal fun ManualProbeJog(
+    vm: ProbeCalibrateVm,
+    step: Double,
+    steps: List<Double>,
+    enabled: Boolean,
+    onTestZUp: () -> Unit,
+    onTestZDown: () -> Unit,
+    onStepUp: () -> Unit,
+    onStepDown: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val t = LocalTokens.current
+    val idx = steps.indexOf(step).let { if (it < 0) 0 else it }
+    // D-08: two vertical 3-cell columns side by side (the Move motif).
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        // Column 1: Z-nudge column with live-Z readout center cell.
+        // Outline = t.directional.z (Z-axis identity, same as Move's Z column).
+        Column(
+            modifier = Modifier.weight(1f).fillMaxHeight(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            // Z-up: TESTZ +step (accent, physical command)
+            ProbeIconButton(
+                glyphName = "arrow_upward",
+                contentDescription = stringResource(R.string.probe_cd_raise),
+                onClick = onTestZUp,
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                intent = Intent.Accent,
+                iconTint = t.accent,
+                enabled = enabled,
+            )
+            // D-08 center cell: live-Z readout (Geist Mono, t.directional.z outline)
+            ZReadoutDisplay(
+                zValue = vm.zPosition ?: vm.savedZOffset,
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+            )
+            // Z-down: TESTZ -step (accent, physical command)
+            ProbeIconButton(
+                glyphName = "arrow_downward",
+                contentDescription = stringResource(R.string.probe_cd_lower),
+                onClick = onTestZDown,
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                intent = Intent.Accent,
+                iconTint = t.accent,
+                enabled = enabled,
+            )
+        }
+        // Column 2: step selector (neutral — a setting, not a directional control).
+        Column(
+            modifier = Modifier.weight(1f).fillMaxHeight(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            OutlinedControl(
+                label = "",
+                onClick = onStepUp,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .then(
+                        if (idx < steps.lastIndex) Modifier
+                        else Modifier.alpha(0.38f).semantics { disabled() },
+                    ),
+                intent = Intent.Neutral,
+                icon = JiibIcons.Increase,
+                contentDescription = stringResource(R.string.probe_cd_step_larger),
+                enabled = idx < steps.lastIndex,
+            )
+            StepDisplay(value = step, modifier = Modifier.weight(1f).fillMaxWidth())
+            OutlinedControl(
+                label = "",
+                onClick = onStepDown,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .then(
+                        if (idx > 0) Modifier
+                        else Modifier.alpha(0.38f).semantics { disabled() },
+                    ),
+                intent = Intent.Neutral,
+                icon = JiibIcons.Decrease,
+                contentDescription = stringResource(R.string.probe_cd_step_smaller),
+                enabled = idx > 0,
+            )
+        }
+    }
+}
+
+/**
+ * The live-Z readout center cell of the Z-nudge column (D-08). Shows the current probe-session Z
+ * position (or saved offset when Idle). Uses Geist Mono tabular numerals and `t.directional.z` outline
+ * for Z-axis visual identity.
+ */
+@Composable
+private fun ZReadoutDisplay(zValue: Double?, modifier: Modifier = Modifier) {
+    val t = LocalTokens.current
+    val shape = RoundedCornerShape(t.rCtrl)
+    Box(
+        modifier.clip(shape).border(BorderStroke(2.dp, t.directional.z), shape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = zValue?.let { fmtZ(it) } ?: "—",
+                color = t.text,
+                style = JiibType.statValue.toTextStyle(t),
+            )
+            Text(
+                text = "mm",
+                color = t.text3,
+                style = JiibType.caption.toTextStyle(t),
+            )
+        }
+    }
+}
+
+/** The current adjustment step (mm) — a neutral-outlined read-only cell between the [−]/[+] buttons. */
+@Composable
+private fun StepDisplay(value: Double, modifier: Modifier = Modifier) {
+    val t = LocalTokens.current
+    val shape = RoundedCornerShape(t.rCtrl)
+    Box(
+        modifier.clip(shape).border(BorderStroke(2.dp, t.outline), shape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = fmtStep(value),
+                color = t.text,
+                style = JiibType.statValue.toTextStyle(t),
+            )
+            Text(
+                text = "mm",
+                color = t.text3,
+                style = JiibType.caption.toTextStyle(t),
+            )
+        }
+    }
+}
+
+/**
+ * An outline-led icon button (renders a Material Symbols ligature, not a label).
+ *
+ * Renders through the a11y-aware [JiibIconView] so the real [contentDescription] is the spoken
+ * TalkBack label — without promoting the site into the [JiibIcons] registry. The disabled/iconTint
+ * coloring and ≥64dp button chrome match the original ProbeCalibrateScreen treatment.
+ */
+@Composable
+private fun ProbeIconButton(
+    glyphName: String,
+    contentDescription: String?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    intent: Intent = Intent.Neutral,
+    iconTint: Color? = null,
+    enabled: Boolean = true,
+) {
+    val t = LocalTokens.current
+    val shape = RoundedCornerShape(t.rCtrl)
+    val outline = intentColor(intent, t)
+    val base = modifier
+        .heightIn(min = 64.dp)
+        .clip(shape)
+        .border(BorderStroke(2.dp, if (enabled) outline else t.hair), shape)
+        .background(if (enabled) Color.Transparent else t.surface)
+    val box = if (enabled) base.clickable(onClick = onClick) else base
+    Box(box, contentAlignment = Alignment.Center) {
+        JiibIconView(
+            icon = JiibIcon(IconRef.Ligature(glyphName), alternate = glyphName),
+            contentDescription = contentDescription,
+            tint = if (!enabled) t.text3 else (iconTint ?: t.text),
+            sizeDp = fsSp(34f, t.fs).dp,
+        )
+    }
+}
+
+/** Three-decimal mm — manual-probe nudges are fine (down to 0.005 mm). */
+private fun fmtZ(v: Double): String = String.format(Locale.US, "%.3f", v)
+
+/** Step label: drop the trailing ".0" on whole-mm steps, keep the fractional ones (0.005 … 0.5). */
+private fun fmtStep(d: Double): String =
+    if (d == d.toLong().toDouble()) d.toLong().toString() else d.toString()
