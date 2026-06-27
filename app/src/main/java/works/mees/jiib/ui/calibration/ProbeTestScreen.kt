@@ -105,6 +105,7 @@ fun ProbeTestScreen(
     ProbeTestContent(
         vm = vm,
         samples = samples,
+        samplesIdx = samplesIdx,
         isPrinting = isPrinting,
         gating = gating,
         enabled = enabled,
@@ -160,8 +161,7 @@ fun ProbeTestContent(
         val isHoming = (gating as? GatingState.Locked)?.key?.startsWith("home") == true
         val unknownOwned = (gating as? GatingState.Unknown)?.key?.startsWith("home") == true
 
-        Box(Modifier.fillMaxSize()) {
-            ScreenScaffold(
+        ScreenScaffold(
                 focus = {
                     FocusFrame(
                         title = stringResource(R.string.probe_test_title),
@@ -251,7 +251,6 @@ fun ProbeTestContent(
                     )
                 },
             )
-        }
     }
 }
 
@@ -396,7 +395,7 @@ private fun ProbeAccuracyBlock(acc: ProbeAccuracyResult, modifier: Modifier = Mo
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * A compact horizontal stepper: [Increase] / [SamplesDisplay] / [Decrease], rendered in a single
+ * A compact horizontal stepper: [Decrease] / [SamplesDisplay] / [Increase], rendered in a single
  * row so it doesn't dominate the Field (the accuracy block is the main information surface).
  * Uses the same [OutlinedControl] + read-only center-cell pattern as the step-selector in
  * [ManualProbeJog].
