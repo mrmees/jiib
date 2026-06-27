@@ -595,6 +595,14 @@ class AppContainer(
         writeScope.launch { displayPrefs.setWebcamEnabled(on) }
     }
 
+    /** App-global show-unsupported-tools toggle (default false) — process-scoped, durable. */
+    val showUnsupportedTools: Flow<Boolean> = displayPrefs.showUnsupportedTools
+
+    /** Persist the show-unsupported-tools toggle, durably (process-lifetime writeScope, never composition). */
+    fun setShowUnsupportedTools(on: Boolean) {
+        writeScope.launch { displayPrefs.setShowUnsupportedTools(on) }
+    }
+
     /** App-global font scale (S/M/L) — connection-independent; the SOLE source of `--fs`. */
     val fontScale: Flow<FontScale> = fontScalePrefs.fontScale
 

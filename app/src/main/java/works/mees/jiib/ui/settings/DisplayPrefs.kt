@@ -63,11 +63,29 @@ class DisplayPrefs(
         dataStore.edit { prefs -> prefs[KEY_WEBCAM_ENABLED] = on }
     }
 
+    /**
+     * Whether unsupported calibration and probe tools are shown app-wide (default FALSE — hides
+     * them for printers that lack the hardware). When false, screens for tools not detected in the
+     * printer's capability set are suppressed. Fail-safe: a read error yields the default.
+     */
+    val showUnsupportedTools: Flow<Boolean> =
+        dataStore.data
+            .catch { e -> if (e is IOException) emit(emptyPreferences()) else throw e }
+            .map { prefs -> prefs[KEY_SHOW_UNSUPPORTED] ?: DEFAULT_SHOW_UNSUPPORTED }
+
+    /** Persist the app-global show-unsupported-tools toggle. */
+    suspend fun setShowUnsupportedTools(on: Boolean) {
+        dataStore.edit { prefs -> prefs[KEY_SHOW_UNSUPPORTED] = on }
+    }
+
     companion object {
         const val DEFAULT_KEEP_SCREEN_ON = true
         private val KEY_KEEP_SCREEN_ON = booleanPreferencesKey("keep_screen_on")
 
         const val DEFAULT_WEBCAM_ENABLED = true
         private val KEY_WEBCAM_ENABLED = booleanPreferencesKey("webcam_enabled")
+
+        const val DEFAULT_SHOW_UNSUPPORTED = false
+        private val KEY_SHOW_UNSUPPORTED = booleanPreferencesKey("show_unsupported_tools")
     }
 }
