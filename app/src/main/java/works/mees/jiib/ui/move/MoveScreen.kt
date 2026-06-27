@@ -293,6 +293,7 @@ internal fun MoveHubContent(
                         .fillMaxWidth()
                         .weight(1f),
                     isPrinting = isPrinting,
+                    safetyActive = gating !is GatingState.Idle,
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
                     contentInset = FocusInset / 2, // match FineTuneScreen's focus rhythm (8dp, not 16dp)

@@ -191,6 +191,7 @@ fun ScrewsTiltContent(
                         uDp = grid.uDp,
                         modifier = Modifier.fillMaxSize(),
                         isPrinting = isPrinting,
+                        safetyActive = gating !is GatingState.Idle,
                         onEmergencyStop = onEmergencyStop,
                         onPanic = onEmergencyStop,
                     ) {

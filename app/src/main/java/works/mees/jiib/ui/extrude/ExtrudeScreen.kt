@@ -323,6 +323,7 @@ private fun ExtrudeContent(
                     uDp = grid.uDp,
                     modifier = Modifier.fillMaxSize(),
                     isPrinting = isPrinting,
+                    safetyActive = gating !is GatingState.Idle,
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
                     contentInset = FocusInset / 2, // shared adjustment-focus rhythm (matches Fine-Tune)

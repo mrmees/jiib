@@ -446,6 +446,7 @@ internal fun BedMeshContent(
                         uDp = grid.uDp,
                         modifier = Modifier.fillMaxSize(),
                         isPrinting = isPrinting,
+                        safetyActive = gating !is GatingState.Idle,
                         onEmergencyStop = onEmergencyStop,
                         onPanic = onEmergencyStop,
                         trailingActionIcon = if (!isPrinting && !isLocked && fieldMode !is MeshFieldMode.MeshConfig && fieldMode !is MeshFieldMode.MeshConfigEditor) JiibIcons.Edit else null,
