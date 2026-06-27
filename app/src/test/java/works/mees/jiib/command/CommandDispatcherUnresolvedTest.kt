@@ -10,7 +10,10 @@ import kotlinx.serialization.json.JsonNull
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import works.mees.jiib.net.ConnectionError
 import works.mees.jiib.net.JsonRpcMethods
+import works.mees.jiib.net.RpcConnectionException
+import works.mees.jiib.net.RpcError
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class CommandDispatcherUnresolvedTest {
@@ -20,6 +23,7 @@ class CommandDispatcherUnresolvedTest {
             val d = kotlinx.coroutines.CompletableDeferred<JsonElement>(); calls += d; return d.await()
         }
         fun complete(i: Int) { calls[i].complete(JsonNull) }
+        fun fail(i: Int, e: Throwable) { calls[i].completeExceptionally(e) }
     }
 
     @Test
@@ -42,5 +46,29 @@ class CommandDispatcherUnresolvedTest {
         d.dispatch("home_all", JsonRpcMethods.GCODE_SCRIPT, null, GatingMode.HardLock)
         runCurrent(); rpc.complete(0); runCurrent()
         assertNull("clean HardLock completion must not latch unresolved", d.unresolvedHardLock.value)
+    }
+
+    @Test
+    fun hardLock_serverRejection_doesNotLatch() = runTest(UnconfinedTestDispatcher()) {
+        val rpc = FakeRpc()
+        val d = CommandDispatcher(request = rpc::request, scope = this, debounceMs = 0L,
+            timeSource = { testScheduler.currentTime })
+        d.dispatch("probe_calibrate", JsonRpcMethods.GCODE_SCRIPT, null, GatingMode.HardLock)
+        runCurrent()
+        rpc.fail(0, RpcError(code = null, message = "Command not found"))
+        runCurrent()
+        assertNull("server rejection (RpcError) must not latch unresolvedHardLock", d.unresolvedHardLock.value)
+    }
+
+    @Test
+    fun hardLock_connectionFailure_latches() = runTest(UnconfinedTestDispatcher()) {
+        val rpc = FakeRpc()
+        val d = CommandDispatcher(request = rpc::request, scope = this, debounceMs = 0L,
+            timeSource = { testScheduler.currentTime })
+        d.dispatch("quad_gantry_level", JsonRpcMethods.GCODE_SCRIPT, null, GatingMode.HardLock)
+        runCurrent()
+        rpc.fail(0, RpcConnectionException(ConnectionError.NetworkUnavailable, "no active connection"))
+        runCurrent()
+        assertEquals("connection failure must latch unresolvedHardLock", "quad_gantry_level", d.unresolvedHardLock.value)
     }
 }
