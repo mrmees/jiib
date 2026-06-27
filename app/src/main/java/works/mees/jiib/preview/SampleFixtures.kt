@@ -4,8 +4,10 @@ import works.mees.jiib.calibration.BedMeshModel
 import works.mees.jiib.calibration.BedMeshVm
 import works.mees.jiib.calibration.CalibrationRoutine
 import works.mees.jiib.calibration.GuidedLoopState
+import works.mees.jiib.calibration.ProbeAccuracyResult
 import works.mees.jiib.calibration.ProbeCalibrateVm
 import works.mees.jiib.calibration.ProbePageState
+import works.mees.jiib.calibration.ProbeTestVm
 import works.mees.jiib.calibration.RoutineEntry
 import works.mees.jiib.calibration.ScrewPoint
 import works.mees.jiib.calibration.ScrewTurn
@@ -350,6 +352,40 @@ object SampleFixtures {
             homedGate = true,
         )
     }
+
+    // ---------------------------------------------------------------------------------------------
+    // ProbeTestContent fixtures (Task 17)
+    // ---------------------------------------------------------------------------------------------
+
+    /**
+     * A [ProbeTestVm] with triggered status and last-Z result — the "just queried" state.
+     * The probe fired on the last query (`triggered = true`) and the last probed Z is 2.0125.
+     */
+    val probeTestTriggered: ProbeTestVm = ProbeTestVm(
+        triggered = true,
+        lastZ = 2.0125,
+        accuracy = null,
+    )
+
+    /**
+     * A [ProbeTestVm] with OPEN status and a completed PROBE_ACCURACY result. Exercises the full
+     * Focus body (dot + status + last-Z + 6-stat accuracy block).
+     */
+    val probeTestWithAccuracy: ProbeTestVm = ProbeTestVm(
+        triggered = false,
+        lastZ = 2.0050,
+        accuracy = ProbeAccuracyResult(
+            maximum  = 2.0125,
+            minimum  = 2.0000,
+            range    = 0.0125,
+            average  = 2.0050,
+            median   = 2.0050,
+            stdDev   = 0.0035,
+        ),
+    )
+
+    /** A [ProbeTestVm] with no data yet — all fields null; the "just opened the screen" state. */
+    val probeTestNoData: ProbeTestVm = ProbeTestVm()
 
     // ---------------------------------------------------------------------------------------------
     // ScrewsTiltContent fixtures (idle + result snapshots — 27-06)

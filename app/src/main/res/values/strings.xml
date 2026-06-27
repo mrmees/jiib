@@ -839,6 +839,25 @@
     <string name="cd_eddy_tap">Eddy tap threshold</string>
     <string name="cd_eddy_drive_current">Eddy drive current</string>
 
+    <!-- ProbeTestScreen (Task 17) -->
+    <string name="probe_test_title">Probe Test</string>
+    <string name="probe_test_query">Query</string>
+    <string name="probe_test_probe_once">Probe Once</string>
+    <string name="probe_test_run_accuracy">Run Accuracy</string>
+    <string name="probe_test_samples_label">Samples</string>
+    <string name="probe_test_status_open">OPEN</string>
+    <string name="probe_test_status_triggered">TRIGGERED</string>
+    <string name="probe_test_last_z_label">Last Z</string>
+    <string name="probe_test_accuracy_range">Range</string>
+    <string name="probe_test_accuracy_std_dev">Std Dev</string>
+    <string name="probe_test_accuracy_average">Average</string>
+    <string name="probe_test_accuracy_median">Median</string>
+    <string name="probe_test_accuracy_min">Min</string>
+    <string name="probe_test_accuracy_max">Max</string>
+    <string name="probe_test_cd_run_accuracy">Run probe accuracy test</string>
+    <string name="probe_test_cd_samples_increase">More samples</string>
+    <string name="probe_test_cd_samples_decrease">Fewer samples</string>
+
     <!-- Gating / ready-for-action UI (B1 + later B tasks) -->
     <string name="gating_moving">Moving…</string>
     <string name="gating_extruding">Extruding…</string>

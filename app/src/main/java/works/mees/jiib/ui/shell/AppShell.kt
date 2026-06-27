@@ -43,6 +43,7 @@ import works.mees.jiib.calibration.CalibrationHubHolder
 import works.mees.jiib.calibration.CalibrationRoutine
 import works.mees.jiib.calibration.ProbeCalibrateHolder
 import works.mees.jiib.calibration.ProbeHubHolder
+import works.mees.jiib.calibration.ProbeTestHolder
 import works.mees.jiib.calibration.ScrewsTiltHolder
 import works.mees.jiib.calibration.TiltHolder
 import works.mees.jiib.command.CommandRegistry
@@ -79,6 +80,7 @@ import works.mees.jiib.ui.calibration.BedMeshScreen
 import works.mees.jiib.ui.calibration.CalibrationHubScreen
 import works.mees.jiib.ui.calibration.ProbeCalibrateScreen
 import works.mees.jiib.ui.calibration.ProbeHubScreen
+import works.mees.jiib.ui.calibration.ProbeTestScreen
 import works.mees.jiib.ui.calibration.ScrewsTiltScreen
 import works.mees.jiib.ui.calibration.TiltScreen
 import works.mees.jiib.ui.calibration.TiltVariant
@@ -406,6 +408,9 @@ fun AppShell(
     val probeHubHolder = remember(store) {
         ProbeHubHolder(scope = scope, store = store, showUnsupportedTools = container.showUnsupportedTools)
     }
+    // ProbeTest holder (Task 17): collects probe.last_query / probe.last_z_result from printerState
+    // and parses PROBE_ACCURACY summaries from the gcode stream. Re-keyed on `store` like its siblings.
+    val probeTestHolder = remember(store) { ProbeTestHolder(scope = scope, store = store) }
     // D-01 move #2 (22-07): the four calibration *Vm collections are removed; TiltScreen/BedMeshScreen/
     // ProbeCalibrateScreen now take their holder directly and collect holder.vm internally (mirroring the
     // existing ScrewsTiltScreen pattern). The holder builds above (lines 366-385) stay in AppShell.
@@ -729,6 +734,14 @@ fun AppShell(
                     holder = probeHubHolder,
                     container = container,
                     onOpen = { tool -> navController.navigate(tool.toNavDest()) },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            // Task 17: Probe Test screen — live probe status + single probe + PROBE_ACCURACY run.
+            composable<NavDest.ProbeTest> {
+                ProbeTestScreen(
+                    container = container,
+                    holder = probeTestHolder,
                     onBack = { navController.popBackStack() },
                 )
             }

@@ -15,6 +15,7 @@ import works.mees.jiib.ui.calibration.CalibrationHubContent
 import works.mees.jiib.ui.calibration.MeshFieldMode
 import works.mees.jiib.ui.calibration.ProbeCalibrateContent
 import works.mees.jiib.ui.calibration.ProbeHubContent
+import works.mees.jiib.ui.calibration.ProbeTestContent
 import works.mees.jiib.ui.calibration.ScrewsTiltContent
 import works.mees.jiib.ui.calibration.TiltContent
 import works.mees.jiib.ui.calibration.TiltVariant
@@ -1223,6 +1224,149 @@ private fun ProbeHubPseudolocaleSpotCheck() = PreviewBox(colorfulDark) {
         onOpen = {},
         onBack = {},
     )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ProbeTestContent previews (Task 17)
+//
+// Targets the STATELESS ProbeTestContent seam (WARNING-5). No live Moonraker, no VM, no holder.
+// Fixture data from [SampleFixtures.probeTestTriggered], [SampleFixtures.probeTestWithAccuracy],
+// and [SampleFixtures.probeTestNoData].
+//
+// ProbeTest axes:
+//  - State matrix: no-data / triggered (OPEN dot + last-Z, no accuracy) / with accuracy result
+//  - 6 theme combos on triggered state (most common on-device landing state)
+//  - fs = L overflow: accuracy state — verify 6-stat table + stepper don't clip
+//  - Pseudolocale en-XA: i18n completeness sweep
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Helper to reduce boilerplate in ProbeTestContent preview calls.
+@Composable
+private fun probeTestPreview(
+    samples: Int = 10,
+    samplesIdx: Int = 4, // index of 10 in SAMPLES_STEPS
+    enabled: Boolean = true,
+    vm: works.mees.jiib.calibration.ProbeTestVm = SampleFixtures.probeTestTriggered,
+) {
+    ProbeTestContent(
+        vm = vm,
+        samples = samples,
+        samplesIdx = samplesIdx,
+        enabled = enabled,
+        onEmergencyStop = {},
+        onAcknowledgeUnknown = {},
+        onQuery = {},
+        onProbeOnce = {},
+        onRunAccuracy = {},
+        onSamplesUp = {},
+        onSamplesDown = {},
+        onBack = {},
+    )
+}
+
+// ── State matrix ─────────────────────────────────────────────────────────────
+
+@Preview(
+    name = "ProbeTest: No data (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ProbeTestNoData() = PreviewBox(colorfulDark) {
+    probeTestPreview(vm = SampleFixtures.probeTestNoData)
+}
+
+@Preview(
+    name = "ProbeTest: Triggered OPEN+lastZ (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ProbeTestTriggered() = PreviewBox(colorfulDark) {
+    probeTestPreview(vm = SampleFixtures.probeTestTriggered)
+}
+
+@Preview(
+    name = "ProbeTest: With accuracy result (Nexus7 landscape)",
+    device = NEXUS7,
+    showBackground = true,
+)
+@Composable
+private fun ProbeTestWithAccuracy() = PreviewBox(colorfulDark) {
+    probeTestPreview(vm = SampleFixtures.probeTestWithAccuracy)
+}
+
+// ── 6-theme matrix on triggered state ────────────────────────────────────────
+
+@Nexus7Previews
+@Composable
+private fun ProbeTestThemeColorfulDark() = PreviewBox(colorfulDark) {
+    probeTestPreview(vm = SampleFixtures.probeTestTriggered)
+}
+
+@Nexus7Previews
+@Composable
+private fun ProbeTestThemeColorfulLight() = PreviewBox(colorfulLight) {
+    probeTestPreview(vm = SampleFixtures.probeTestTriggered)
+}
+
+@Nexus7Previews
+@Composable
+private fun ProbeTestThemeSimpleDark() = PreviewBox(simpleDark) {
+    probeTestPreview(vm = SampleFixtures.probeTestTriggered)
+}
+
+@Nexus7Previews
+@Composable
+private fun ProbeTestThemeSimpleLight() = PreviewBox(simpleLight) {
+    probeTestPreview(vm = SampleFixtures.probeTestTriggered)
+}
+
+@Nexus7Previews
+@Composable
+private fun ProbeTestThemeHighContrastDark() = PreviewBox(highContrastDark) {
+    probeTestPreview(vm = SampleFixtures.probeTestTriggered)
+}
+
+@Nexus7Previews
+@Composable
+private fun ProbeTestThemeHighContrastLight() = PreviewBox(highContrastLight) {
+    probeTestPreview(vm = SampleFixtures.probeTestTriggered)
+}
+
+// ── fs = L overflow check (accuracy state — 6-stat table + stepper) ──────────
+
+@Preview(
+    name = "ProbeTest fs=L accuracy portrait overflow check",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ProbeTestFsLargeOverflowPortrait() = PreviewBox(fsLargeSeed) {
+    probeTestPreview(vm = SampleFixtures.probeTestWithAccuracy)
+}
+
+@Preview(
+    name = "ProbeTest fs=L accuracy landscape overflow check",
+    device = NEXUS7,
+    showBackground = true,
+)
+@Composable
+private fun ProbeTestFsLargeOverflowLandscape() = PreviewBox(fsLargeSeed) {
+    probeTestPreview(vm = SampleFixtures.probeTestWithAccuracy)
+}
+
+// ── Pseudolocale en-XA ────────────────────────────────────────────────────────
+
+@Preview(
+    name = "ProbeTest pseudolocale en-XA accuracy",
+    device = NEXUS7_PORTRAIT,
+    locale = "en-XA",
+    showBackground = true,
+)
+@Composable
+private fun ProbeTestPseudolocaleSpotCheck() = PreviewBox(colorfulDark) {
+    probeTestPreview(vm = SampleFixtures.probeTestWithAccuracy)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
