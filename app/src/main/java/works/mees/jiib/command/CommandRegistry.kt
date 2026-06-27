@@ -146,6 +146,17 @@ data class SetServoArgs(val name: String, val deg: Int = 0, val maxDeg: Int = Pr
  */
 data class SetOutputPinArgs(val name: String, val pwm: Boolean, val pct: Int = 0, val on: Boolean = false)
 
+// --- Probe-section args (Task 5) ----------------------------------------------------------------
+
+/** `PROBE SAMPLES=<n>` accuracy sweep — [samples] is passed verbatim to the builder. */
+data class ProbeAccuracyArgs(val samples: Int)
+
+/** Eddy-current chip name arg — [chip] is the bare Klipper section name (e.g. `"btt_eddy"`). */
+data class EddyChipArgs(val chip: String)
+
+/** Eddy tap calibration stage arg — [stage] is e.g. `"1"` or `"2"`. */
+data class EddyTapArgs(val stage: String)
+
 object CommandRegistry {
     private val jsonRpcSemantics = CommandSemantics(
         success = "JSON-RPC result acknowledges the request.",
@@ -706,6 +717,72 @@ object CommandRegistry {
         availability = AvailabilityPredicate.GcodeCommandPresent("Z_ENDSTOP_CALIBRATE"),
     )
 
+    // --- Probe-section specs (Task 5) -----------------------------------------------------------
+
+    /** `QUERY_PROBE` — report current probe state (triggered / not-triggered). Gated on `probe` object. */
+    val queryProbe: CommandSpec<Unit> = gcode(
+        catalogId = "KGC-QUERY_PROBE",
+        key = { "query_probe" },
+        gcode = { PrinterCommands.QUERY_PROBE },
+        availability = AvailabilityPredicate.ObjectPresent("probe"),
+    )
+
+    /** `PROBE` — run a single probe cycle and report the Z height. Gated on `probe` object. */
+    val probeOnce: CommandSpec<Unit> = gcode(
+        catalogId = "KGC-PROBE",
+        key = { "probe_once" },
+        gcode = { PrinterCommands.PROBE },
+        availability = AvailabilityPredicate.ObjectPresent("probe"),
+    )
+
+    /** `PROBE SAMPLES=<n>` — accuracy sweep. Gated on `probe` object. */
+    val probeAccuracy: CommandSpec<ProbeAccuracyArgs> = gcode(
+        catalogId = "KGC-PROBE_ACCURACY",
+        key = { "probe_accuracy" },
+        gcode = { args -> PrinterCommands.probeAccuracy(args.samples) },
+        availability = AvailabilityPredicate.ObjectPresent("probe"),
+    )
+
+    /** `Z_OFFSET_APPLY_PROBE` — persist probe live Z-offset to config. Gated on `probe` object. */
+    val zOffsetApplyProbe: CommandSpec<Unit> = gcode(
+        catalogId = "KGC-Z_OFFSET_APPLY_PROBE",
+        key = { "z_offset_apply_probe" },
+        gcode = { PrinterCommands.Z_OFFSET_APPLY_PROBE },
+        availability = AvailabilityPredicate.ObjectPresent("probe"),
+    )
+
+    /** `Z_OFFSET_APPLY_ENDSTOP` — persist endstop live Z-offset to config. Gated on command presence (probe-less printers). */
+    val zOffsetApplyEndstop: CommandSpec<Unit> = gcode(
+        catalogId = "KGC-Z_OFFSET_APPLY_ENDSTOP",
+        key = { "z_offset_apply_endstop" },
+        gcode = { PrinterCommands.Z_OFFSET_APPLY_ENDSTOP },
+        availability = AvailabilityPredicate.GcodeCommandPresent("Z_OFFSET_APPLY_ENDSTOP"),
+    )
+
+    /** `PROBE_EDDY_CURRENT_CALIBRATE CHIP=<chip>` — eddy-current chip calibration. Gated on command presence. */
+    val eddyCalibrate: CommandSpec<EddyChipArgs> = gcode(
+        catalogId = "KGC-PROBE_EDDY_CURRENT_CALIBRATE",
+        key = { "eddy_calibrate" },
+        gcode = { args -> PrinterCommands.eddyCalibrate(args.chip) },
+        availability = AvailabilityPredicate.GcodeCommandPresent("PROBE_EDDY_CURRENT_CALIBRATE"),
+    )
+
+    /** `PROBE_EDDY_CURRENT_TAP_CALIBRATE CHIP=<chip> STAGE=<stage>` — eddy tap calibration. Gated on command presence. */
+    val eddyTapCalibrate: CommandSpec<EddyTapArgs> = gcode(
+        catalogId = "KGC-PROBE_EDDY_CURRENT_TAP_CALIBRATE",
+        key = { "eddy_tap_calibrate" },
+        gcode = { args -> PrinterCommands.eddyTapCalibrate(args.stage) },
+        availability = AvailabilityPredicate.GcodeCommandPresent("PROBE_EDDY_CURRENT_TAP_CALIBRATE"),
+    )
+
+    /** `LDC_CALIBRATE_DRIVE_CURRENT CHIP=<chip>` — LDC drive-current calibration. Gated on command presence. */
+    val ldcDriveCurrent: CommandSpec<EddyChipArgs> = gcode(
+        catalogId = "KGC-LDC_CALIBRATE_DRIVE_CURRENT",
+        key = { "ldc_drive_current" },
+        gcode = { args -> PrinterCommands.ldcDriveCurrent(args.chip) },
+        availability = AvailabilityPredicate.GcodeCommandPresent("LDC_CALIBRATE_DRIVE_CURRENT"),
+    )
+
     val testZ: CommandSpec<TestZArgs> = gcode(
         catalogId = "KGC-TESTZ",
         key = { "testz" },
@@ -954,6 +1031,14 @@ object CommandRegistry {
         bedMeshProfileRemove,
         probeCalibrate,
         zEndstopCalibrate,
+        queryProbe,
+        probeOnce,
+        probeAccuracy,
+        zOffsetApplyProbe,
+        zOffsetApplyEndstop,
+        eddyCalibrate,
+        eddyTapCalibrate,
+        ldcDriveCurrent,
         testZ,
         accept,
         abort,
