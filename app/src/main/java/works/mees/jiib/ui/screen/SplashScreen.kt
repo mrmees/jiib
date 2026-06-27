@@ -102,7 +102,10 @@ fun SplashScreen(
                 ) {
                     SplashBrandLockup(
                         forceWhite = brandMode,
-                        modifier = Modifier.width(blockDp * 0.6f),
+                        // FIXED width (not screen-relative) so the in-app lockup matches the OS splash
+                        // lockup, which the system renders at a fixed size inside the circular icon
+                        // mask. Same size + both centered → seamless splash→connecting handoff (UAT).
+                        modifier = Modifier.width(SplashLockupWidth),
                     )
                     Text(
                         text = if (brandMode) stringResource(R.string.splash_connecting)
@@ -192,6 +195,14 @@ fun SplashScreen(
  * width and wraps its (square-ish 600×600) height so it never stretches; the enclosing Column already
  * centers it horizontally.
  */
+/**
+ * In-app connecting/recovery lockup width — FIXED (not screen-relative) so it matches the OS splash
+ * lockup ([drawable/splash_lockup]), which the system renders at a fixed size inside the circular icon
+ * mask (~150dp of ink at scale 0.55). Tunable: bump together with the splash_lockup group scale if the
+ * two need to read larger. ~160dp here yields ink ≈ the OS splash lockup's ink for a seamless handoff.
+ */
+private val SplashLockupWidth = 160.dp
+
 @Composable
 internal fun SplashBrandLockup(
     forceWhite: Boolean = false,
