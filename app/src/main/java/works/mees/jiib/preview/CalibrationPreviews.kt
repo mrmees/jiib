@@ -1,7 +1,11 @@
 package works.mees.jiib.preview
 
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import works.mees.jiib.designsystem.components.ConsoleTail
 import works.mees.jiib.calibration.CalibrationRoutine
 import works.mees.jiib.calibration.ProbePageState
 import works.mees.jiib.calibration.ProbeTool
@@ -1218,5 +1222,69 @@ private fun ProbeHubPseudolocaleSpotCheck() = PreviewBox(colorfulDark) {
         onSelect = {},
         onOpen = {},
         onBack = {},
+    )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ConsoleTail component previews (Task 16)
+// ─────────────────────────────────────────────────────────────────────────────
+
+private val sampleConsoleTailLines: List<String> = listOf(
+    "Starting eddy probe calibration…",
+    "SET_KINEMATIC_POSITION",
+    "G28 Z",
+    "Homing Z…",
+    "ok",
+    "PROBE_EDDY_CURRENT_CALIBRATE CHIP=btt_eddy",
+    "Starting manual Z probe calibration at z=3.500",
+    "Move to next position: z=3.500",
+    "Move to next position: z=2.000",
+    "Move to next position: z=1.000",
+    "Move to next position: z=0.500",
+    "Move to next position: z=0.250",
+    "ACCEPT",
+    "Calibration complete. Saving…",
+    "ok",
+)
+
+@Preview(
+    name = "ConsoleTail dark portrait (Nexus7)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ConsoleTailDarkPortrait() = PreviewBox(colorfulDark) {
+    ConsoleTail(
+        lines = sampleConsoleTailLines,
+        uDp = 64.dp,
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Preview(
+    name = "ConsoleTail light landscape (Nexus7)",
+    device = NEXUS7,
+    showBackground = true,
+)
+@Composable
+private fun ConsoleTailLightLandscape() = PreviewBox(colorfulLight) {
+    ConsoleTail(
+        lines = sampleConsoleTailLines,
+        uDp = 64.dp,
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Preview(
+    name = "ConsoleTail empty (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ConsoleTailEmpty() = PreviewBox(colorfulDark) {
+    ConsoleTail(
+        lines = emptyList(),
+        uDp = 64.dp,
+        modifier = Modifier.fillMaxSize(),
     )
 }
