@@ -1,11 +1,10 @@
 package works.mees.jiib.designsystem.components
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,8 +22,9 @@ import works.mees.jiib.theme.compose.toTextStyle
  * and auto-scrolls to the bottom when [lines] grows.
  *
  * ## Design contract
- *  - Each row is translucent (no opaque fill — consistent with the console screen's
- *    row styling; the pane inherits whatever background is behind it).
+ *  - The pane is translucent — no background fill on the [LazyColumn]. The caller's
+ *    surface shows through, consistent with ListRow/card convention. Each row has no
+ *    opaque fill either; the component inherits whatever background is behind it.
  *  - Text is styled ONLY via [JiibType.consoleLine.toTextStyle(t)] — no inline `fontFamily`
  *    or `fontSize` (FontConformanceTest law). Color is [ThemeTokens.text3] (dimmed), matching
  *    the console's informational-line treatment.
@@ -62,10 +62,9 @@ fun ConsoleTail(
     LazyColumn(
         state = listState,
         modifier = modifier
-            .background(t.surface)
             .padding(horizontal = 4.dp),
     ) {
-        itemsIndexed(lines) { _, line ->
+        items(lines) { line ->
             Text(
                 text = line,
                 style = JiibType.consoleLine.toTextStyle(t),
@@ -73,6 +72,7 @@ fun ConsoleTail(
                 softWrap = true,
                 modifier = Modifier
                     .fillMaxWidth()
+                    .heightIn(min = uDp)
                     .padding(horizontal = 8.dp, vertical = 2.dp),
             )
         }
