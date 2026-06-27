@@ -334,6 +334,9 @@ internal fun MoveHubContent(
                                     val cx = vm.x
                                     val cy = vm.y
                                     val ct = committedTarget
+                                    // travelPending = bed-map travel VISUALIZATION only. Busy authority is gatingState (B1).
+                                    // TODO(gating): consider removing travelPending after on-device confirms fenced inFlight
+                                    // matches real toolhead arrivals (Codex Finding 8 — keep until that evidence exists).
                                     val travelling = ct != null && cx != null && cy != null &&
                                         travelPending(cx, cy, ct.first, ct.second)
                                     BedMapView(
