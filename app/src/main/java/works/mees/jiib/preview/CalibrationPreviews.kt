@@ -14,6 +14,7 @@ import works.mees.jiib.ui.calibration.ApplyBabystepContent
 import works.mees.jiib.ui.calibration.BedMeshContent
 import works.mees.jiib.ui.calibration.CalibrationHubContent
 import works.mees.jiib.ui.calibration.CalibrationRunContent
+import works.mees.jiib.ui.calibration.EddyCalibrateContent
 import works.mees.jiib.ui.calibration.MeshFieldMode
 import works.mees.jiib.ui.calibration.ProbeCalibrateContent
 import works.mees.jiib.ui.calibration.ProbeHubContent
@@ -1886,4 +1887,134 @@ private fun CalibRunTapThresholdFsLargePortrait() = PreviewBox(fsLargeSeed) {
         onSaveCancel = {},
         onBack = {},
     )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EddyCalibrateContent previews (Task 20) — hybrid manual-probe → sweep screen
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun eddyCalibratePreview(
+    state: ProbePageState,
+    starting: Boolean = false,
+    saveGuard: Boolean = false,
+    lines: List<String> = emptyList(),
+) {
+    EddyCalibrateContent(
+        vm = SampleFixtures.probeVm(state),
+        step = 0.05,
+        starting = starting,
+        saveGuard = saveGuard,
+        lines = lines,
+        enabled = state == ProbePageState.Active,
+        onTestZUp = {},
+        onTestZDown = {},
+        onStepUp = {},
+        onStepDown = {},
+        onStart = {},
+        onAccept = {},
+        onAbort = {},
+        onSaveGuardShow = {},
+        onSaveConfirm = {},
+        onSaveCancel = {},
+        onBack = {},
+    )
+}
+
+@Preview(
+    name = "EddyCalibrate Idle (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun EddyCalibrateIdle() = PreviewBox(colorfulDark) {
+    eddyCalibratePreview(ProbePageState.Idle)
+}
+
+@Preview(
+    name = "EddyCalibrate Starting… (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun EddyCalibrateStarting() = PreviewBox(colorfulDark) {
+    eddyCalibratePreview(ProbePageState.Idle, starting = true)
+}
+
+@Preview(
+    name = "EddyCalibrate Active paper-test (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun EddyCalibrateActive() = PreviewBox(colorfulDark) {
+    eddyCalibratePreview(ProbePageState.Active)
+}
+
+@Preview(
+    name = "EddyCalibrate Sweep/console (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun EddyCalibrateSweep() = PreviewBox(colorfulDark) {
+    eddyCalibratePreview(
+        ProbePageState.Accepted,
+        lines = listOf(
+            "// Eddy calibration starting...",
+            "// Scanning at frequency 0",
+            "// Scanning at frequency 1",
+            "// Scanning at frequency 2",
+            "// Calibration complete.",
+        ),
+    )
+}
+
+@Preview(
+    name = "EddyCalibrate Sweep save-guard (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun EddyCalibrateSaveGuard() = PreviewBox(colorfulDark) {
+    eddyCalibratePreview(ProbePageState.Accepted, saveGuard = true)
+}
+
+// Theme matrix: Active state (most complex — jog columns live)
+@Preview(name = "EddyCalibrate theme colorful dark", device = NEXUS7_PORTRAIT, showBackground = true)
+@Composable
+private fun EddyCalibrateThemeColorfulDark() = PreviewBox(colorfulDark) {
+    eddyCalibratePreview(ProbePageState.Active)
+}
+
+@Preview(name = "EddyCalibrate theme colorful light", device = NEXUS7_PORTRAIT, showBackground = true)
+@Composable
+private fun EddyCalibrateThemeColorfulLight() = PreviewBox(colorfulLight) {
+    eddyCalibratePreview(ProbePageState.Active)
+}
+
+@Preview(name = "EddyCalibrate theme high-contrast dark", device = NEXUS7_PORTRAIT, showBackground = true)
+@Composable
+private fun EddyCalibrateThemeHighContrastDark() = PreviewBox(highContrastDark) {
+    eddyCalibratePreview(ProbePageState.Active)
+}
+
+@Preview(
+    name = "EddyCalibrate fs=L overflow portrait",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun EddyCalibrateFsLargePortrait() = PreviewBox(fsLargeSeed) {
+    eddyCalibratePreview(ProbePageState.Idle)
+}
+
+@Preview(
+    name = "EddyCalibrate Active landscape (Nexus7)",
+    device = NEXUS7,
+    showBackground = true,
+)
+@Composable
+private fun EddyCalibrateActiveLandscape() = PreviewBox(colorfulDark) {
+    eddyCalibratePreview(ProbePageState.Active)
 }

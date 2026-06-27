@@ -80,6 +80,7 @@ import works.mees.jiib.ui.macros.MacroHolder
 import works.mees.jiib.ui.calibration.ApplyBabystepScreen
 import works.mees.jiib.ui.calibration.BedMeshScreen
 import works.mees.jiib.ui.calibration.CalibrationHubScreen
+import works.mees.jiib.ui.calibration.EddyCalibrateScreen
 import works.mees.jiib.ui.calibration.EddyDriveCurrentScreen
 import works.mees.jiib.ui.calibration.EddyTapScreen
 import works.mees.jiib.ui.calibration.ProbeCalibrateScreen
@@ -404,6 +405,14 @@ fun AppShell(
         )
     }
     val probeCalibrateHolder = remember(store) {
+        ProbeCalibrateHolder(scope = scope, store = store, events = calibEvents)
+    }
+    // EddyCalibrate holder (Task 20): a SEPARATE ProbeCalibrateHolder instance for the eddy route
+    // so reset() and sawActive/captured latch state are isolated from the Z-offset calibrate flow.
+    // Both holders derive Idle/Active/Accepted from the same `manual_probe.is_active` field in the
+    // shared store, but only one route is active at a time — separate instances prevent cross-
+    // contamination of per-session latch state across nav entrances.
+    val eddyCalibrateHolder = remember(store) {
         ProbeCalibrateHolder(scope = scope, store = store, events = calibEvents)
     }
     // Probe sub-hub holder (Task 14): built alongside the calibration holders, re-keyed on the
@@ -775,6 +784,33 @@ fun AppShell(
             composable<NavDest.ProbeEddyTap> {
                 EddyTapScreen(
                     container = container,
+                    gcodeResponses = store.gcodeResponses,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            // Task 20: Eddy Calibrate — hybrid PROBE_EDDY_CURRENT_CALIBRATE screen.
+            // Phase 1: Start dispatches eddyCalibrate → opens manual_probe session (paper-test).
+            // Phase 2: Active paper-test (ManualProbeJog via ProbeCalibrateHolder / TESTZ+ACCEPT+ABORT).
+            // Phase 3: Sweep — firmware resonance sweep; ConsoleTail tails live gcode output + SAVE_CONFIG.
+            // D-09 BackHandler: swallow system Back while Active OR starting (paper-test descent unsafe).
+            composable<NavDest.ProbeEddyCalibrate> {
+                val vm by eddyCalibrateHolder.vm.collectAsStateWithLifecycle()
+                val inFlight by remember(dispatcher) {
+                    dispatcher?.inFlight ?: MutableStateFlow(emptySet())
+                }.collectAsStateWithLifecycle(initialValue = emptySet())
+                val starting = vm.state == works.mees.jiib.calibration.ProbePageState.Idle &&
+                    "eddy_calibrate" in inFlight
+                // D-09 BackHandler: swallow system Back while the paper-test is Active OR starting.
+                // Matches the CalibrationProbe gate (nav.scanActive / promptView.visible belt-and-braces).
+                BackHandler(
+                    enabled = (vm.state == works.mees.jiib.calibration.ProbePageState.Active || starting) &&
+                        !nav.scanActive && !promptView.visible
+                ) {
+                    // Intentionally swallow — abandoning a live paper-test nozzle descent is unsafe.
+                }
+                EddyCalibrateScreen(
+                    container = container,
+                    holder = eddyCalibrateHolder,
                     gcodeResponses = store.gcodeResponses,
                     onBack = { navController.popBackStack() },
                 )

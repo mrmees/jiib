@@ -864,6 +864,9 @@
     <string name="calibration_run_tap_stage_refine">Refine</string>
     <string name="calibration_run_tap_stage_verify">Verify</string>
 
+    <!-- EddyCalibrateScreen (Task 20) — hybrid manual-probe → resonance-sweep screen -->
+    <string name="eddy_calibrate_sweep_running">Resonance sweep in progress — this may take several minutes. Watch the console for completion.</string>
+
     <!-- ApplyBabystepScreen (Task 18) -->
     <string name="probe_apply_babystep_saved_label">Saved z_offset</string>
     <string name="probe_apply_babystep_live_label">Live babystep</string>

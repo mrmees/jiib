@@ -405,7 +405,7 @@ fun ProbeCalibrateContent(
  *  - Column 1 (Z-nudge): Z-up (TESTZ +step) / [ZReadoutDisplay] / Z-down (TESTZ -step)
  *  - Column 2 (step selector): Increase / [StepDisplay] / Decrease
  *
- * Used by [ProbeCalibrateContent] and Task 20's Eddy Calibrate screen.
+ * Used by [ProbeCalibrateContent] and [EddyCalibrateContent] (Task 20).
  */
 @Composable
 internal fun ManualProbeJog(
