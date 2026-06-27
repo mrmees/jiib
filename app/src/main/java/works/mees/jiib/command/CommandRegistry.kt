@@ -524,6 +524,8 @@ object CommandRegistry {
         key = { "home_all" },
         gcode = { PrinterCommands.homeAll() },
         availability = AvailabilityPredicate.ObjectPresent("toolhead"),
+        fence = true,
+        gating = GatingMode.HardLock,
     )
 
     val homeXY: CommandSpec<Unit> = gcode(
@@ -966,13 +968,22 @@ object CommandRegistry {
         key: (P) -> String,
         gcode: (P) -> String,
         availability: AvailabilityPredicate,
+        fence: Boolean = false,
+        gating: GatingMode = GatingMode.None,
+        gatingTimeoutMs: Long? = null,
     ): CommandSpec<P> = CommandSpec(
         catalogId = catalogId,
         transport = CommandTransport.GcodeScript,
         method = JsonRpcMethods.GCODE_SCRIPT,
         dispatchKey = key,
-        params = { args -> PrinterCommands.scriptParams(gcode(args)) },
+        params = { args ->
+            val body = gcode(args)
+            PrinterCommands.scriptParams(if (fence) "$body\nM400" else body)
+        },
         availability = availability,
+        fence = fence,
+        gating = gating,
+        gatingTimeoutMs = gatingTimeoutMs,
         semantics = gcodeSemantics,
     )
 }
