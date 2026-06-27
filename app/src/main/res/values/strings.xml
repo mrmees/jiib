@@ -806,6 +806,39 @@
     <string name="conn_save_anyway">Save anyway</string>
     <string name="conn_scan">Scan</string>
 
+    <!-- ============== probe section (probe-section Task 0) ============== -->
+    <!-- Hub title / launcher row label -->
+    <string name="probe_hub_title">Probe</string>
+
+    <!-- Tool titles (visible in hub Field list + each tool\'s Focus header) -->
+    <string name="probe_tool_z_offset_calibrate_title">Z-Offset Calibrate</string>
+    <string name="probe_tool_test_title">Probe Test</string>
+    <string name="probe_tool_babystep_title">Apply Babystepping</string>
+    <string name="probe_tool_eddy_calibrate_title">Eddy: Calibrate</string>
+    <string name="probe_tool_eddy_tap_title">Eddy: Tap Threshold</string>
+    <string name="probe_tool_eddy_drive_current_title">Eddy: Drive Current</string>
+
+    <!-- Tool descriptions (one-liner shown in the hub Focus when a tool row is selected;
+         author-written, owner reviews at UAT) -->
+    <string name="probe_tool_z_offset_calibrate_desc">Measure the distance from your probe trigger point to the nozzle tip; sets the Z offset.</string>
+    <string name="probe_tool_test_desc">Query the probe, run a single probe, or measure probe accuracy.</string>
+    <string name="probe_tool_babystep_desc">Apply or clear the live Z babystepping offset without saving to config.</string>
+    <string name="probe_tool_eddy_calibrate_desc">Drive the Eddy current coil through its calibration sequence to set the distance model.</string>
+    <string name="probe_tool_eddy_tap_desc">Set the Eddy current tap threshold used to detect bed contact.</string>
+    <string name="probe_tool_eddy_drive_current_desc">Adjust the Eddy current coil drive current for optimal signal amplitude.</string>
+
+    <!-- App setting: show unsupported tools -->
+    <string name="settings_show_unsupported_tools">Show unsupported tools</string>
+    <string name="settings_show_unsupported_tools_focus">Reveal tools your printer doesn\'t support, greyed out.</string>
+
+    <!-- contentDescriptions for the six new probe-section icon tokens (cd_*; TalkBack only) -->
+    <string name="cd_probe_test_tool">Probe Test</string>
+    <string name="cd_probe_query">Query probe status</string>
+    <string name="cd_probe_once">Probe once</string>
+    <string name="cd_eddy_calibrate">Eddy calibrate</string>
+    <string name="cd_eddy_tap">Eddy tap threshold</string>
+    <string name="cd_eddy_drive_current">Eddy drive current</string>
+
     <!-- Gating / ready-for-action UI (B1 + later B tasks) -->
     <string name="gating_moving">Moving…</string>
     <string name="gating_extruding">Extruding…</string>
