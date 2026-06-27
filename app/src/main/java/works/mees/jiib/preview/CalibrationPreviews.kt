@@ -17,6 +17,7 @@ import works.mees.jiib.ui.calibration.CalibrationRunContent
 import works.mees.jiib.ui.calibration.EddyCalibrateContent
 import works.mees.jiib.ui.calibration.MeshFieldMode
 import works.mees.jiib.ui.calibration.ProbeCalibrateContent
+import works.mees.jiib.ui.calibration.ProbeContent
 import works.mees.jiib.ui.calibration.ProbeHubContent
 import works.mees.jiib.ui.calibration.ProbeTestContent
 import works.mees.jiib.ui.calibration.ScrewsTiltContent
@@ -2017,4 +2018,103 @@ private fun EddyCalibrateFsLargePortrait() = PreviewBox(fsLargeSeed) {
 @Composable
 private fun EddyCalibrateActiveLandscape() = PreviewBox(colorfulDark) {
     eddyCalibratePreview(ProbePageState.Active)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ProbeContent previews (R1: single Focus-centric Probe screen)
+//
+// Targets the stateless ProbeContent seam (WARNING-5). No live Moonraker, no holder.
+// Reuses SampleFixtures.probeToolList (6 tools, 3 supported / 3 greyed).
+//
+// Axes:
+//  - Tool matrix: Z_OFFSET-selected / PROBE_TEST-selected / null-selected (empty tools)
+//    — exercises D-05 pre-select + null-guard fallback
+//  - 2 theme variants on Z_OFFSET-selected (dark + light)
+//  - fs=L overflow check (portrait): verifies Focus placeholder + list don't clip
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Preview(
+    name = "ProbeScreen: Z_OFFSET selected (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ProbeScreenZOffsetSelected() = PreviewBox(colorfulDark) {
+    ProbeContent(
+        tools = SampleFixtures.probeToolList,
+        selected = ProbeTool.Z_OFFSET,
+        onSelect = {},
+        onBack = {},
+    )
+}
+
+@Preview(
+    name = "ProbeScreen: PROBE_TEST selected (Nexus7 landscape)",
+    device = NEXUS7,
+    showBackground = true,
+)
+@Composable
+private fun ProbeScreenProbeTestSelected() = PreviewBox(colorfulDark) {
+    ProbeContent(
+        tools = SampleFixtures.probeToolList,
+        selected = ProbeTool.PROBE_TEST,
+        onSelect = {},
+        onBack = {},
+    )
+}
+
+@Preview(
+    name = "ProbeScreen: null selected / empty tools (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ProbeScreenNullSelected() = PreviewBox(colorfulDark) {
+    ProbeContent(
+        tools = emptyList(),
+        selected = null,
+        onSelect = {},
+        onBack = {},
+    )
+}
+
+// ── Theme variants on Z_OFFSET-selected ──────────────────────────────────────
+
+@Nexus7Previews
+@Composable
+private fun ProbeScreenThemeColorfulDark() = PreviewBox(colorfulDark) {
+    ProbeContent(
+        tools = SampleFixtures.probeToolList,
+        selected = ProbeTool.Z_OFFSET,
+        onSelect = {},
+        onBack = {},
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun ProbeScreenThemeColorfulLight() = PreviewBox(colorfulLight) {
+    ProbeContent(
+        tools = SampleFixtures.probeToolList,
+        selected = ProbeTool.Z_OFFSET,
+        onSelect = {},
+        onBack = {},
+    )
+}
+
+// ── fs=L overflow check ───────────────────────────────────────────────────────
+
+@Preview(
+    name = "ProbeScreen fs=L portrait overflow check",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ProbeScreenFsLargeOverflowPortrait() = PreviewBox(fsLargeSeed) {
+    ProbeContent(
+        tools = SampleFixtures.probeToolList,
+        selected = ProbeTool.Z_OFFSET,
+        onSelect = {},
+        onBack = {},
+    )
 }

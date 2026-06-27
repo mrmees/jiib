@@ -37,11 +37,10 @@ class NavDestRoundTripTest {
     @Test fun theme_roundTrips()         { assertRoundTrip(NavDest.Theme) }
 
     // ---------------------------------------------------------------------------
-    // Six calibration sub-routes (Phase 27, D-07) — explicit coverage
+    // Calibration sub-routes (Phase 27, D-07; CalibrationProbe retired R1)
     // ---------------------------------------------------------------------------
 
     @Test fun calibrationHub_roundTrips()         { assertRoundTrip(NavDest.CalibrationHub) }
-    @Test fun calibrationProbe_roundTrips()       { assertRoundTrip(NavDest.CalibrationProbe) }
     @Test fun calibrationBedMesh_roundTrips()     { assertRoundTrip(NavDest.CalibrationBedMesh) }
     @Test fun calibrationScrewsTilt_roundTrips()  { assertRoundTrip(NavDest.CalibrationScrewsTilt) }
     @Test fun calibrationZTilt_roundTrips()       { assertRoundTrip(NavDest.CalibrationZTilt) }
@@ -88,76 +87,14 @@ class NavDestRoundTripTest {
     }
 
     // ---------------------------------------------------------------------------
-    // Probe sub-hub routes (Task 13)
+    // R1: single Probe screen (replaces ProbeHub + 5 probe tool routes)
     // ---------------------------------------------------------------------------
 
-    @Test fun probeHub_roundTrips()              { assertRoundTrip(NavDest.ProbeHub) }
-    @Test fun probeTest_roundTrips()             { assertRoundTrip(NavDest.ProbeTest) }
-    @Test fun probeApplyBabystep_roundTrips()    { assertRoundTrip(NavDest.ProbeApplyBabystep) }
-    @Test fun probeEddyCalibrate_roundTrips()    { assertRoundTrip(NavDest.ProbeEddyCalibrate) }
-    @Test fun probeEddyTap_roundTrips()          { assertRoundTrip(NavDest.ProbeEddyTap) }
-    @Test fun probeEddyDriveCurrent_roundTrips() { assertRoundTrip(NavDest.ProbeEddyDriveCurrent) }
+    @Test fun probe_roundTrips() { assertRoundTrip(NavDest.Probe) }
 
     @Test
-    fun probeHub_isInKnownNavDests() {
-        assertTrue("NavDest.ProbeHub must be in knownNavDests", NavDest.ProbeHub in knownNavDests)
-    }
-
-    @Test
-    fun probeToolDests_allInKnownNavDests() {
-        val probeDests = listOf(
-            NavDest.ProbeTest,
-            NavDest.ProbeApplyBabystep,
-            NavDest.ProbeEddyCalibrate,
-            NavDest.ProbeEddyTap,
-            NavDest.ProbeEddyDriveCurrent,
-        )
-        for (dest in probeDests) {
-            assertTrue("$dest must be in knownNavDests", dest in knownNavDests)
-        }
-    }
-
-    /** ProbeTool.toNavDest() must cover every ProbeTool entry exhaustively. */
-    @Test
-    fun probeToolToNavDest_coversAllEntries() {
-        val mapped = works.mees.jiib.calibration.ProbeTool.entries.map { it.toNavDest() }.toSet()
-        assertEquals("All 6 ProbeTool entries must map to a distinct NavDest", 6, mapped.size)
-    }
-
-    @Test
-    fun probeToolToNavDest_zOffset_mapsToCalibrationProbe() {
-        assertEquals(NavDest.CalibrationProbe,
-            works.mees.jiib.calibration.ProbeTool.Z_OFFSET.toNavDest())
-    }
-
-    @Test
-    fun probeToolToNavDest_probeTest_mapsToProbeTest() {
-        assertEquals(NavDest.ProbeTest,
-            works.mees.jiib.calibration.ProbeTool.PROBE_TEST.toNavDest())
-    }
-
-    @Test
-    fun probeToolToNavDest_applyBabystep_mapsToProbeApplyBabystep() {
-        assertEquals(NavDest.ProbeApplyBabystep,
-            works.mees.jiib.calibration.ProbeTool.APPLY_BABYSTEP.toNavDest())
-    }
-
-    @Test
-    fun probeToolToNavDest_eddyCalibrate_mapsToProbeEddyCalibrate() {
-        assertEquals(NavDest.ProbeEddyCalibrate,
-            works.mees.jiib.calibration.ProbeTool.EDDY_CALIBRATE.toNavDest())
-    }
-
-    @Test
-    fun probeToolToNavDest_eddyTap_mapsToProbeEddyTap() {
-        assertEquals(NavDest.ProbeEddyTap,
-            works.mees.jiib.calibration.ProbeTool.EDDY_TAP.toNavDest())
-    }
-
-    @Test
-    fun probeToolToNavDest_eddyDriveCurrent_mapsToProbeEddyDriveCurrent() {
-        assertEquals(NavDest.ProbeEddyDriveCurrent,
-            works.mees.jiib.calibration.ProbeTool.EDDY_DRIVE_CURRENT.toNavDest())
+    fun probe_isInKnownNavDests() {
+        assertTrue("NavDest.Probe must be in knownNavDests", NavDest.Probe in knownNavDests)
     }
 
     // ---------------------------------------------------------------------------
@@ -173,7 +110,8 @@ class NavDestRoundTripTest {
 
     @Test
     fun calibrationRoutineToNavDest_probe_mapsToProbeRoute() {
-        assertEquals(NavDest.CalibrationProbe,
+        // R1: PROBE_CALIBRATE now maps to NavDest.Probe (single probe screen), not CalibrationProbe.
+        assertEquals(NavDest.Probe,
             works.mees.jiib.calibration.CalibrationRoutine.PROBE_CALIBRATE.toNavDest())
     }
 

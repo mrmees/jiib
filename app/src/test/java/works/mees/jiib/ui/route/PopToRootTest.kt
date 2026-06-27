@@ -42,11 +42,7 @@ class PopToRootTest {
         assertTrue(shouldPopToRoot(current = NavDest.CalibrationHub, printActive = false))
     }
 
-    @Test
-    fun calibrationProbe_isFootGun_returnsTrue() {
-        assertTrue(shouldPopToRoot(current = NavDest.CalibrationProbe, printActive = true))
-        assertTrue(shouldPopToRoot(current = NavDest.CalibrationProbe, printActive = false))
-    }
+    // CalibrationProbe removed (R1) — covered by probe_isFootGun_returnsTrue below.
 
     @Test
     fun calibrationBedMesh_isFootGun_returnsTrue() {
@@ -112,6 +108,13 @@ class PopToRootTest {
         assertFalse(shouldPopToRoot(current = NavDest.WaterfallHome, printActive = false))
     }
 
+    // R1: single Probe screen replaces CalibrationProbe + ProbeHub + 5 tool routes
+    @Test
+    fun probe_isFootGun_returnsTrue() {
+        assertTrue(shouldPopToRoot(current = NavDest.Probe, printActive = true))
+        assertTrue(shouldPopToRoot(current = NavDest.Probe, printActive = false))
+    }
+
     // ---------------------------------------------------------------------------
     // null current → shouldPopToRoot = false
     // ---------------------------------------------------------------------------
@@ -127,24 +130,19 @@ class PopToRootTest {
     // ---------------------------------------------------------------------------
 
     // D-07 (Phase 27): FOOT_GUN_DESTS expanded from 3 to 8 members (Move + Extrude + 6 CalibrationXxx).
-    // Task 13: further expanded to 14 members (+ ProbeHub + 5 ProbeXxx tool dests).
+    // Task 13: expanded to 14 (+ ProbeHub + 5 probe tool dests).
+    // R1: collapsed back to 8 — CalibrationProbe + 6 probe routes → single NavDest.Probe.
     @Test
-    fun footGunDests_containsExactlyFourteenMembers() {
-        assertEquals(14, FOOT_GUN_DESTS.size)
+    fun footGunDests_containsExactlyEightMembers() {
+        assertEquals(8, FOOT_GUN_DESTS.size)
         assertTrue(NavDest.Move                  in FOOT_GUN_DESTS)
         assertTrue(NavDest.Extrude               in FOOT_GUN_DESTS)
         assertTrue(NavDest.CalibrationHub        in FOOT_GUN_DESTS)
-        assertTrue(NavDest.CalibrationProbe      in FOOT_GUN_DESTS)
         assertTrue(NavDest.CalibrationBedMesh    in FOOT_GUN_DESTS)
         assertTrue(NavDest.CalibrationScrewsTilt in FOOT_GUN_DESTS)
         assertTrue(NavDest.CalibrationZTilt      in FOOT_GUN_DESTS)
         assertTrue(NavDest.CalibrationQgl        in FOOT_GUN_DESTS)
-        assertTrue(NavDest.ProbeHub              in FOOT_GUN_DESTS)
-        assertTrue(NavDest.ProbeTest             in FOOT_GUN_DESTS)
-        assertTrue(NavDest.ProbeApplyBabystep    in FOOT_GUN_DESTS)
-        assertTrue(NavDest.ProbeEddyCalibrate    in FOOT_GUN_DESTS)
-        assertTrue(NavDest.ProbeEddyTap          in FOOT_GUN_DESTS)
-        assertTrue(NavDest.ProbeEddyDriveCurrent in FOOT_GUN_DESTS)
+        assertTrue(NavDest.Probe                 in FOOT_GUN_DESTS)
     }
 
     // Not importing assertEquals from JUnit Assert because it's the plain comparison flavor
