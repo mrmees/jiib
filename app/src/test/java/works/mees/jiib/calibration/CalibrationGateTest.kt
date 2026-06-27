@@ -63,4 +63,12 @@ class CalibrationGateTest {
         // The hub renders ALL routines (greyed if unsupported) — the enum must cover all five.
         assertEquals(5, CalibrationRoutine.entries.size)
     }
+
+    @Test
+    fun calibrationSupport_hidesUnsupported_whenFlagOff() {
+        val caps = Capabilities(objects = setOf("bed_mesh", "probe", "manual_probe"))
+        val shown = calibrationSupport(caps, showUnsupported = false)
+        assertTrue(shown.all { it.isSupported })
+        assertEquals(calibrationSupport(caps, showUnsupported = true).size, CalibrationRoutine.entries.size)
+    }
 }

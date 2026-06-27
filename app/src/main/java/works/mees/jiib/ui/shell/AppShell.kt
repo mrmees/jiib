@@ -365,7 +365,7 @@ fun AppShell(
     // idle so the holders simply carry no error until a live session attaches; re-captured when `store`
     // swaps (a new session brings a new dispatcher). The two TiltHolders share ONE TiltScreen via an
     // applied-selector lambda (D-02) and each fold ONLY their own routine's failures via its dispatchKey.
-    val calibrationHubHolder = remember(store) { CalibrationHubHolder(scope = scope, store = store) }
+    val calibrationHubHolder = remember(store) { CalibrationHubHolder(scope = scope, store = store, showUnsupportedTools = container.showUnsupportedTools) }
     val calibEvents = spine?.dispatcher?.events
     val screwsTiltHolder = remember(store) {
         ScrewsTiltHolder(scope = scope, store = store, events = calibEvents)
