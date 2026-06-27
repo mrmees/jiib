@@ -1393,7 +1393,7 @@ private fun applyBabystepPreview(
         vm = vm,
         applyGuard = applyGuard,
         saveGuard = saveGuard,
-        onSaveGuardShow = {},
+        onApplyGuardShow = {},
         onApplyConfirm = {},
         onApplyCancel = {},
         onSaveConfirm = {},

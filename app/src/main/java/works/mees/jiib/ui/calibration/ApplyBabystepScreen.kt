@@ -86,13 +86,13 @@ fun ApplyBabystepScreen(
         gating = gating,
         onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
         onAcknowledgeUnknown = { dispatcher?.acknowledgeUnresolved() },
-        onSaveGuardShow = { applyGuard = true },
+        onApplyGuardShow = { applyGuard = true },
         onApplyConfirm = {
             // Dispatch the appropriate apply command (probe vs. endstop) then transition to phase 2.
-            if (vm.applyCommand == "Z_OFFSET_APPLY_ENDSTOP") {
-                dispatcher?.dispatch(CommandRegistry.zOffsetApplyEndstop, Unit)
-            } else {
+            if (vm.applyCommand == "Z_OFFSET_APPLY_PROBE") {
                 dispatcher?.dispatch(CommandRegistry.zOffsetApplyProbe, Unit)
+            } else {
+                dispatcher?.dispatch(CommandRegistry.zOffsetApplyEndstop, Unit)
             }
             applyGuard = false
             saveGuard = true
@@ -133,7 +133,7 @@ fun ApplyBabystepContent(
     gating: GatingState = GatingState.Idle,
     onEmergencyStop: () -> Unit = {},
     onAcknowledgeUnknown: () -> Unit = {},
-    onSaveGuardShow: () -> Unit = {},
+    onApplyGuardShow: () -> Unit = {},
     onApplyConfirm: () -> Unit = {},
     onApplyCancel: () -> Unit = {},
     onSaveConfirm: () -> Unit = {},
@@ -196,7 +196,7 @@ fun ApplyBabystepContent(
                             FootAction(
                                 label = stringResource(R.string.probe_apply_babystep_action),
                                 icon = JiibIcons.CheckCircle,
-                                onClick = onSaveGuardShow,
+                                onClick = onApplyGuardShow,
                                 intent = Intent.Warn,
                                 enabled = vm.canApply,
                             ),
