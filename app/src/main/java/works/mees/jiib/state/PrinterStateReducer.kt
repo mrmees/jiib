@@ -275,6 +275,18 @@ internal fun applyStatus(current: PrinterState, status: JsonObject): PrinterStat
         )
     }
 
+    // Task 6: probe live status (last_query + last_z_result). Null-safe walk — absent object is
+    // skipped (retain-on-absent). `last_query` is an INTEGER (0/1) on real hardware, not a JSON
+    // boolean (hardware-verified on E5+ and E3); read the primitive and map non-zero → true, falling
+    // back to booleanOrNull for robustness. `last_z_result` is a plain float → doubleOrNullAt.
+    // Merge field-by-field (not whole-object replace) so a partial diff retains the omitted field.
+    status.objectOrNull("probe")?.let { probe ->
+        val lqPrimitive = runCatching { probe["last_query"]?.jsonPrimitive }.getOrNull()
+        val lastQuery: Boolean? = lqPrimitive?.booleanOrNull ?: lqPrimitive?.intOrNull?.let { it != 0 }
+        lastQuery?.let { s = s.copy(probeLastQuery = it) }
+        probe.doubleOrNullAt("last_z_result")?.let { s = s.copy(probeLastZ = it) }
+    }
+
     // Heaters: merge each present heater object field-by-field onto the retained HeaterState.
     // Internal accumulator stays mutable (mutableMapOf); converted to ImmutableMap at the
     // assignment boundary via (s.heaters + heaterUpdates).toImmutableMap().
