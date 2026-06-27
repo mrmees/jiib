@@ -305,13 +305,6 @@ private fun ExtrudeContent(
         if (speed > vm.maxExtrudeVelocity) speed = vm.maxExtrudeVelocity
     }
 
-    // Show "Extruding…" only when an Extrude-owned SoftBusy key is active. gatingState is global so
-    // filter to the keys this screen owns — Extrude owns extrude, retract, load, unload, macro_*.
-    // TODO(owner ICON LAW): confirm final extrude-busy glyph — MoveTouch is the placeholder.
-    val extrudeBusy = (gating as? GatingState.Busy)?.key?.let {
-        it == "extrude" || it == "retract" || it == "load" || it == "unload" || it.startsWith("macro_")
-    } == true
-
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
 
@@ -327,8 +320,6 @@ private fun ExtrudeContent(
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
                     contentInset = FocusInset / 2, // shared adjustment-focus rhythm (matches Fine-Tune)
-                    trailingStatusIcon = if (extrudeBusy) JiibIcons.MoveTouch else null,
-                    trailingStatusContentDescription = if (extrudeBusy) stringResource(R.string.gating_extruding) else null,
                 ) {
                     FocusGrid(
                         vm = vm,

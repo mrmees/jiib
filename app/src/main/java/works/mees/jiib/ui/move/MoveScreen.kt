@@ -269,13 +269,6 @@ internal fun MoveHubContent(
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
 
-        // Show "Moving…" only when a Move-owned SoftBusy key is active. gatingState is global so we
-        // must filter to the keys this screen owns — Move owns move_to, jog_*, override_jog_*.
-        // TODO(owner ICON LAW): confirm final motion-busy glyph — MoveTouch is the placeholder.
-        val moveBusy = (gating as? GatingState.Busy)?.key?.let {
-            it == "move_to" || it.startsWith("jog_") || it.startsWith("override_jog_")
-        } == true
-
         // HardLock morph: Move owns all home_* keys. While locked, the Focus short-circuits to a
         // centered HardLockStatusCard and the Field nav rows are dimmed/disabled. gatingState is
         // global so filter to Move-owned HardLock keys (all start with "home").
@@ -297,8 +290,6 @@ internal fun MoveHubContent(
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
                     contentInset = FocusInset / 2, // match FineTuneScreen's focus rhythm (8dp, not 16dp)
-                    trailingStatusIcon = if (moveBusy) JiibIcons.MoveTouch else null,
-                    trailingStatusContentDescription = if (moveBusy) stringResource(R.string.gating_moving) else null,
                 ) {
                     // Unknown Focus morph (precedence: Unknown > Locked > normal content): when the
                     // link or firmware can't confirm the HardLock completed, replace the Focus body
