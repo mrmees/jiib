@@ -8,4 +8,17 @@
     <style name="Theme.JiibDisplay" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="android:windowNoTitle">true</item>
     </style>
+
+    <!--
+      Cold-start splash theme (AndroidX core-splashscreen). The launcher activity wears this at
+      process start; installSplashScreen() swaps to postSplashScreenTheme once the first frame is
+      ready. Black bg + inset white mark — identical on API 23 (Nexus) and API 31+ (Moto). The app
+      NAME is drawn by the in-app Compose surface, not here (the OS branding-image slot is API 31+
+      only on the compat backport).
+    -->
+    <style name="Theme.JiibDisplay.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>
+        <item name="postSplashScreenTheme">@style/Theme.JiibDisplay</item>
+    </style>
 </resources>
