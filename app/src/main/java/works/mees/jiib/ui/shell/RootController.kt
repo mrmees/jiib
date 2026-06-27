@@ -74,15 +74,13 @@ fun RootController(
     // initializer — it runs at first composition and never re-fires (18-04, SC-4b/D-06).
     val nav = rememberShellNavState(startDest)
 
-    // LAUNCH-ONLY brand splash (black/white "Connecting…") gate. everConnected latches true on the
-    // first Connected and never resets (so every LATER reconnect uses the themed recovery splash —
-    // RootController stays composed across the Splash/Shell flip, so the remember survives). graceExpired
-    // bounds how long we sit on a brand "Connecting…" before falling to themed recovery (e.g. the printer
-    // is actually off at launch). See [computeBrandMode].
-    var everConnected by remember { mutableStateOf(false) }
-    LaunchedEffect(state.connection) {
-        if (state.connection is ConnectionState.Connected) everConnected = true
-    }
+    // LAUNCH-ONLY brand splash (black/white "Connecting…") gate. everConnected is the PROCESS-scoped
+    // latch ([AppContainer.hasEverConnected]) — NOT a Composable remember — so it survives Activity
+    // recreation (Back→reopen while the FGS stays connected, non-orientation config changes) and the
+    // brand never flashes mid-session (Codex final review #1). graceExpired bounds how long we sit on a
+    // brand "Connecting…" before falling to themed recovery (e.g. the printer is actually off at launch).
+    // See [computeBrandMode].
+    val everConnected by container.hasEverConnected.collectAsStateWithLifecycle()
     var graceExpired by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         delay(BRAND_GRACE_MS)
@@ -119,6 +117,18 @@ fun RootController(
     // The normal recovery min-dwell (no escape) is untouched.
     LaunchedEffect(settingsEscape) {
         if (settingsEscape) splashHeld = false
+    }
+
+    // Leaving the LAUNCH brand splash: bypass the recovery min-dwell so the first connect goes STRAIGHT
+    // to Shell instead of flashing the THEMED splash for the 600ms dwell once Connected flips
+    // everConnected true (Codex final review #2). Gated on [bornDisconnected] — captured at THIS
+    // controller's first composition — so the bypass applies ONLY to a genuine cold-start launch, never
+    // to a controller recreated mid-session (e.g. recreation during an active recovery, where the
+    // recovery's own dwell must survive — Codex re-review nit). Later mid-session recoveries keep the
+    // normal dwell regardless (everConnected stays true, so this never re-fires).
+    val bornDisconnected = remember { !everConnected }
+    LaunchedEffect(everConnected) {
+        if (everConnected && bornDisconnected) splashHeld = false
     }
 
     // The EFFECTIVE splash = the raw route OR the held floor — but NEVER over Connect/Settings (those

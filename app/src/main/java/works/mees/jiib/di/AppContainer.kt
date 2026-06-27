@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.collectLatest
@@ -859,6 +860,19 @@ class AppContainer(
     /** Live connection lifecycle; Disconnected when idle. */
     val connectionState: Flow<ConnectionState> =
         spine.flatMapLatest { it?.connectionState ?: flowOf(ConnectionState.Disconnected) }
+
+    /**
+     * Process-scoped "has this process ever reached [ConnectionState.Connected]" latch. Drives the
+     * LAUNCH-ONLY brand splash gate ([works.mees.jiib.ui.shell.computeBrandMode]): it MUST survive
+     * Activity recreation (Back→reopen while the FGS stays connected, non-orientation config changes)
+     * so the black/white brand splash never flashes mid-session — a Composable `remember` latch would
+     * reset on recreation and re-trigger the brand over a live session (Codex final review #1). Eager
+     * so it latches at process start regardless of whether any UI is currently collecting.
+     */
+    val hasEverConnected: StateFlow<Boolean> =
+        connectionState
+            .scan(false) { ever, s -> ever || s is ConnectionState.Connected }
+            .stateIn(stateScope, SharingStarted.Eagerly, false)
 
     /** Live re-derived capabilities; empty when idle. */
     val capabilities: Flow<Capabilities> =
