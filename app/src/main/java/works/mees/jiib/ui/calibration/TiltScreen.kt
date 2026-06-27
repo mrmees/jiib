@@ -182,6 +182,11 @@ fun TiltContent(
                 }
             }
             val tiltLocked = tiltLockedLabel != null
+            // Unknown (abnormal HardLock exit) — scope to Tilt-owned keys so an unrelated screen's
+            // unresolved op doesn't surface "still running" here.
+            val tiltUnknownOwned = (gating as? GatingState.Unknown)?.key?.let {
+                it == "quad_gantry_level" || it == "z_tilt_adjust" || it.startsWith("home")
+            } == true
 
             ScreenScaffold(
                 focus = {
@@ -198,7 +203,7 @@ fun TiltContent(
                         // Unknown Focus morph (precedence: Unknown > Locked > normal content): when
                         // the link or firmware can't confirm the HardLock completed, show "Still
                         // running" and require explicit dismissal. E-stop stays live above.
-                        if (gating is GatingState.Unknown) {
+                        if (tiltUnknownOwned) {
                             UnknownStatusCard(grid.uDp, onDismiss = onAcknowledgeUnknown, Modifier.fillMaxSize())
                             return@FocusFrame
                         }

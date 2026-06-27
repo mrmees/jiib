@@ -191,6 +191,11 @@ fun ScrewsTiltContent(
             }
         }
         val isLocked = screwsLockedLabel != null
+        // Unknown (abnormal HardLock exit) — scope to ScrewsTilt-owned keys so an unrelated screen's
+        // unresolved op doesn't surface "still running" here.
+        val unknownOwned = (gating as? GatingState.Unknown)?.key?.let {
+            it == "screws_tilt" || it.startsWith("home")
+        } == true
 
         Box(Modifier.fillMaxSize()) {
             ScreenScaffold(
@@ -208,7 +213,7 @@ fun ScrewsTiltContent(
                         // Unknown Focus morph (precedence: Unknown > Locked > normal content): when
                         // the link or firmware can't confirm the HardLock completed, show "Still
                         // running" and require explicit dismissal. E-stop stays live above.
-                        if (gating is GatingState.Unknown) {
+                        if (unknownOwned) {
                             UnknownStatusCard(grid.uDp, onDismiss = onAcknowledgeUnknown, Modifier.fillMaxSize())
                             return@FocusFrame
                         }
