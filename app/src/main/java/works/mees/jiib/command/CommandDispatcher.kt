@@ -170,6 +170,7 @@ class CommandDispatcher(
             return
         }
         lastAccepted[key] = now
+        if (gating == GatingMode.HardLock) _unresolvedHardLock.value = null
 
         // Per-command timeout: explicit override wins; else gcode.script gets the long ceiling so
         // homing/probe/mesh/load-unload macros don't trip a false "command could not be sent" (G4).
@@ -217,8 +218,23 @@ class CommandDispatcher(
         }
     }
 
-    /** Called when a gated command exits (cleanly or via error/timeout). A3 fills in the body. */
-    private fun onGatedExit(key: String, gating: GatingMode, cleanly: Boolean) { /* A3 fills this in */ }
+    private val _unresolvedHardLock = MutableStateFlow<String?>(null)
+    /**
+     * The key of a HardLock op that exited ABNORMALLY (timeout / connection failure) — the printer may
+     * still be working. The gating UI must NOT silently return to idle while this is set (Codex Finding 4).
+     * Cleared by [acknowledgeUnresolved] (user dismiss) or a fresh HardLock dispatch.
+     */
+    val unresolvedHardLock: StateFlow<String?> = _unresolvedHardLock.asStateFlow()
+
+    /** User acknowledged the "still running / unknown" state — clear the latch. */
+    fun acknowledgeUnresolved() { _unresolvedHardLock.value = null }
+
+    /** Called when a gated command exits (cleanly or via error/timeout). */
+    private fun onGatedExit(key: String, gating: GatingMode, cleanly: Boolean) {
+        if (gating == GatingMode.HardLock && !cleanly) {
+            _unresolvedHardLock.value = key
+        }
+    }
 
     /**
      * One-shot request/response READ (e.g. `printer.query_endstops/status`). Unlike [dispatch],
