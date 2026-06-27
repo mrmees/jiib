@@ -137,6 +137,9 @@ internal fun ProbeContent(
                     // PLACEHOLDER body — Phase 2 replaces this with per-tool Focus content.
                     // Shows the selected tool's title + an em-dash caption via JiibType roles
                     // (NO inline fontSize/fontFamily — FontConformanceTest enforces this).
+                    // TODO(refocus Phase 2): Z-Offset & Eddy Calibrate session bodies must re-introduce
+                    //  the D-09 BackHandler (Back-suppress during an active manual-probe session) —
+                    //  removed with the old routes in R1.
                     if (selected != null) {
                         Text(
                             text = stringResource(probeToolTitleRes(selected)),

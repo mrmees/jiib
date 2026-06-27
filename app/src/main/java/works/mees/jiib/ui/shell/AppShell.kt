@@ -646,15 +646,7 @@ fun AppShell(
                 CalibrationHubScreen(
                     holder = calibrationHubHolder,
                     container = container,
-                    // R1: PROBE_CALIBRATE opens the single ProbeScreen (NavDest.Probe) instead of
-                    // the old ProbeHub sub-hub. All other routines navigate via toNavDest().
-                    onOpen = { routine ->
-                        if (routine == CalibrationRoutine.PROBE_CALIBRATE) {
-                            navController.navigate(NavDest.Probe)
-                        } else {
-                            navController.navigate(routine.toNavDest())
-                        }
-                    },
+                    onOpen = { routine -> navController.navigate(routine.toNavDest()) },
                     onBack = { navController.popBackStack() },
                 )
             }
