@@ -34,6 +34,7 @@ import works.mees.jiib.calibration.ProbeToolEntry
 import works.mees.jiib.command.CommandDispatcher
 import works.mees.jiib.command.CommandRegistry
 import works.mees.jiib.command.GatingState
+import works.mees.jiib.command.PrinterCommands
 import works.mees.jiib.command.dispatch
 import works.mees.jiib.designsystem.ConfirmGuard
 import works.mees.jiib.designsystem.components.FocusFrame
@@ -56,6 +57,25 @@ import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 import works.mees.jiib.theme.fsSp
+
+/**
+ * Shared model for a pending confirm dialog hosted at the [ProbeContent] level.
+ *
+ * [ProbeContent] owns a single `pending: ProbeConfirm?` state. Body composables (ApplyBabystepBody
+ * and future R4/R5/R6 bodies) request a guard by calling [ProbeContent]'s `onRequestConfirm`
+ * callback with a [ProbeConfirm] instance. The host renders it as a full-screen overlay sibling
+ * to [ScreenScaffold], matching the BedMesh / ScrewsTilt pattern.
+ *
+ * Two-phase chaining (Apply → SAVE_CONFIG) is implemented by nesting a second [onConfirm] call to
+ * `onRequestConfirm` inside the first [onConfirm] lambda.
+ */
+data class ProbeConfirm(
+    val title: String,
+    val message: String,
+    val confirmLabel: String,
+    val warn: Boolean = true,
+    val onConfirm: () -> Unit,
+)
 
 /**
  * Single Focus-centric Probe screen — R1 replacement for the old ProbeHub + 5 tool-route sub-tree.
@@ -145,9 +165,15 @@ internal fun ProbeContent(
         ?: stringResource(R.string.probe_hub_title)
     val focusIcon = selected?.let { probeToolIconToken(it) } ?: JiibIcons.RoutineProbeCalibrate
 
+    // Shared full-screen guard host — bodies call onRequestConfirm to raise a ConfirmGuard that
+    // overlays the entire scaffold (Focus + Field), not just the Focus content area.
+    // Matches the BedMesh / ScrewsTilt pattern exactly.
+    var pending by remember { mutableStateOf<ProbeConfirm?>(null) }
+
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
 
+        Box(Modifier.fillMaxSize()) {
         ScreenScaffold(
             focus = {
                 FocusFrame(
@@ -172,10 +198,13 @@ internal fun ProbeContent(
                             vm = applyBabystepVm,
                             dispatcher = dispatcher,
                             uDp = grid.uDp,
+                            onRequestConfirm = { pending = it },
                             modifier = Modifier.fillMaxSize(),
                         )
                         else -> {
                             // Placeholder body for tools not yet wired (later tasks).
+                            // onRequestConfirm = { pending = it } is available for R4/R5/R6 bodies
+                            // to call when they need a guard; pass it in here when wiring future tools.
                             if (selected != null) {
                                 Text(
                                     text = stringResource(probeToolTitleRes(selected)),
@@ -247,6 +276,21 @@ internal fun ProbeContent(
                 )
             },
         )
+
+        // Full-screen guard overlay — sibling to ScreenScaffold, covers both Focus and Field so
+        // the user cannot escape via the Back foot button or a Field row tap.
+        // Matches the BedMesh / ScrewsTilt hosting pattern exactly.
+        pending?.let { c ->
+            ConfirmGuard(
+                title = c.title,
+                message = c.message,
+                confirmLabel = c.confirmLabel,
+                warn = c.warn,
+                onConfirm = { c.onConfirm(); pending = null },
+                onCancel = { pending = null },
+            )
+        }
+        } // Box(Modifier.fillMaxSize())
     }
 }
 
@@ -256,16 +300,19 @@ internal fun ProbeContent(
 
 /**
  * Focus body for the Apply Babystepping tool (Task R2). Renders the three-row offset readout
- * and the Apply + Save amber action buttons, then owns the TWO-PHASE guard state machine:
+ * and the Apply + Save amber action buttons, then delegates the TWO-PHASE guard flow to the
+ * shared [ProbeContent]-level guard host via [onRequestConfirm].
  *
- *  Phase 1 — Apply: [Apply] button → amber [ConfirmGuard] → on confirm dispatch
- *    `vm.applyCommand` (`Z_OFFSET_APPLY_PROBE` when probe-present, else `Z_OFFSET_APPLY_ENDSTOP`)
- *    then immediately open Phase 2.
- *  Phase 2 — Save: amber SAVE_CONFIG [ConfirmGuard] → on confirm dispatch `saveConfig`.
- *    [Save] always re-opens the Phase 2 guard so the user can persist a prior apply.
+ *  Phase 1 — Apply: [Apply] button → calls [onRequestConfirm] with the apply-confirm payload.
+ *    On confirm: dispatches `vm.applyCommand` (`Z_OFFSET_APPLY_PROBE` when probe-present, else
+ *    `Z_OFFSET_APPLY_ENDSTOP`), then immediately calls [onRequestConfirm] again with the
+ *    SAVE_CONFIG payload (two-phase chaining through the shared host).
+ *  Phase 2 — Save: [Save] button → calls [onRequestConfirm] with the SAVE_CONFIG payload directly.
+ *    On confirm: dispatches `saveConfig`.
  *
- * The ConfirmGuard overlays fill the Focus content area via the [Box] root (the ProbeScreen
- * Focus / Field split keeps the Back foot button accessible; the guards carry their own Cancel).
+ * [ProbeContent] renders the resulting [ConfirmGuard] as a FULL-SCREEN overlay over the entire
+ * scaffold (Focus + Field) — the guard cannot be escaped via the Back foot button or a Field row
+ * tap. This matches the BedMesh / ScrewsTilt hosting pattern.
  *
  * [vm], [dispatcher], and [uDp] match the [ApplyBabystepScreen] parameter contract so the
  * rendering logic is directly portable (no logic re-invented here).
@@ -275,14 +322,26 @@ internal fun ApplyBabystepBody(
     vm: ApplyBabystepVm,
     dispatcher: CommandDispatcher?,
     uDp: Dp,
+    onRequestConfirm: (ProbeConfirm) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
 
-    // Phase 1: apply-confirm guard (warns the user before dispatching Z_OFFSET_APPLY_PROBE/ENDSTOP).
-    var applyGuard by remember { mutableStateOf(false) }
-    // Phase 2: SAVE_CONFIG guard (reuses the ProbeCalibrate saveGuard pattern, same strings).
-    var saveGuard by remember { mutableStateOf(false) }
+    // Pre-read string resources so they can be safely captured in onClick lambdas.
+    val applyTitle = stringResource(R.string.probe_apply_babystep_confirm_title)
+    val applyMessage = stringResource(R.string.probe_apply_babystep_confirm_message)
+    val applyLabel = stringResource(R.string.probe_apply_babystep_action)
+    val saveTitle = stringResource(R.string.calibration_save_config)
+    val saveMessage = stringResource(R.string.calibration_save_config_confirm)
+
+    // SAVE_CONFIG confirm payload — shared between the Apply chain and the standalone Save button.
+    val saveConfirm = ProbeConfirm(
+        title = saveTitle,
+        message = saveMessage,
+        confirmLabel = saveTitle,
+        warn = true,
+        onConfirm = { dispatcher?.dispatch(CommandRegistry.saveConfig, Unit) },
+    )
 
     Box(modifier) {
         Column(
@@ -336,60 +395,46 @@ internal fun ApplyBabystepBody(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 // Apply: disabled until canApply (live babystep non-null, non-zero, saved non-null).
+                // Raises Phase 1 guard via the shared ProbeContent host; on confirm immediately
+                // raises Phase 2 (SAVE_CONFIG) by calling onRequestConfirm a second time.
                 OutlinedControl(
-                    label = stringResource(R.string.probe_apply_babystep_action),
+                    label = applyLabel,
                     icon = JiibIcons.CheckCircle,
-                    onClick = { applyGuard = true },
+                    onClick = {
+                        onRequestConfirm(
+                            ProbeConfirm(
+                                title = applyTitle,
+                                message = applyMessage,
+                                confirmLabel = applyLabel,
+                                warn = true,
+                                onConfirm = {
+                                    // Probe-first branch: Z_OFFSET_APPLY_PROBE when probe-present.
+                                    if (vm.applyCommand == PrinterCommands.Z_OFFSET_APPLY_PROBE) {
+                                        dispatcher?.dispatch(CommandRegistry.zOffsetApplyProbe, Unit)
+                                    } else {
+                                        dispatcher?.dispatch(CommandRegistry.zOffsetApplyEndstop, Unit)
+                                    }
+                                    // Immediately chain to Phase 2 — SAVE_CONFIG.
+                                    onRequestConfirm(saveConfirm)
+                                },
+                            )
+                        )
+                    },
                     intent = Intent.Warn,
                     enabled = vm.canApply,
                     modifier = Modifier.weight(1f),
                 )
                 // Save: always visible — re-opens the SAVE_CONFIG guard for a prior apply.
                 OutlinedControl(
-                    label = stringResource(R.string.calibration_save_config),
+                    label = saveTitle,
                     icon = JiibIcons.Save,
-                    onClick = { saveGuard = true },
+                    onClick = { onRequestConfirm(saveConfirm) },
                     intent = Intent.Warn,
                     modifier = Modifier.weight(1f),
                 )
             }
         }
-
-        // Phase 1: apply-confirm guard (warn) — dispatches Z_OFFSET_APPLY_PROBE/ENDSTOP.
-        if (applyGuard) {
-            ConfirmGuard(
-                title = stringResource(R.string.probe_apply_babystep_confirm_title),
-                message = stringResource(R.string.probe_apply_babystep_confirm_message),
-                confirmLabel = stringResource(R.string.probe_apply_babystep_action),
-                warn = true,
-                onConfirm = {
-                    // Probe-first branch: Z_OFFSET_APPLY_PROBE when probe-present.
-                    if (vm.applyCommand == "Z_OFFSET_APPLY_PROBE") {
-                        dispatcher?.dispatch(CommandRegistry.zOffsetApplyProbe, Unit)
-                    } else {
-                        dispatcher?.dispatch(CommandRegistry.zOffsetApplyEndstop, Unit)
-                    }
-                    applyGuard = false
-                    saveGuard = true   // Immediately open the SAVE_CONFIG phase.
-                },
-                onCancel = { applyGuard = false },
-            )
-        }
-
-        // Phase 2: SAVE_CONFIG guard (warn) — reuses ProbeCalibrate saveGuard strings verbatim.
-        if (saveGuard) {
-            ConfirmGuard(
-                title = stringResource(R.string.calibration_save_config),
-                message = stringResource(R.string.calibration_save_config_confirm),
-                confirmLabel = stringResource(R.string.calibration_save_config),
-                warn = true,
-                onConfirm = {
-                    dispatcher?.dispatch(CommandRegistry.saveConfig, Unit)
-                    saveGuard = false
-                },
-                onCancel = { saveGuard = false },
-            )
-        }
+        // No ConfirmGuard rendered here — guards are hosted full-screen in ProbeContent.
     }
 }
 

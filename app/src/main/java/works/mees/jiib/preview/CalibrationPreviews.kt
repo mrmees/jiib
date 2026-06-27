@@ -2178,6 +2178,7 @@ private fun ApplyBabystepBodyCanApplyDark() = PreviewBox(colorfulDark) {
         vm = SampleFixtures.applyBabystepCanApply,
         dispatcher = null,
         uDp = 56.dp,
+        onRequestConfirm = {},
         modifier = androidx.compose.ui.Modifier.fillMaxSize(),
     )
 }
@@ -2193,6 +2194,7 @@ private fun ApplyBabystepBodyCanApplyLight() = PreviewBox(colorfulLight) {
         vm = SampleFixtures.applyBabystepCanApply,
         dispatcher = null,
         uDp = 56.dp,
+        onRequestConfirm = {},
         modifier = androidx.compose.ui.Modifier.fillMaxSize(),
     )
 }
@@ -2208,6 +2210,7 @@ private fun ApplyBabystepBodyNoData() = PreviewBox(colorfulDark) {
         vm = SampleFixtures.applyBabystepNoData,
         dispatcher = null,
         uDp = 56.dp,
+        onRequestConfirm = {},
         modifier = androidx.compose.ui.Modifier.fillMaxSize(),
     )
 }
@@ -2223,6 +2226,7 @@ private fun ApplyBabystepBodyFsLarge() = PreviewBox(fsLargeSeed) {
         vm = SampleFixtures.applyBabystepCanApply,
         dispatcher = null,
         uDp = 56.dp,
+        onRequestConfirm = {},
         modifier = androidx.compose.ui.Modifier.fillMaxSize(),
     )
 }
