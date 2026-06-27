@@ -144,6 +144,7 @@ fun ProbeScreen(
     applyBabystepHolder: ApplyBabystepHolder,
     probeTestHolder: ProbeTestHolder,
     probeCalibrateHolder: ProbeCalibrateHolder,
+    eddyCalibrateHolder: ProbeCalibrateHolder,
     gcodeResponses: SharedFlow<String>,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -198,6 +199,10 @@ fun ProbeScreen(
     val starting = probeCalibrateVm.state == ProbePageState.Idle &&
         ("probe_calibrate" in inFlight || "z_endstop_calibrate" in inFlight)
 
+    // R6: Eddy Calibrate session VM + "starting" feedback (separate holder — isolates reset/sawActive).
+    val eddyCalibrateVm by eddyCalibrateHolder.vm.collectAsStateWithLifecycle()
+    val eddyStarting = eddyCalibrateVm.state == ProbePageState.Idle && "eddy_calibrate" in inFlight
+
     var selected by remember { mutableStateOf<ProbeTool?>(null) }
     var samplesIdx by remember { mutableStateOf(SAMPLES_DEFAULT_IDX) }
     // D-05: pre-select first tool + reconcile against the current visible list.
@@ -209,11 +214,28 @@ fun ProbeScreen(
 
     // Auto-query when PROBE_TEST is first shown; reset the probe-calibrate holder on Z_OFFSET entry
     // so a returning user never sees stale Accepted state (Pitfall 3).
+    // R5/R6: Clear the shared eddy console lines whenever the user switches to ANY eddy tool so
+    // Drive Current ↔ Tap ↔ Calibrate switches don't show each other's leftover output.
+    // R6: Also reset the eddy calibrate holder on EDDY_CALIBRATE entry (Pitfall 3, separate holder).
     LaunchedEffect(selected) {
         when (selected) {
             ProbeTool.PROBE_TEST -> dispatcher?.dispatch(CommandRegistry.queryProbe, Unit)
             ProbeTool.Z_OFFSET -> probeCalibrateHolder.reset()
+            ProbeTool.EDDY_CALIBRATE -> {
+                eddyCalibrateHolder.reset()
+                eddyLines.clear()
+            }
+            ProbeTool.EDDY_DRIVE_CURRENT,
+            ProbeTool.EDDY_TAP -> eddyLines.clear()
             else -> {}
+        }
+    }
+
+    // R6: Clear the sweep console when the paper-test session transitions Active→Accepted
+    // so pre-sweep output (homing/probing noise) does not appear in the sweep console.
+    LaunchedEffect(eddyCalibrateVm.state) {
+        if (eddyCalibrateVm.state == ProbePageState.Accepted) {
+            eddyLines.clear()
         }
     }
 
@@ -223,9 +245,11 @@ fun ProbeScreen(
         applyBabystepVm = applyBabystepVm,
         probeTestVm = probeTestVm,
         probeCalibrateVm = probeCalibrateVm,
+        eddyCalibrateVm = eddyCalibrateVm,
         step = step,
         steps = testzSteps,
         starting = starting,
+        eddyStarting = eddyStarting,
         inFlight = inFlight,
         samplesIdx = samplesIdx,
         dispatcher = dispatcher,
@@ -250,6 +274,12 @@ fun ProbeScreen(
         onAccept = { dispatcher?.dispatch(CommandRegistry.accept, Unit) },
         onAbort = {
             probeCalibrateHolder.markAborted()
+            dispatcher?.dispatch(CommandRegistry.abort, Unit)
+        },
+        onEddyStart = { dispatcher?.dispatch(CommandRegistry.eddyCalibrate, EddyChipArgs(eddyChip)) },
+        onEddyAccept = { dispatcher?.dispatch(CommandRegistry.accept, Unit) },
+        onEddyAbort = {
+            eddyCalibrateHolder.markAborted()
             dispatcher?.dispatch(CommandRegistry.abort, Unit)
         },
         onHomeAll = { dispatcher?.dispatch(CommandRegistry.homeAll, Unit) },
@@ -287,9 +317,13 @@ internal fun ProbeContent(
     applyBabystepVm: ApplyBabystepVm = ApplyBabystepVm(),
     probeTestVm: ProbeTestVm = ProbeTestVm(),
     probeCalibrateVm: ProbeCalibrateVm = ProbeCalibrateVm(),
+    // R6: Eddy Calibrate session VM (SEPARATE holder — isolates from Z-Offset session).
+    eddyCalibrateVm: ProbeCalibrateVm = ProbeCalibrateVm(),
     step: Double = 0.05,
     steps: List<Double> = IncrementControls.defaultValueMap().getValue("probe_testz"),
     starting: Boolean = false,
+    // R6: "starting" flag for the eddy calibrate session (eddy_calibrate in inFlight while Idle).
+    eddyStarting: Boolean = false,
     inFlight: Set<String> = emptySet(),
     samplesIdx: Int = SAMPLES_DEFAULT_IDX,
     dispatcher: CommandDispatcher? = null,
@@ -307,6 +341,10 @@ internal fun ProbeContent(
     onStart: () -> Unit = {},
     onAccept: () -> Unit = {},
     onAbort: () -> Unit = {},
+    // R6: Eddy Calibrate session callbacks.
+    onEddyStart: () -> Unit = {},
+    onEddyAccept: () -> Unit = {},
+    onEddyAbort: () -> Unit = {},
     onHomeAll: () -> Unit = {},
     onTestZUp: () -> Unit = {},
     onTestZDown: () -> Unit = {},
@@ -320,9 +358,19 @@ internal fun ProbeContent(
     // Z-Offset session lock: disable Field row selection + suppress foot-bar Back while active.
     val zActiveOrStarting = probeCalibrateVm.state == ProbePageState.Active || starting
 
+    // R6: Eddy Calibrate session lock (same field-lock + back-suppression pattern as Z-Offset).
+    val eddyActiveOrStarting = eddyCalibrateVm.state == ProbePageState.Active || eddyStarting
+
+    // Combined session lock — either active session blocks tool switching and suppresses Back.
+    val sessionActive = zActiveOrStarting || eddyActiveOrStarting
+
     // inFlight is threaded in as a param (already collected in ProbeScreen) — single subscriber.
     // Used to gate ManualProbeJog: no-op TESTZ while a jog is already in flight.
     val jogEnabled = probeCalibrateVm.state == ProbePageState.Active &&
+        dispatcher != null && "testz" !in inFlight
+
+    // R6: Same gate for the Eddy Calibrate jog — TESTZ disabled if already in flight.
+    val eddyJogEnabled = eddyCalibrateVm.state == ProbePageState.Active &&
         dispatcher != null && "testz" !in inFlight
 
     // Pre-read SAVE_CONFIG strings for the onSaveConfig lambda built below
@@ -468,10 +516,28 @@ internal fun ProbeContent(
                             uDp = grid.uDp,
                             modifier = Modifier.fillMaxSize(),
                         )
+                        // R6: Eddy Current Calibrate — hybrid paper-test + sweep console body.
+                        ProbeTool.EDDY_CALIBRATE -> EddyCalibrateBody(
+                            vm = eddyCalibrateVm,
+                            step = step,
+                            steps = steps,
+                            starting = eddyStarting,
+                            enabled = eddyJogEnabled,
+                            lines = eddyLines,
+                            uDp = grid.uDp,
+                            onTestZUp = onTestZUp,
+                            onTestZDown = onTestZDown,
+                            onStepUp = onStepUp,
+                            onStepDown = onStepDown,
+                            onStart = onEddyStart,
+                            onAccept = onEddyAccept,
+                            onAbort = onEddyAbort,
+                            onSaveConfig = onSaveConfig,
+                            modifier = Modifier.fillMaxSize(),
+                        )
                         else -> {
-                            // Placeholder body for tools not yet wired (R6 task — EDDY_CALIBRATE).
-                            // onRequestConfirm = { pending = it } is available for future bodies
-                            // that need a guard; pass it in here when wiring them.
+                            // Null-selected guard (all enum values handled above).
+                            // Kept for future-proofing (new ProbeTool values before wiring).
                             if (selected != null) {
                                 Text(
                                     text = stringResource(probeToolTitleRes(selected)),
@@ -492,9 +558,9 @@ internal fun ProbeContent(
                 // Field: tool list + FootButtonBar (FootButtonBar lives INSIDE field — shared pattern).
                 ListBlock(modifier = Modifier.weight(1f)) {
                     items(tools, key = { it.tool.name }) { entry ->
-                        // Session lock (D-09): while a Z-Offset probe session is active-or-starting,
-                        // dim all rows and make them non-tappable so the user can't switch tools.
-                        val rowLocked = zActiveOrStarting
+                        // Session lock (D-09): while ANY probe session is active-or-starting
+                        // (Z-Offset OR Eddy Calibrate), dim all rows and make them non-tappable.
+                        val rowLocked = sessionActive
                         ListRow(
                             selected = if (rowLocked) false else (entry.tool == selected),
                             onClick = if (!rowLocked) { { onSelect(entry.tool) } } else { {} },
@@ -563,11 +629,11 @@ internal fun ProbeContent(
                 }
 
                 // Back only — R5/R8: accent intent, first button.
-                // D-09 session lock: suppress Back while Z-Offset session is active-or-starting;
-                // the only exits are Accept/Abort (both in the ZOffsetBody Focus row).
+                // D-09 session lock: suppress Back while ANY session is active-or-starting
+                // (Z-Offset OR Eddy Calibrate). The only exits are Accept/Abort in each body.
                 FootButtonBar(
                     uDp = grid.uDp,
-                    actions = if (zActiveOrStarting) emptyList() else listOf(
+                    actions = if (sessionActive) emptyList() else listOf(
                         FootAction(
                             label = stringResource(R.string.common_back),
                             onClick = onBack,
@@ -764,6 +830,211 @@ internal fun ZOffsetBody(
                     )
                 }
             }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EddyCalibrateBody — Focus content for the Eddy Calibrate tool (Task R6)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Focus body for the Eddy Current Calibrate tool (Task R6). Hybrid paper-test + sweep console.
+ *
+ * Three phases driven by [vm.state]:
+ *  - **Idle:** description + build-blind ⚠ caution ([t.heat]) + [Start] ([Intent.Go]).
+ *    While [starting] (eddy_calibrate in inFlight, session not yet live), shows a disabled
+ *    "Starting…" button ([Intent.Neutral]) — mirrors [ZOffsetBody]'s Idle-starting treatment.
+ *    [Start] dispatches `PROBE_EDDY_CURRENT_CALIBRATE` via [onStart], which OPENS the
+ *    `manual_probe` session; the paper-test begins immediately.
+ *  - **Active (paper-test):** Z hero readout (delta from saved offset, same formula as
+ *    [ZOffsetBody]) + [ManualProbeJog] (TESTZ/step, two-column D-08 motif, weight=1f) +
+ *    [Accept] ([Intent.Go]) + [Abort] ([Intent.Danger]). Back is suppressed by the combined
+ *    [sessionActive] flag in [ProbeContent] (D-09).
+ *  - **Accepted (sweep):** Post-Accept, firmware runs the resonance sweep. [ConsoleTail]
+ *    fills available space + [Save] ([Intent.Warn]) raises the shared full-screen SAVE_CONFIG
+ *    guard via [onSaveConfig] → [ProbeContent]'s [onRequestConfirm] host.
+ *
+ * **BUILD-BLIND:** `PROBE_EDDY_CURRENT_CALIBRATE` requires eddy-current hardware; the Idle
+ * body shows a text-only ⚠ caution ([buildBlindNote] in [t.heat]); no glyph is added
+ * (icon-law: never pick a glyph without owner approval).
+ *
+ * **Console clear:** [ProbeScreen] clears [lines] on the Active→Accepted transition (so
+ * pre-sweep paper-test noise does not appear in the sweep console) and on tool-switch entry
+ * (so Drive Current ↔ Tap ↔ Calibrate switches don't show each other's output).
+ *
+ * No [ConfirmGuard] rendered here — the guard is hosted full-screen in [ProbeContent] via
+ * [onSaveConfig] (matches the [ZOffsetBody] / [ApplyBabystepBody] hosting pattern).
+ */
+@Composable
+internal fun EddyCalibrateBody(
+    vm: ProbeCalibrateVm,
+    step: Double,
+    steps: List<Double>,
+    starting: Boolean,
+    enabled: Boolean,
+    lines: List<String>,
+    uDp: Dp,
+    onTestZUp: () -> Unit,
+    onTestZDown: () -> Unit,
+    onStepUp: () -> Unit,
+    onStepDown: () -> Unit,
+    onStart: () -> Unit,
+    onAccept: () -> Unit,
+    onAbort: () -> Unit,
+    onSaveConfig: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val t = LocalTokens.current
+
+    // Z hero delta formula — verbatim from ZOffsetBody (Pitfall: don't redesign, port).
+    // Active: live Z delta from saved baseline. Idle/pre-Active: negated saved offset.
+    val saved = vm.savedZOffset
+    val currentZ = when (vm.state) {
+        ProbePageState.Active   -> vm.zPosition
+        ProbePageState.Accepted -> vm.capturedOffset
+        else                    -> null
+    }
+    val zText: String = when (vm.state) {
+        ProbePageState.Idle -> saved?.let { fmtZOffset(-it) } ?: "—"
+        else -> if (saved != null && currentZ != null) fmtZOffset(currentZ - saved) else "—"
+    }
+
+    when (vm.state) {
+        // ── Idle: description + build-blind caution + Start button ──────────────────
+        ProbePageState.Idle -> Column(
+            modifier = modifier,
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Text(
+                text = stringResource(R.string.probe_tool_eddy_calibrate_desc),
+                style = JiibType.body.toTextStyle(t),
+                color = t.text2,
+                modifier = Modifier.padding(horizontal = 8.dp),
+            )
+            // Build-blind caution: amber t.heat text; NO glyph (icon-law).
+            // The ⚠ is a unicode character embedded in the string resource.
+            Text(
+                text = stringResource(R.string.calibration_run_build_blind_note),
+                style = JiibType.caption.toTextStyle(t),
+                color = t.heat,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+            )
+            if (starting) {
+                // eddy_calibrate in inFlight — disabled "Starting…" feedback.
+                OutlinedControl(
+                    label = stringResource(R.string.probe_starting),
+                    icon = JiibIcons.CalibrationWait,
+                    onClick = {},
+                    intent = Intent.Neutral,
+                    enabled = false,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = fsSp(8f, t.fs).dp)
+                        .alpha(0.38f)
+                        .semantics { disabled() },
+                )
+            } else {
+                OutlinedControl(
+                    label = stringResource(R.string.calibration_start),
+                    icon = JiibIcons.CalibrationRun,
+                    onClick = onStart,
+                    intent = Intent.Go,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = fsSp(8f, t.fs).dp),
+                )
+            }
+        }
+
+        // ── Active: Z readout + ManualProbeJog + Accept + Abort ──────────────────────
+        ProbePageState.Active -> Column(
+            modifier = modifier,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            // Z hero readout (Geist Mono, accent2 colour — same as ZOffsetBody Row1).
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(vertical = fsSp(8f, t.fs).dp),
+            ) {
+                Text(
+                    text = zText,
+                    style = JiibType.focusHero.toTextStyle(t),
+                    color = t.accent2,
+                )
+                Text(
+                    text = "mm",
+                    style = JiibType.caption.toTextStyle(t),
+                    color = t.text3,
+                )
+            }
+            // ManualProbeJog fills available space (D-08 two-column motif).
+            ManualProbeJog(
+                vm = vm,
+                step = step,
+                steps = steps,
+                enabled = enabled,
+                onTestZUp = onTestZUp,
+                onTestZDown = onTestZDown,
+                onStepUp = onStepUp,
+                onStepDown = onStepDown,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+            )
+            // Accept (go) + Abort (danger) — Back suppressed by sessionActive in ProbeContent.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = fsSp(8f, t.fs).dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedControl(
+                    label = stringResource(R.string.calibration_accept),
+                    icon = JiibIcons.CheckCircle,
+                    onClick = onAccept,
+                    intent = Intent.Go,
+                    modifier = Modifier.weight(1f),
+                )
+                OutlinedControl(
+                    label = stringResource(R.string.calibration_abort),
+                    icon = JiibIcons.CalibrationAbort,
+                    onClick = onAbort,
+                    intent = Intent.Danger,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+
+        // ── Accepted (sweep): sweep label + ConsoleTail + Save ───────────────────────
+        ProbePageState.Accepted -> Column(
+            modifier = modifier,
+        ) {
+            Text(
+                text = stringResource(R.string.eddy_calibrate_sweep_running),
+                style = JiibType.caption.toTextStyle(t),
+                color = t.text2,
+                modifier = Modifier.padding(bottom = 4.dp),
+            )
+            ConsoleTail(
+                lines = lines,
+                uDp = uDp,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+            )
+            // SAVE_CONFIG restarts Klipper (hazard-in-process, R5 → warn / amber).
+            // Guard raised via onSaveConfig → ProbeContent's shared ProbeConfirm host.
+            OutlinedControl(
+                label = stringResource(R.string.calibration_save_config),
+                icon = JiibIcons.Save,
+                onClick = onSaveConfig,
+                intent = Intent.Warn,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = fsSp(8f, t.fs).dp),
+            )
         }
     }
 }

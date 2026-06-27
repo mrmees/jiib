@@ -15,6 +15,7 @@ import works.mees.jiib.calibration.ProbeTestVm
 import works.mees.jiib.calibration.ProbeCalibrateVm
 import works.mees.jiib.ui.calibration.ApplyBabystepBody
 import works.mees.jiib.ui.calibration.ApplyBabystepContent
+import works.mees.jiib.ui.calibration.EddyCalibrateBody
 import works.mees.jiib.ui.calibration.EddyRunBody
 import works.mees.jiib.ui.calibration.ProbeTestBody
 import works.mees.jiib.ui.calibration.ZOffsetBody
@@ -2878,6 +2879,232 @@ private fun EddyRunBodyTapFsLargePortrait() = PreviewBox(fsLargeSeed) {
         onRun = {},
         onSave = {},
         uDp = 56.dp,
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EddyCalibrateBody previews (Task R6)
+//
+// Targets the stateless EddyCalibrateBody seam (WARNING-5 preview-first convention).
+// No live Moonraker, no VM — pure fixture data and sample console lines.
+// BUILD-BLIND: eddy hardware required; build-blind note visible in Idle phase.
+//
+// Three phases:
+//  - Idle: description + build-blind caution + Start button
+//  - Idle-starting: disabled "Starting…" button (eddy_calibrate in flight)
+//  - Active (paper-test): Z readout + ManualProbeJog + Accept + Abort
+//  - Accepted (sweep): ConsoleTail + Save button
+//
+// Preview axes:
+//  - State matrix: Idle / Idle-starting / Active / Accepted (portrait)
+//  - 6 theme combos on Active portrait (richest state — jog + buttons)
+//  - fs = L overflow check on Active portrait
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Preview(
+    name = "EddyCalibrate: Idle (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun EddyCalibrateBodyIdle() = PreviewBox(colorfulDark) {
+    EddyCalibrateBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Idle, homedGate = true),
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS,
+        starting = false, enabled = false,
+        lines = emptyList(), uDp = 56.dp,
+        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
+        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {},
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Preview(
+    name = "EddyCalibrate: Idle-starting disabled (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun EddyCalibrateBodyIdleStarting() = PreviewBox(colorfulDark) {
+    EddyCalibrateBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Idle, homedGate = true),
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS,
+        starting = true, enabled = false,
+        lines = emptyList(), uDp = 56.dp,
+        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
+        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {},
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Preview(
+    name = "EddyCalibrate: Active paper-test (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun EddyCalibrateBodyActive() = PreviewBox(colorfulDark) {
+    EddyCalibrateBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Active),
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS,
+        starting = false, enabled = true,
+        lines = emptyList(), uDp = 56.dp,
+        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
+        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {},
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Preview(
+    name = "EddyCalibrate: Active paper-test (Nexus7 landscape)",
+    device = NEXUS7,
+    showBackground = true,
+)
+@Composable
+private fun EddyCalibrateBodyActiveLandscape() = PreviewBox(colorfulDark) {
+    EddyCalibrateBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Active),
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS,
+        starting = false, enabled = true,
+        lines = emptyList(), uDp = 56.dp,
+        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
+        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {},
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Preview(
+    name = "EddyCalibrate: Accepted sweep console (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun EddyCalibrateBodySweep() = PreviewBox(colorfulDark) {
+    EddyCalibrateBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Accepted),
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS,
+        starting = false, enabled = false,
+        lines = sampleEddyConsoleLines, uDp = 56.dp,
+        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
+        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {},
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Preview(
+    name = "EddyCalibrate: Accepted sweep console (Nexus7 landscape)",
+    device = NEXUS7,
+    showBackground = true,
+)
+@Composable
+private fun EddyCalibrateBodySweepLandscape() = PreviewBox(colorfulDark) {
+    EddyCalibrateBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Accepted),
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS,
+        starting = false, enabled = false,
+        lines = sampleEddyConsoleLines, uDp = 56.dp,
+        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
+        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {},
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+// ── 6-theme matrix on Active (richest state: jog + Accept + Abort) ──────────
+
+@Nexus7Previews
+@Composable
+private fun EddyCalibrateBodyThemeColorfulDark() = PreviewBox(colorfulDark) {
+    EddyCalibrateBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Active),
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS, starting = false, enabled = true,
+        lines = emptyList(), uDp = 56.dp,
+        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
+        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {},
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun EddyCalibrateBodyThemeColorfulLight() = PreviewBox(colorfulLight) {
+    EddyCalibrateBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Active),
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS, starting = false, enabled = true,
+        lines = emptyList(), uDp = 56.dp,
+        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
+        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {},
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun EddyCalibrateBodyThemeSimpleDark() = PreviewBox(simpleDark) {
+    EddyCalibrateBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Active),
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS, starting = false, enabled = true,
+        lines = emptyList(), uDp = 56.dp,
+        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
+        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {},
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun EddyCalibrateBodyThemeSimpleLight() = PreviewBox(simpleLight) {
+    EddyCalibrateBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Active),
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS, starting = false, enabled = true,
+        lines = emptyList(), uDp = 56.dp,
+        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
+        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {},
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun EddyCalibrateBodyThemeHighContrastDark() = PreviewBox(highContrastDark) {
+    EddyCalibrateBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Active),
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS, starting = false, enabled = true,
+        lines = emptyList(), uDp = 56.dp,
+        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
+        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {},
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun EddyCalibrateBodyThemeHighContrastLight() = PreviewBox(highContrastLight) {
+    EddyCalibrateBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Active),
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS, starting = false, enabled = true,
+        lines = emptyList(), uDp = 56.dp,
+        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
+        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {},
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+// ── fs = L overflow check (Active state — Z readout + ManualProbeJog + buttons) ─
+
+@Preview(
+    name = "EddyCalibrate fs=L Active portrait overflow check",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun EddyCalibrateBodyFsLargePortrait() = PreviewBox(fsLargeSeed) {
+    EddyCalibrateBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Active),
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS, starting = false, enabled = true,
+        lines = emptyList(), uDp = 56.dp,
+        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
+        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {},
         modifier = Modifier.fillMaxSize(),
     )
 }

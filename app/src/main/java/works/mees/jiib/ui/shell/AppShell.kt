@@ -414,6 +414,11 @@ fun AppShell(
     val probeCalibrateHolder = remember(store) {
         ProbeCalibrateHolder(scope = scope, store = store, events = calibEvents)
     }
+    // R6: SEPARATE ProbeCalibrateHolder for the Eddy Calibrate tool — isolates reset()/sawActive/
+    // capturedOffset/abort latches from the Z-Offset session (Codex plan-review #1 requirement).
+    val eddyCalibrateHolder = remember(store) {
+        ProbeCalibrateHolder(scope = scope, store = store, events = calibEvents)
+    }
     // D-01 move #2 (22-07): TiltScreen/BedMeshScreen now take their holder directly and collect
     // holder.vm internally. The holders built above stay in AppShell.
 
@@ -701,19 +706,23 @@ fun AppShell(
             // R3: ProbeTestHolder re-hoisted here (above) feeds the PROBE_TEST Focus body.
             // R4: ProbeCalibrateHolder re-hoisted here (above) feeds the Z_OFFSET session body.
             composable<NavDest.Probe> {
-                // D-09: suppress system Back while the Z-Offset probe session is active-or-starting.
-                // The holder vm is observed HERE (not inside ProbeScreen) so AppShell owns the
+                // D-09: suppress system Back while ANY probe session is active-or-starting.
+                // The holder VMs are observed HERE (not inside ProbeScreen) so AppShell owns the
                 // BackHandler registration, which puts it at priority-2 (INSIDE composable<>) —
                 // above NavHost's internal pop but below the scan/prompt overlay handlers (CR-01).
-                // R6: when Eddy Calibrate body is wired, OR in eddyActiveOrStarting here.
                 val probeCalibrateVm by probeCalibrateHolder.vm.collectAsStateWithLifecycle()
+                val eddyCalibrateVm by eddyCalibrateHolder.vm.collectAsStateWithLifecycle()
                 val probeInFlight by remember(dispatcher) {
                     dispatcher?.inFlight ?: MutableStateFlow(emptySet<String>())
                 }.collectAsStateWithLifecycle(initialValue = emptySet())
                 val probeStarting = probeCalibrateVm.state == ProbePageState.Idle &&
                     ("probe_calibrate" in probeInFlight || "z_endstop_calibrate" in probeInFlight)
-                // sessionActive combines Z-Offset flag; R6 will OR in eddyActiveOrStarting.
-                val probeSessionActive = probeCalibrateVm.state == ProbePageState.Active || probeStarting
+                // R6: Eddy Calibrate "starting" feedback (eddy_calibrate in flight while Idle).
+                val eddyStarting = eddyCalibrateVm.state == ProbePageState.Idle &&
+                    "eddy_calibrate" in probeInFlight
+                // Combined session lock — either active session suppresses system Back (D-09).
+                val probeSessionActive = probeCalibrateVm.state == ProbePageState.Active || probeStarting ||
+                    eddyCalibrateVm.state == ProbePageState.Active || eddyStarting
                 BackHandler(enabled = probeSessionActive) { /* swallow — no exit during live session */ }
 
                 ProbeScreen(
@@ -722,6 +731,7 @@ fun AppShell(
                     applyBabystepHolder = applyBabystepHolder,
                     probeTestHolder = probeTestHolder,
                     probeCalibrateHolder = probeCalibrateHolder,
+                    eddyCalibrateHolder = eddyCalibrateHolder,
                     gcodeResponses = store.gcodeResponses,
                     onBack = { navController.popBackStack() },
                 )
