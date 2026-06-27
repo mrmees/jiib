@@ -12,9 +12,11 @@ import works.mees.jiib.calibration.ProbeTool
 import works.mees.jiib.calibration.TiltState
 import works.mees.jiib.calibration.ApplyBabystepVm
 import works.mees.jiib.calibration.ProbeTestVm
+import works.mees.jiib.calibration.ProbeCalibrateVm
 import works.mees.jiib.ui.calibration.ApplyBabystepBody
 import works.mees.jiib.ui.calibration.ApplyBabystepContent
 import works.mees.jiib.ui.calibration.ProbeTestBody
+import works.mees.jiib.ui.calibration.ZOffsetBody
 import works.mees.jiib.ui.calibration.BedMeshContent
 import works.mees.jiib.ui.calibration.CalibrationHubContent
 import works.mees.jiib.ui.calibration.CalibrationRunContent
@@ -481,6 +483,196 @@ private fun ProbePseudolocaleSpotCheck() = PreviewBox(colorfulDark) {
         onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
         onHomeAll = {}, onStart = {}, onAccept = {}, onAbort = {},
         onSaveGuardShow = {}, onSaveConfirm = {}, onSaveCancel = {}, onDismissError = {}, onBack = {},
+    )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ZOffsetBody previews (Task R4)
+//
+// Targets the stateless ZOffsetBody seam (WARNING-5 preview-first convention).
+//
+// Axes:
+//  - State matrix: Idle-unhomed / Idle-homed / Idle-starting / Active / Accepted
+//  - 6 theme combos on Active (most complex state — jog enabled, Accept+Abort buttons)
+//  - fs = L overflow check on Active portrait
+// ─────────────────────────────────────────────────────────────────────────────
+
+private val DEFAULT_TESTZ_STEPS = listOf(0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 5.0, 10.0)
+
+@Preview(name = "ZOffset: Idle-unhomed (portrait)", device = NEXUS7_PORTRAIT, showBackground = true)
+@Composable
+private fun ZOffsetIdleUnhomed() = PreviewBox(colorfulDark) {
+    ZOffsetBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Idle, homedGate = false),
+        step = 0.1, steps = DEFAULT_TESTZ_STEPS, starting = false, enabled = false,
+        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
+        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {}, onHomeAll = {},
+    )
+}
+
+@Preview(name = "ZOffset: Idle-homed ready (portrait)", device = NEXUS7_PORTRAIT, showBackground = true)
+@Composable
+private fun ZOffsetIdleHomed() = PreviewBox(colorfulDark) {
+    ZOffsetBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Idle, homedGate = true),
+        step = 0.1, steps = DEFAULT_TESTZ_STEPS, starting = false, enabled = false,
+        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
+        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {}, onHomeAll = {},
+    )
+}
+
+@Preview(name = "ZOffset: Idle-starting (portrait)", device = NEXUS7_PORTRAIT, showBackground = true)
+@Composable
+private fun ZOffsetIdleStarting() = PreviewBox(colorfulDark) {
+    ZOffsetBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Idle, homedGate = true),
+        step = 0.1, steps = DEFAULT_TESTZ_STEPS, starting = true, enabled = false,
+        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
+        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {}, onHomeAll = {},
+    )
+}
+
+@Preview(name = "ZOffset: Active live-Z (portrait)", device = NEXUS7_PORTRAIT, showBackground = true)
+@Composable
+private fun ZOffsetActive() = PreviewBox(colorfulDark) {
+    ZOffsetBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Active),
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS, starting = false, enabled = true,
+        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
+        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {}, onHomeAll = {},
+    )
+}
+
+@Preview(name = "ZOffset: Accepted (portrait)", device = NEXUS7_PORTRAIT, showBackground = true)
+@Composable
+private fun ZOffsetAccepted() = PreviewBox(colorfulDark) {
+    ZOffsetBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Accepted),
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS, starting = false, enabled = false,
+        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
+        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {}, onHomeAll = {},
+    )
+}
+
+// ── 6-theme matrix on Active (most complex) ────────────────────────────────────
+
+@Nexus7Previews
+@Composable
+private fun ZOffsetThemeColorfulDark() = PreviewBox(colorfulDark) {
+    ZOffsetBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Active),
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS, starting = false, enabled = true,
+        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
+        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {}, onHomeAll = {},
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun ZOffsetThemeColorfulLight() = PreviewBox(colorfulLight) {
+    ZOffsetBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Active),
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS, starting = false, enabled = true,
+        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
+        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {}, onHomeAll = {},
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun ZOffsetThemeSimpleDark() = PreviewBox(simpleDark) {
+    ZOffsetBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Active),
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS, starting = false, enabled = true,
+        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
+        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {}, onHomeAll = {},
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun ZOffsetThemeSimpleLight() = PreviewBox(simpleLight) {
+    ZOffsetBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Active),
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS, starting = false, enabled = true,
+        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
+        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {}, onHomeAll = {},
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun ZOffsetThemeHighContrastDark() = PreviewBox(highContrastDark) {
+    ZOffsetBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Active),
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS, starting = false, enabled = true,
+        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
+        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {}, onHomeAll = {},
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun ZOffsetThemeHighContrastLight() = PreviewBox(highContrastLight) {
+    ZOffsetBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Active),
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS, starting = false, enabled = true,
+        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
+        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {}, onHomeAll = {},
+    )
+}
+
+// ── fs=L overflow ────────────────────────────────────────────────────────────
+
+@Preview(name = "ZOffset fs=L Active portrait overflow", device = NEXUS7_PORTRAIT, showBackground = true)
+@Composable
+private fun ZOffsetFsLargePortrait() = PreviewBox(fsLargeSeed) {
+    ZOffsetBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Active),
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS, starting = false, enabled = true,
+        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
+        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {}, onHomeAll = {},
+    )
+}
+
+// ── ProbeContent with Z_OFFSET selected ──────────────────────────────────────
+
+@Preview(name = "ProbeContent Z_OFFSET Idle (portrait)", device = NEXUS7_PORTRAIT, showBackground = true)
+@Composable
+private fun ProbeContentZOffsetIdle() = PreviewBox(colorfulDark) {
+    ProbeContent(
+        tools = SampleFixtures.probeToolList,
+        selected = ProbeTool.Z_OFFSET,
+        probeCalibrateVm = SampleFixtures.probeVm(ProbePageState.Idle, homedGate = true),
+        step = 0.1, steps = DEFAULT_TESTZ_STEPS, starting = false,
+        onSelect = {},
+        onBack = {},
+    )
+}
+
+@Preview(name = "ProbeContent Z_OFFSET Active (portrait)", device = NEXUS7_PORTRAIT, showBackground = true)
+@Composable
+private fun ProbeContentZOffsetActive() = PreviewBox(colorfulDark) {
+    ProbeContent(
+        tools = SampleFixtures.probeToolList,
+        selected = ProbeTool.Z_OFFSET,
+        probeCalibrateVm = SampleFixtures.probeVm(ProbePageState.Active),
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS, starting = false,
+        onSelect = {},
+        onBack = {},
+    )
+}
+
+@Preview(name = "ProbeContent Z_OFFSET Accepted (portrait)", device = NEXUS7_PORTRAIT, showBackground = true)
+@Composable
+private fun ProbeContentZOffsetAccepted() = PreviewBox(colorfulDark) {
+    ProbeContent(
+        tools = SampleFixtures.probeToolList,
+        selected = ProbeTool.Z_OFFSET,
+        probeCalibrateVm = SampleFixtures.probeVm(ProbePageState.Accepted),
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS, starting = false,
+        onSelect = {},
+        onBack = {},
     )
 }
 

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -37,11 +38,15 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.util.Locale
+import kotlinx.coroutines.flow.MutableStateFlow
 import works.mees.jiib.R
 import works.mees.jiib.calibration.ApplyBabystepHolder
 import works.mees.jiib.calibration.ApplyBabystepVm
+import works.mees.jiib.calibration.ProbeCalibrateHolder
+import works.mees.jiib.calibration.ProbeCalibrateVm
 import works.mees.jiib.calibration.ProbeAccuracyResult
 import works.mees.jiib.calibration.ProbeHubHolder
+import works.mees.jiib.calibration.ProbePageState
 import works.mees.jiib.calibration.ProbeTool
 import works.mees.jiib.calibration.ProbeToolEntry
 import works.mees.jiib.calibration.ProbeTestHolder
@@ -51,6 +56,7 @@ import works.mees.jiib.command.CommandDispatcher
 import works.mees.jiib.command.CommandRegistry
 import works.mees.jiib.command.GatingState
 import works.mees.jiib.command.PrinterCommands
+import works.mees.jiib.command.TestZArgs
 import works.mees.jiib.command.dispatch
 import works.mees.jiib.designsystem.ConfirmGuard
 import works.mees.jiib.designsystem.components.FocusFrame
@@ -73,6 +79,7 @@ import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 import works.mees.jiib.theme.fsSp
+import works.mees.jiib.ui.increments.IncrementControls
 
 // Samples steps for the ProbeTest samples stepper in [ProbeTestBody].
 private val SAMPLES_STEPS: List<Int> = listOf(1, 2, 3, 5, 10, 20, 30, 50)
@@ -121,6 +128,7 @@ fun ProbeScreen(
     probeHubHolder: ProbeHubHolder,
     applyBabystepHolder: ApplyBabystepHolder,
     probeTestHolder: ProbeTestHolder,
+    probeCalibrateHolder: ProbeCalibrateHolder,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -133,6 +141,28 @@ fun ProbeScreen(
     val applyBabystepVm by applyBabystepHolder.vm.collectAsStateWithLifecycle()
     val probeTestVm by probeTestHolder.vm.collectAsStateWithLifecycle()
 
+    // Z-Offset Calibrate session VM + step controls (R4).
+    val probeCalibrateVm by probeCalibrateHolder.vm.collectAsStateWithLifecycle()
+    val incrementLists by container.activeIncrementLists.collectAsStateWithLifecycle(emptyMap())
+    val testzSteps = remember(incrementLists) {
+        incrementLists["probe_testz"] ?: IncrementControls.defaultValueMap().getValue("probe_testz")
+    }
+    var step by remember { mutableStateOf(0.05) }
+    // Rebase: when the active list changes, snap `step` to the nearest present value
+    // (value-tracked control — verbatim from ProbeCalibrateScreen).
+    LaunchedEffect(testzSteps) {
+        if (step !in testzSteps) {
+            step = testzSteps.minByOrNull { kotlin.math.abs(it - step) } ?: testzSteps.first()
+        }
+    }
+    // "Starting…" immediate feedback: Start gcode in flight but session not yet Active (the klicky
+    // macro homes/attaches/probes for several seconds before is_active flips — Pitfall 6).
+    val inFlight by remember(dispatcher) {
+        dispatcher?.inFlight ?: MutableStateFlow(emptySet())
+    }.collectAsStateWithLifecycle(initialValue = emptySet())
+    val starting = probeCalibrateVm.state == ProbePageState.Idle &&
+        ("probe_calibrate" in inFlight || "z_endstop_calibrate" in inFlight)
+
     var selected by remember { mutableStateOf<ProbeTool?>(null) }
     var samplesIdx by remember { mutableStateOf(SAMPLES_DEFAULT_IDX) }
     // D-05: pre-select first tool + reconcile against the current visible list.
@@ -142,10 +172,13 @@ fun ProbeScreen(
         selected = tools.firstOrNull()?.tool
     }
 
-    // Auto-query when PROBE_TEST is first shown or re-selected to populate triggered/lastZ.
+    // Auto-query when PROBE_TEST is first shown; reset the probe-calibrate holder on Z_OFFSET entry
+    // so a returning user never sees stale Accepted state (Pitfall 3).
     LaunchedEffect(selected) {
-        if (selected == ProbeTool.PROBE_TEST) {
-            dispatcher?.dispatch(CommandRegistry.queryProbe, Unit)
+        when (selected) {
+            ProbeTool.PROBE_TEST -> dispatcher?.dispatch(CommandRegistry.queryProbe, Unit)
+            ProbeTool.Z_OFFSET -> probeCalibrateHolder.reset()
+            else -> {}
         }
     }
 
@@ -154,6 +187,10 @@ fun ProbeScreen(
         selected = selected,
         applyBabystepVm = applyBabystepVm,
         probeTestVm = probeTestVm,
+        probeCalibrateVm = probeCalibrateVm,
+        step = step,
+        steps = testzSteps,
+        starting = starting,
         samplesIdx = samplesIdx,
         dispatcher = dispatcher,
         isPrinting = isPrinting,
@@ -162,6 +199,30 @@ fun ProbeScreen(
         onSelect = { selected = it },
         onSamplesUp = { samplesIdx = (samplesIdx + 1).coerceAtMost(SAMPLES_STEPS.lastIndex) },
         onSamplesDown = { samplesIdx = (samplesIdx - 1).coerceAtLeast(0) },
+        onStart = {
+            val d = dispatcher ?: return@ProbeContent
+            if (probeCalibrateVm.startCommand == PrinterCommands.Z_ENDSTOP_CALIBRATE) {
+                d.dispatch(CommandRegistry.zEndstopCalibrate, Unit)
+            } else {
+                d.dispatch(CommandRegistry.probeCalibrate, Unit)
+            }
+        },
+        onAccept = { dispatcher?.dispatch(CommandRegistry.accept, Unit) },
+        onAbort = {
+            probeCalibrateHolder.markAborted()
+            dispatcher?.dispatch(CommandRegistry.abort, Unit)
+        },
+        onHomeAll = { dispatcher?.dispatch(CommandRegistry.homeAll, Unit) },
+        onTestZUp = { dispatcher?.dispatch(CommandRegistry.testZ, TestZArgs(step)) },
+        onTestZDown = { dispatcher?.dispatch(CommandRegistry.testZ, TestZArgs(-step)) },
+        onStepUp = {
+            val idx = testzSteps.indexOf(step).let { if (it < 0) 0 else it }
+            step = testzSteps[(idx + 1).coerceAtMost(testzSteps.lastIndex)]
+        },
+        onStepDown = {
+            val idx = testzSteps.indexOf(step).let { if (it < 0) 0 else it }
+            step = testzSteps[(idx - 1).coerceAtLeast(0)]
+        },
         onBack = onBack,
         modifier = modifier,
     )
@@ -185,6 +246,10 @@ internal fun ProbeContent(
     selected: ProbeTool?,
     applyBabystepVm: ApplyBabystepVm = ApplyBabystepVm(),
     probeTestVm: ProbeTestVm = ProbeTestVm(),
+    probeCalibrateVm: ProbeCalibrateVm = ProbeCalibrateVm(),
+    step: Double = 0.05,
+    steps: List<Double> = IncrementControls.defaultValueMap().getValue("probe_testz"),
+    starting: Boolean = false,
     samplesIdx: Int = SAMPLES_DEFAULT_IDX,
     dispatcher: CommandDispatcher? = null,
     isPrinting: Boolean = false,
@@ -193,10 +258,34 @@ internal fun ProbeContent(
     onSelect: (ProbeTool) -> Unit,
     onSamplesUp: () -> Unit = {},
     onSamplesDown: () -> Unit = {},
+    onStart: () -> Unit = {},
+    onAccept: () -> Unit = {},
+    onAbort: () -> Unit = {},
+    onHomeAll: () -> Unit = {},
+    onTestZUp: () -> Unit = {},
+    onTestZDown: () -> Unit = {},
+    onStepUp: () -> Unit = {},
+    onStepDown: () -> Unit = {},
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
+
+    // Z-Offset session lock: disable Field row selection + suppress foot-bar Back while active.
+    val zActiveOrStarting = probeCalibrateVm.state == ProbePageState.Active || starting
+
+    // Live in-flight set — used to gate ManualProbeJog (no-op TESTZ while a jog is in flight)
+    // and to compute the "Starting…" immediate-feedback state in ZOffsetBody.
+    val inFlight by remember(dispatcher) {
+        dispatcher?.inFlight ?: MutableStateFlow(emptySet())
+    }.collectAsStateWithLifecycle(initialValue = emptySet())
+    val jogEnabled = probeCalibrateVm.state == ProbePageState.Active &&
+        dispatcher != null && "testz" !in inFlight
+
+    // Pre-read SAVE_CONFIG strings for the onSaveConfig lambda built below
+    // (string resources must be read in composable context, not inside a lambda).
+    val saveTitle   = stringResource(R.string.calibration_save_config)
+    val saveMessage = stringResource(R.string.calibration_save_config_confirm)
 
     // Null-selected guard: when selected == null use the hub identity fallback in the Focus header.
     val focusTitle = selected?.let { stringResource(probeToolTitleRes(it)) }
@@ -207,6 +296,18 @@ internal fun ProbeContent(
     // overlays the entire scaffold (Focus + Field), not just the Focus content area.
     // Matches the BedMesh / ScrewsTilt pattern exactly.
     var pending by remember { mutableStateOf<ProbeConfirm?>(null) }
+
+    // onSaveConfig: raises the full-screen ProbeConfirm guard for SAVE_CONFIG (same pattern as
+    // ApplyBabystepBody's save path — built here so string resources are read in composable context).
+    val onSaveConfig: () -> Unit = {
+        pending = ProbeConfirm(
+            title = saveTitle,
+            message = saveMessage,
+            confirmLabel = saveTitle,
+            warn = true,
+            onConfirm = { dispatcher?.dispatch(CommandRegistry.saveConfig, Unit) },
+        )
+    }
 
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
@@ -228,10 +329,28 @@ internal fun ProbeContent(
                     contentInset = FocusInset / 2,
                 ) {
                     // Per-tool Focus body dispatch.
-                    // TODO(refocus later tasks): Z-Offset & Eddy Calibrate session bodies must
-                    //  re-introduce the D-09 BackHandler (Back-suppress during an active manual-probe
-                    //  session) — removed with the old routes in R1.
+                    // D-09 BackHandler: the nav-layer BackHandler in composable<NavDest.Probe>
+                    // (AppShell.kt) owns system-Back suppression while zActiveOrStarting (R4).
+                    // TODO(R6): when Eddy Calibrate body is wired, OR in eddyActiveOrStarting
+                    //  here and in the AppShell BackHandler for the combined sessionActive flag.
                     when (selected) {
+                        ProbeTool.Z_OFFSET -> ZOffsetBody(
+                            vm = probeCalibrateVm,
+                            step = step,
+                            steps = steps,
+                            starting = starting,
+                            enabled = jogEnabled,
+                            onTestZUp = onTestZUp,
+                            onTestZDown = onTestZDown,
+                            onStepUp = onStepUp,
+                            onStepDown = onStepDown,
+                            onStart = onStart,
+                            onAccept = onAccept,
+                            onAbort = onAbort,
+                            onSaveConfig = onSaveConfig,
+                            onHomeAll = onHomeAll,
+                            modifier = Modifier.fillMaxSize(),
+                        )
                         ProbeTool.APPLY_BABYSTEP -> ApplyBabystepBody(
                             vm = applyBabystepVm,
                             dispatcher = dispatcher,
@@ -249,7 +368,7 @@ internal fun ProbeContent(
                             modifier = Modifier.fillMaxSize(),
                         )
                         else -> {
-                            // Placeholder body for tools not yet wired (R4/R5/R6 tasks).
+                            // Placeholder body for tools not yet wired (R5/R6 tasks).
                             // onRequestConfirm = { pending = it } is available for future bodies
                             // that need a guard; pass it in here when wiring them.
                             if (selected != null) {
@@ -272,10 +391,18 @@ internal fun ProbeContent(
                 // Field: tool list + FootButtonBar (FootButtonBar lives INSIDE field — shared pattern).
                 ListBlock(modifier = Modifier.weight(1f)) {
                     items(tools, key = { it.tool.name }) { entry ->
+                        // Session lock (D-09): while a Z-Offset probe session is active-or-starting,
+                        // dim all rows and make them non-tappable so the user can't switch tools.
+                        val rowLocked = zActiveOrStarting
                         ListRow(
-                            selected = entry.tool == selected,
-                            onClick = { onSelect(entry.tool) },
+                            selected = if (rowLocked) false else (entry.tool == selected),
+                            onClick = if (!rowLocked) { { onSelect(entry.tool) } } else { {} },
                             uDp = grid.uDp,
+                            modifier = if (rowLocked) {
+                                Modifier.alpha(0.38f).semantics { disabled() }
+                            } else {
+                                Modifier
+                            },
                             leadingContent = {
                                 // R23: canonical 0.6U list-row icon (registry-routed).
                                 ListRowIcon(
@@ -310,6 +437,20 @@ internal fun ProbeContent(
                                             .background(dotColor),
                                     )
                                 })
+                                // Trailing readout: live Z (Active) or saved offset (Idle/Accepted).
+                                ProbeTool.Z_OFFSET -> ({
+                                    val zTrailing = when (probeCalibrateVm.state) {
+                                        ProbePageState.Active ->
+                                            probeCalibrateVm.zPosition?.let { fmtZOffset(it) }
+                                        else ->
+                                            probeCalibrateVm.savedZOffset?.let { fmtZOffset(-it) }
+                                    }
+                                    Text(
+                                        text = zTrailing ?: "—",
+                                        style = JiibType.dataInline.toTextStyle(t),
+                                        color = t.text2,
+                                    )
+                                })
                                 else -> null
                             },
                         ) {
@@ -323,9 +464,11 @@ internal fun ProbeContent(
                 }
 
                 // Back only — R5/R8: accent intent, first button.
+                // D-09 session lock: suppress Back while Z-Offset session is active-or-starting;
+                // the only exits are Accept/Abort (both in the ZOffsetBody Focus row).
                 FootButtonBar(
                     uDp = grid.uDp,
-                    actions = listOf(
+                    actions = if (zActiveOrStarting) emptyList() else listOf(
                         FootAction(
                             label = stringResource(R.string.common_back),
                             onClick = onBack,
@@ -352,6 +495,171 @@ internal fun ProbeContent(
             )
         }
         } // Box(Modifier.fillMaxSize())
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ZOffsetBody — Focus content for the Z-Offset Calibrate tool (Task R4)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Focus body for the Z-Offset Calibrate tool (Task R4). Renders four rows:
+ *  Row1 — Z hero readout (state-adaptive: Idle = saved offset negated; Active = live Z position;
+ *    Accepted = captured offset). Geist Mono, [JiibType.focusHero].
+ *  Rows2-3 — [ManualProbeJog] (Z-nudge + step selector, two-column D-08 motif); enabled ONLY while
+ *    Active and no TESTZ in flight.
+ *  Row4 — State-adaptive button line:
+ *    Idle + starting → disabled "Starting…" ([JiibType.Neutral], [CalibrationWait] icon).
+ *    Idle + !homedGate → [Home All] ([Intent.Go]) — pre-flight, probe-calibrate needs XYZ homed.
+ *    Idle + homedGate → [Start] ([Intent.Go]) — dispatches PROBE_CALIBRATE or Z_ENDSTOP_CALIBRATE
+ *      per [ProbeCalibrateVm.startCommand] (probe-present gate A3).
+ *    Active → [Accept] ([Intent.Go]) + [Abort] ([Intent.Danger]).
+ *    Accepted → [Save &amp; Restart] ([Intent.Warn]) — raises the full-screen SAVE_CONFIG guard via
+ *      [onSaveConfig], which calls [ProbeContent]'s shared [onRequestConfirm] host.
+ *
+ * No [ConfirmGuard] rendered here — the guard is hosted full-screen in [ProbeContent] via
+ * [onSaveConfig] → [onRequestConfirm] (matches the [ApplyBabystepBody] pattern).
+ *
+ * Session lock: Field row selection + foot-bar Back are suppressed while [ProbePageState.Active]
+ * or [starting] — enforced in [ProbeContent] via [zActiveOrStarting]. The nav-layer [BackHandler]
+ * in `composable<NavDest.Probe>` (AppShell.kt) owns system-Back suppression (D-09 / T-27-04-01).
+ */
+@Composable
+internal fun ZOffsetBody(
+    vm: ProbeCalibrateVm,
+    step: Double,
+    steps: List<Double>,
+    starting: Boolean,
+    enabled: Boolean,
+    onTestZUp: () -> Unit,
+    onTestZDown: () -> Unit,
+    onStepUp: () -> Unit,
+    onStepDown: () -> Unit,
+    onStart: () -> Unit,
+    onAccept: () -> Unit,
+    onAbort: () -> Unit,
+    onSaveConfig: () -> Unit,
+    onHomeAll: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val t = LocalTokens.current
+
+    // Row1 Z hero: state-adaptive value — negate savedZOffset (Moonraker stores positive).
+    val zText: String = when (vm.state) {
+        ProbePageState.Idle     -> vm.savedZOffset?.let { fmtZOffset(-it) } ?: "—"
+        ProbePageState.Active   -> vm.zPosition?.let    { fmtZOffset(it)  } ?: "—"
+        ProbePageState.Accepted -> vm.capturedOffset?.let { fmtZOffset(it) } ?: "—"
+    }
+
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        // ── Row1: Z hero readout (Geist Mono, accent2 hero colour) ──────────────
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(vertical = fsSp(8f, t.fs).dp),
+        ) {
+            Text(
+                text = zText,
+                style = JiibType.focusHero.toTextStyle(t),
+                color = t.accent2,
+            )
+            Text(
+                text = "mm",
+                style = JiibType.caption.toTextStyle(t),
+                color = t.text3,
+            )
+        }
+
+        // ── Rows2-3: ManualProbeJog (two-column D-08 motif, weight fills space) ──
+        ManualProbeJog(
+            vm = vm,
+            step = step,
+            steps = steps,
+            enabled = enabled,
+            onTestZUp = onTestZUp,
+            onTestZDown = onTestZDown,
+            onStepUp = onStepUp,
+            onStepDown = onStepDown,
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+        )
+
+        // ── Row4: state-adaptive action buttons ──────────────────────────────────
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = fsSp(8f, t.fs).dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            when (vm.state) {
+                ProbePageState.Idle -> when {
+                    starting -> {
+                        // Start gcode in flight, session not yet Active — disabled "Starting…"
+                        OutlinedControl(
+                            label = stringResource(R.string.probe_starting),
+                            icon = JiibIcons.CalibrationWait,
+                            onClick = {},
+                            intent = Intent.Neutral,
+                            enabled = false,
+                            modifier = Modifier
+                                .weight(1f)
+                                .alpha(0.38f)
+                                .semantics { disabled() },
+                        )
+                    }
+                    !vm.homedGate -> {
+                        // Must home XYZ first — Home All = the expected pre-flight action (Go).
+                        OutlinedControl(
+                            label = stringResource(R.string.calibration_home_all),
+                            icon = JiibIcons.MoveHomeAll,
+                            onClick = onHomeAll,
+                            intent = Intent.Go,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    else -> {
+                        // Homed and ready — Start = the screen's expected action (Go).
+                        OutlinedControl(
+                            label = stringResource(R.string.calibration_start),
+                            icon = JiibIcons.CalibrationRun,
+                            onClick = onStart,
+                            intent = Intent.Go,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+                ProbePageState.Active -> {
+                    // Back suppressed (D-09) — only Accept (go) and Abort (danger) offered.
+                    OutlinedControl(
+                        label = stringResource(R.string.calibration_accept),
+                        icon = JiibIcons.CheckCircle,
+                        onClick = onAccept,
+                        intent = Intent.Go,
+                        modifier = Modifier.weight(1f),
+                    )
+                    OutlinedControl(
+                        label = stringResource(R.string.calibration_abort),
+                        icon = JiibIcons.CalibrationAbort,
+                        onClick = onAbort,
+                        intent = Intent.Danger,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                ProbePageState.Accepted -> {
+                    // SAVE_CONFIG restarts Klipper (hazard-in-process, R5 → warn / amber).
+                    OutlinedControl(
+                        label = stringResource(R.string.calibration_save_config),
+                        icon = JiibIcons.Save,
+                        onClick = onSaveConfig,
+                        intent = Intent.Warn,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -714,6 +1022,10 @@ private fun babystepFmt(v: Double): String = String.format(Locale.US, "%.3f", v)
 
 /** Four-decimal mm format for probe Z values (matches [ProbeTestScreen]'s precision). */
 private fun probeTestFmtZ(v: Double): String = String.format(Locale.US, "%.4f", v)
+
+/** Three-decimal mm format for the Z-Offset hero readout in [ZOffsetBody] / Field trailing.
+ *  Matches [ProbeCalibrateScreen]'s `fmtZ` precision. */
+private fun fmtZOffset(v: Double): String = String.format(Locale.US, "%.3f", v)
 
 /**
  * Six-stat accuracy grid from a PROBE_ACCURACY run.

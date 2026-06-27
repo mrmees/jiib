@@ -42,6 +42,8 @@ import works.mees.jiib.calibration.ApplyBabystepHolder
 import works.mees.jiib.calibration.BedMeshHolder
 import works.mees.jiib.calibration.CalibrationHubHolder
 import works.mees.jiib.calibration.CalibrationRoutine
+import works.mees.jiib.calibration.ProbeCalibrateHolder
+import works.mees.jiib.calibration.ProbePageState
 import works.mees.jiib.calibration.ProbeHubHolder
 import works.mees.jiib.calibration.ProbeTestHolder
 import works.mees.jiib.calibration.ScrewsTiltHolder
@@ -402,11 +404,16 @@ fun AppShell(
     // single ProbeScreen's tool list. ApplyBabystepHolder is re-hoisted here (R2) because
     // the APPLY_BABYSTEP Focus body lives inside ProbeScreen, not its own route.
     // R3: ProbeTestHolder re-hoisted here — the PROBE_TEST Focus body lives inside ProbeScreen.
+    // R4: ProbeCalibrateHolder re-hoisted here — the Z_OFFSET inline session body lives inside
+    // ProbeScreen. The events arg wires Failure toasts for probe_calibrate/testz/accept/abort.
     val probeHubHolder = remember(store) {
         ProbeHubHolder(scope = scope, store = store, showUnsupportedTools = container.showUnsupportedTools)
     }
     val applyBabystepHolder = remember(store) { ApplyBabystepHolder(scope = scope, store = store) }
     val probeTestHolder = remember(store) { ProbeTestHolder(scope = scope, store = store) }
+    val probeCalibrateHolder = remember(store) {
+        ProbeCalibrateHolder(scope = scope, store = store, events = calibEvents)
+    }
     // D-01 move #2 (22-07): TiltScreen/BedMeshScreen now take their holder directly and collect
     // holder.vm internally. The holders built above stay in AppShell.
 
@@ -528,8 +535,9 @@ fun AppShell(
     // Macro BackHandlers for popup/system-list REMOVED: Macros merged to a single FieldMode screen (25-05);
     // in-screen Back is handled by the screen's own FootButtonBar (MacroFieldMode state machine).
     // Calibration sub-state BackHandler REMOVED (D-07, Phase 27): NavHost back-stack owns Calibration
-    // sub-routes. The D-09 probe-session BackHandlers (CalibrationProbe + EddyCalibrate) are retired
-    // with R1 — the old routes no longer exist; NavDest.Probe has no back-swallow guard.
+    // sub-routes. The old CalibrationProbe / EddyCalibrate route BackHandlers were retired with R1.
+    // R4: the D-09 probe-session BackHandler is re-added INSIDE composable<NavDest.Probe> above
+    // (priority-2, after NavHost's internal pop but before the scan/prompt overlays — CR-01).
     // The scan/prompt overlay BackHandlers MOVED into their overlay `if` blocks after the NavHost (CR-01).
 
     BoxWithConstraints(
@@ -691,12 +699,29 @@ fun AppShell(
             // ProbeHubHolder still feeds the tool list; all old screen/holder imports are retired.
             // R2: ApplyBabystepHolder re-hoisted here (above) feeds the APPLY_BABYSTEP Focus body.
             // R3: ProbeTestHolder re-hoisted here (above) feeds the PROBE_TEST Focus body.
+            // R4: ProbeCalibrateHolder re-hoisted here (above) feeds the Z_OFFSET session body.
             composable<NavDest.Probe> {
+                // D-09: suppress system Back while the Z-Offset probe session is active-or-starting.
+                // The holder vm is observed HERE (not inside ProbeScreen) so AppShell owns the
+                // BackHandler registration, which puts it at priority-2 (INSIDE composable<>) —
+                // above NavHost's internal pop but below the scan/prompt overlay handlers (CR-01).
+                // R6: when Eddy Calibrate body is wired, OR in eddyActiveOrStarting here.
+                val probeCalibrateVm by probeCalibrateHolder.vm.collectAsStateWithLifecycle()
+                val probeInFlight by remember(dispatcher) {
+                    dispatcher?.inFlight ?: MutableStateFlow(emptySet<String>())
+                }.collectAsStateWithLifecycle(initialValue = emptySet())
+                val probeStarting = probeCalibrateVm.state == ProbePageState.Idle &&
+                    ("probe_calibrate" in probeInFlight || "z_endstop_calibrate" in probeInFlight)
+                // sessionActive combines Z-Offset flag; R6 will OR in eddyActiveOrStarting.
+                val probeSessionActive = probeCalibrateVm.state == ProbePageState.Active || probeStarting
+                BackHandler(enabled = probeSessionActive) { /* swallow — no exit during live session */ }
+
                 ProbeScreen(
                     container = container,
                     probeHubHolder = probeHubHolder,
                     applyBabystepHolder = applyBabystepHolder,
                     probeTestHolder = probeTestHolder,
+                    probeCalibrateHolder = probeCalibrateHolder,
                     onBack = { navController.popBackStack() },
                 )
             }
