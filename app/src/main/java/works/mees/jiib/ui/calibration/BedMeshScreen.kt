@@ -511,8 +511,8 @@ internal fun BedMeshContent(
                             // Dim while calibrating (HardLock) — secondary actions are non-interactive
                             // visually; clicks on purely-local-state rows are harmless but de-emphasized.
                             ListBlock(modifier = Modifier.weight(1f).alpha(if (isLocked) 0.38f else 1f)) {
-                                // Clear Mesh row — only when a live mesh is loaded and not printing
-                                if (!vm.isEmpty && !isPrinting) {
+                                // Clear Mesh row — only when a live mesh is loaded, not printing, and not calibrating
+                                if (!vm.isEmpty && !isPrinting && !isLocked) {
                                     item(key = "__clear__") {
                                         ListRow(
                                             selected = false,
