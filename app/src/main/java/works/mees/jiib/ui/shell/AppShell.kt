@@ -80,6 +80,8 @@ import works.mees.jiib.ui.macros.MacroHolder
 import works.mees.jiib.ui.calibration.ApplyBabystepScreen
 import works.mees.jiib.ui.calibration.BedMeshScreen
 import works.mees.jiib.ui.calibration.CalibrationHubScreen
+import works.mees.jiib.ui.calibration.EddyDriveCurrentScreen
+import works.mees.jiib.ui.calibration.EddyTapScreen
 import works.mees.jiib.ui.calibration.ProbeCalibrateScreen
 import works.mees.jiib.ui.calibration.ProbeHubScreen
 import works.mees.jiib.ui.calibration.ProbeTestScreen
@@ -756,6 +758,24 @@ fun AppShell(
                 ApplyBabystepScreen(
                     container = container,
                     holder = applyBabystepHolder,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            // Task 19: Eddy Drive Current — run LDC_CALIBRATE_DRIVE_CURRENT + watch console + SAVE_CONFIG.
+            // No dedicated holder — the screen tails store.gcodeResponses via a remembered collector.
+            composable<NavDest.ProbeEddyDriveCurrent> {
+                EddyDriveCurrentScreen(
+                    container = container,
+                    gcodeResponses = store.gcodeResponses,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            // Task 19: Eddy Tap Threshold — run PROBE_EDDY_CURRENT_TAP_CALIBRATE (guess/refine/verify)
+            // + watch console + SAVE_CONFIG. Same reusable CalibrationRunContent; stage selector in Field.
+            composable<NavDest.ProbeEddyTap> {
+                EddyTapScreen(
+                    container = container,
+                    gcodeResponses = store.gcodeResponses,
                     onBack = { navController.popBackStack() },
                 )
             }

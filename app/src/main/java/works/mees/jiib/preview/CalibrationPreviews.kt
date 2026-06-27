@@ -13,6 +13,7 @@ import works.mees.jiib.calibration.TiltState
 import works.mees.jiib.ui.calibration.ApplyBabystepContent
 import works.mees.jiib.ui.calibration.BedMeshContent
 import works.mees.jiib.ui.calibration.CalibrationHubContent
+import works.mees.jiib.ui.calibration.CalibrationRunContent
 import works.mees.jiib.ui.calibration.MeshFieldMode
 import works.mees.jiib.ui.calibration.ProbeCalibrateContent
 import works.mees.jiib.ui.calibration.ProbeHubContent
@@ -20,6 +21,8 @@ import works.mees.jiib.ui.calibration.ProbeTestContent
 import works.mees.jiib.ui.calibration.ScrewsTiltContent
 import works.mees.jiib.ui.calibration.TiltContent
 import works.mees.jiib.ui.calibration.TiltVariant
+import works.mees.jiib.command.GatingState
+import works.mees.jiib.designsystem.icons.JiibIcons
 
 /**
  * @Preview matrix for CalibrationHubScreen + ProbeCalibrateScreen (27-04).
@@ -1578,5 +1581,309 @@ private fun ConsoleTailEmpty() = PreviewBox(colorfulDark) {
         lines = emptyList(),
         uDp = 64.dp,
         modifier = Modifier.fillMaxSize(),
+    )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CalibrationRunContent previews (Task 19)
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Two variants:
+//  - No tapStages: Drive Current path (single Run button)
+//  - With tapStages: Tap Threshold path (stage selector row in Field)
+//
+// Preview axes:
+//  - Variant × theme × console fill × fs=L
+//  - Build-blind note visible in every case
+//  - saveGuard=false for layout checks; content is stateless so guard is not shown
+
+private val sampleConsoleLines = listOf(
+    "// LDC_CALIBRATE_DRIVE_CURRENT CHIP=",
+    "// Preparing calibration…",
+    "// Testing drive current: 15",
+    "// Testing drive current: 20",
+    "// Optimal drive current: 20",
+    "// Done.",
+)
+
+private val noConsoleLines: List<String> = emptyList()
+
+private val TAP_STAGE_LABELS = listOf("Guess", "Refine", "Verify")
+
+// ── Drive Current: Dark themes ───────────────────────────────────────────────
+
+@Preview(
+    name = "CalibRun Drive Current empty console (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun CalibRunDriveCurrentEmpty() = PreviewBox(colorfulDark) {
+    CalibrationRunContent(
+        title = "Eddy: Drive Current",
+        description = "Adjust the Eddy current coil drive current for optimal signal amplitude.",
+        buildBlindNote = "⚠ Requires eddy current hardware — not validated on device (build-blind).",
+        lines = noConsoleLines,
+        running = false,
+        tapStages = null,
+        selectedStage = null,
+        gating = GatingState.Idle,
+        saveGuard = false,
+        headerIcon = JiibIcons.EddyDriveCurrent,
+        onRun = {},
+        onSaveGuardShow = {},
+        onSaveConfirm = {},
+        onSaveCancel = {},
+        onBack = {},
+    )
+}
+
+@Preview(
+    name = "CalibRun Drive Current with console (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun CalibRunDriveCurrentWithConsole() = PreviewBox(colorfulDark) {
+    CalibrationRunContent(
+        title = "Eddy: Drive Current",
+        description = "Adjust the Eddy current coil drive current for optimal signal amplitude.",
+        buildBlindNote = "⚠ Requires eddy current hardware — not validated on device (build-blind).",
+        lines = sampleConsoleLines,
+        running = false,
+        tapStages = null,
+        selectedStage = null,
+        gating = GatingState.Idle,
+        saveGuard = false,
+        headerIcon = JiibIcons.EddyDriveCurrent,
+        onRun = {},
+        onSaveGuardShow = {},
+        onSaveConfirm = {},
+        onSaveCancel = {},
+        onBack = {},
+    )
+}
+
+@Preview(
+    name = "CalibRun Drive Current running (Nexus7 landscape)",
+    device = NEXUS7,
+    showBackground = true,
+)
+@Composable
+private fun CalibRunDriveCurrentRunning() = PreviewBox(colorfulDark) {
+    CalibrationRunContent(
+        title = "Eddy: Drive Current",
+        description = "Adjust the Eddy current coil drive current for optimal signal amplitude.",
+        buildBlindNote = "⚠ Requires eddy current hardware — not validated on device (build-blind).",
+        lines = sampleConsoleLines,
+        running = true,   // Run button disabled
+        tapStages = null,
+        selectedStage = null,
+        gating = GatingState.Idle,
+        saveGuard = false,
+        headerIcon = JiibIcons.EddyDriveCurrent,
+        onRun = {},
+        onSaveGuardShow = {},
+        onSaveConfirm = {},
+        onSaveCancel = {},
+        onBack = {},
+    )
+}
+
+// ── Drive Current: 6-theme matrix ────────────────────────────────────────────
+
+@Nexus7Previews
+@Composable
+private fun CalibRunDriveCurrentThemeColorfulDark() = PreviewBox(colorfulDark) {
+    CalibrationRunContent(
+        title = "Eddy: Drive Current",
+        description = "Adjust the Eddy current coil drive current for optimal signal amplitude.",
+        buildBlindNote = "⚠ Requires eddy current hardware — not validated on device (build-blind).",
+        lines = sampleConsoleLines,
+        running = false,
+        tapStages = null,
+        selectedStage = null,
+        gating = GatingState.Idle,
+        saveGuard = false,
+        headerIcon = JiibIcons.EddyDriveCurrent,
+        onRun = {},
+        onSaveGuardShow = {},
+        onSaveConfirm = {},
+        onSaveCancel = {},
+        onBack = {},
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun CalibRunDriveCurrentThemeColorfulLight() = PreviewBox(colorfulLight) {
+    CalibrationRunContent(
+        title = "Eddy: Drive Current",
+        description = "Adjust the Eddy current coil drive current for optimal signal amplitude.",
+        buildBlindNote = "⚠ Requires eddy current hardware — not validated on device (build-blind).",
+        lines = sampleConsoleLines,
+        running = false,
+        tapStages = null,
+        selectedStage = null,
+        gating = GatingState.Idle,
+        saveGuard = false,
+        headerIcon = JiibIcons.EddyDriveCurrent,
+        onRun = {},
+        onSaveGuardShow = {},
+        onSaveConfirm = {},
+        onSaveCancel = {},
+        onBack = {},
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun CalibRunDriveCurrentThemeHighContrastDark() = PreviewBox(highContrastDark) {
+    CalibrationRunContent(
+        title = "Eddy: Drive Current",
+        description = "Adjust the Eddy current coil drive current for optimal signal amplitude.",
+        buildBlindNote = "⚠ Requires eddy current hardware — not validated on device (build-blind).",
+        lines = sampleConsoleLines,
+        running = false,
+        tapStages = null,
+        selectedStage = null,
+        gating = GatingState.Idle,
+        saveGuard = false,
+        headerIcon = JiibIcons.EddyDriveCurrent,
+        onRun = {},
+        onSaveGuardShow = {},
+        onSaveConfirm = {},
+        onSaveCancel = {},
+        onBack = {},
+    )
+}
+
+// ── Drive Current: fs=L overflow check ───────────────────────────────────────
+
+@Preview(
+    name = "CalibRun Drive Current fs=L portrait overflow",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun CalibRunDriveCurrentFsLargePortrait() = PreviewBox(fsLargeSeed) {
+    CalibrationRunContent(
+        title = "Eddy: Drive Current",
+        description = "Adjust the Eddy current coil drive current for optimal signal amplitude.",
+        buildBlindNote = "⚠ Requires eddy current hardware — not validated on device (build-blind).",
+        lines = sampleConsoleLines,
+        running = false,
+        tapStages = null,
+        selectedStage = null,
+        gating = GatingState.Idle,
+        saveGuard = false,
+        headerIcon = JiibIcons.EddyDriveCurrent,
+        onRun = {},
+        onSaveGuardShow = {},
+        onSaveConfirm = {},
+        onSaveCancel = {},
+        onBack = {},
+    )
+}
+
+// ── Tap Threshold: with stage selector ───────────────────────────────────────
+
+@Preview(
+    name = "CalibRun Tap Threshold guess selected (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun CalibRunTapThresholdGuessSelected() = PreviewBox(colorfulDark) {
+    CalibrationRunContent(
+        title = "Eddy: Tap Threshold",
+        description = "Set the Eddy current tap threshold used to detect bed contact.",
+        buildBlindNote = "⚠ Requires eddy current hardware — not validated on device (build-blind).",
+        lines = noConsoleLines,
+        running = false,
+        tapStages = TAP_STAGE_LABELS,
+        selectedStage = "Guess",
+        gating = GatingState.Idle,
+        saveGuard = false,
+        headerIcon = JiibIcons.EddyTap,
+        onRun = {},
+        onSaveGuardShow = {},
+        onSaveConfirm = {},
+        onSaveCancel = {},
+        onBack = {},
+    )
+}
+
+@Preview(
+    name = "CalibRun Tap Threshold refine selected with console (Nexus7 landscape)",
+    device = NEXUS7,
+    showBackground = true,
+)
+@Composable
+private fun CalibRunTapThresholdRefineWithConsole() = PreviewBox(colorfulDark) {
+    CalibrationRunContent(
+        title = "Eddy: Tap Threshold",
+        description = "Set the Eddy current tap threshold used to detect bed contact.",
+        buildBlindNote = "⚠ Requires eddy current hardware — not validated on device (build-blind).",
+        lines = sampleConsoleLines,
+        running = false,
+        tapStages = TAP_STAGE_LABELS,
+        selectedStage = "Refine",
+        gating = GatingState.Idle,
+        saveGuard = false,
+        headerIcon = JiibIcons.EddyTap,
+        onRun = {},
+        onSaveGuardShow = {},
+        onSaveConfirm = {},
+        onSaveCancel = {},
+        onBack = {},
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun CalibRunTapThresholdThemeColorfulLight() = PreviewBox(colorfulLight) {
+    CalibrationRunContent(
+        title = "Eddy: Tap Threshold",
+        description = "Set the Eddy current tap threshold used to detect bed contact.",
+        buildBlindNote = "⚠ Requires eddy current hardware — not validated on device (build-blind).",
+        lines = sampleConsoleLines,
+        running = false,
+        tapStages = TAP_STAGE_LABELS,
+        selectedStage = "Guess",
+        gating = GatingState.Idle,
+        saveGuard = false,
+        headerIcon = JiibIcons.EddyTap,
+        onRun = {},
+        onSaveGuardShow = {},
+        onSaveConfirm = {},
+        onSaveCancel = {},
+        onBack = {},
+    )
+}
+
+@Preview(
+    name = "CalibRun Tap Threshold fs=L portrait overflow",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun CalibRunTapThresholdFsLargePortrait() = PreviewBox(fsLargeSeed) {
+    CalibrationRunContent(
+        title = "Eddy: Tap Threshold",
+        description = "Set the Eddy current tap threshold used to detect bed contact.",
+        buildBlindNote = "⚠ Requires eddy current hardware — not validated on device (build-blind).",
+        lines = sampleConsoleLines,
+        running = false,
+        tapStages = TAP_STAGE_LABELS,
+        selectedStage = "Verify",
+        gating = GatingState.Idle,
+        saveGuard = false,
+        headerIcon = JiibIcons.EddyTap,
+        onRun = {},
+        onSaveGuardShow = {},
+        onSaveConfirm = {},
+        onSaveCancel = {},
+        onBack = {},
     )
 }
