@@ -11,8 +11,10 @@ import works.mees.jiib.calibration.ProbePageState
 import works.mees.jiib.calibration.ProbeTool
 import works.mees.jiib.calibration.TiltState
 import works.mees.jiib.calibration.ApplyBabystepVm
+import works.mees.jiib.calibration.ProbeTestVm
 import works.mees.jiib.ui.calibration.ApplyBabystepBody
 import works.mees.jiib.ui.calibration.ApplyBabystepContent
+import works.mees.jiib.ui.calibration.ProbeTestBody
 import works.mees.jiib.ui.calibration.BedMeshContent
 import works.mees.jiib.ui.calibration.CalibrationHubContent
 import works.mees.jiib.ui.calibration.CalibrationRunContent
@@ -2227,6 +2229,181 @@ private fun ApplyBabystepBodyFsLarge() = PreviewBox(fsLargeSeed) {
         dispatcher = null,
         uDp = 56.dp,
         onRequestConfirm = {},
+        modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+    )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ProbeTestBody previews (Task R3)
+//
+// Two axes:
+//  A) ProbeContent with PROBE_TEST selected — exercises the field-row dot + body wiring.
+//  B) Standalone ProbeTestBody — exercises all four Focus rows in isolation.
+//
+// ProbeTestBody axes:
+//  - State matrix: no-data / triggered (OPEN) / triggered+lastZ / with accuracy result
+//  - 2 theme variants (dark + light) on triggered state
+//  - fs=L overflow check (accuracy state — 6-stat table + stepper + buttons)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── A) ProbeContent + PROBE_TEST selected ────────────────────────────────────
+
+@Preview(
+    name = "ProbeScreen R3: PROBE_TEST no-data (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ProbeScreenProbeTestNoData() = PreviewBox(colorfulDark) {
+    ProbeContent(
+        tools = SampleFixtures.probeToolList,
+        selected = ProbeTool.PROBE_TEST,
+        probeTestVm = SampleFixtures.probeTestNoData,
+        onSelect = {},
+        onBack = {},
+    )
+}
+
+@Preview(
+    name = "ProbeScreen R3: PROBE_TEST triggered+lastZ (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ProbeScreenProbeTestTriggered() = PreviewBox(colorfulDark) {
+    ProbeContent(
+        tools = SampleFixtures.probeToolList,
+        selected = ProbeTool.PROBE_TEST,
+        probeTestVm = SampleFixtures.probeTestTriggered,
+        onSelect = {},
+        onBack = {},
+    )
+}
+
+@Preview(
+    name = "ProbeScreen R3: PROBE_TEST with accuracy (Nexus7 landscape)",
+    device = NEXUS7,
+    showBackground = true,
+)
+@Composable
+private fun ProbeScreenProbeTestWithAccuracy() = PreviewBox(colorfulDark) {
+    ProbeContent(
+        tools = SampleFixtures.probeToolList,
+        selected = ProbeTool.PROBE_TEST,
+        probeTestVm = SampleFixtures.probeTestWithAccuracy,
+        onSelect = {},
+        onBack = {},
+    )
+}
+
+// ── B) Standalone ProbeTestBody ───────────────────────────────────────────────
+
+@Preview(
+    name = "ProbeTestBody: no-data (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ProbeTestBodyNoData() = PreviewBox(colorfulDark) {
+    ProbeTestBody(
+        vm = SampleFixtures.probeTestNoData,
+        samplesIdx = 4,
+        dispatcher = null,
+        uDp = 56.dp,
+        onSamplesUp = {},
+        onSamplesDown = {},
+        modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+    )
+}
+
+@Preview(
+    name = "ProbeTestBody: triggered OPEN+lastZ dark (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ProbeTestBodyTriggeredDark() = PreviewBox(colorfulDark) {
+    ProbeTestBody(
+        vm = SampleFixtures.probeTestTriggered,
+        samplesIdx = 4,
+        dispatcher = null,
+        uDp = 56.dp,
+        onSamplesUp = {},
+        onSamplesDown = {},
+        modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+    )
+}
+
+@Preview(
+    name = "ProbeTestBody: triggered OPEN+lastZ light (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ProbeTestBodyTriggeredLight() = PreviewBox(colorfulLight) {
+    ProbeTestBody(
+        vm = SampleFixtures.probeTestTriggered,
+        samplesIdx = 4,
+        dispatcher = null,
+        uDp = 56.dp,
+        onSamplesUp = {},
+        onSamplesDown = {},
+        modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+    )
+}
+
+@Preview(
+    name = "ProbeTestBody: with accuracy result (Nexus7 landscape)",
+    device = NEXUS7,
+    showBackground = true,
+)
+@Composable
+private fun ProbeTestBodyWithAccuracy() = PreviewBox(colorfulDark) {
+    ProbeTestBody(
+        vm = SampleFixtures.probeTestWithAccuracy,
+        samplesIdx = 4,
+        dispatcher = null,
+        uDp = 56.dp,
+        onSamplesUp = {},
+        onSamplesDown = {},
+        modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+    )
+}
+
+// ── fs=L overflow check (accuracy state — 6-stat table + stepper + buttons) ──
+
+@Preview(
+    name = "ProbeTestBody: fs=L accuracy portrait overflow check",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ProbeTestBodyFsLargeAccuracyPortrait() = PreviewBox(fsLargeSeed) {
+    ProbeTestBody(
+        vm = SampleFixtures.probeTestWithAccuracy,
+        samplesIdx = 4,
+        dispatcher = null,
+        uDp = 56.dp,
+        onSamplesUp = {},
+        onSamplesDown = {},
+        modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+    )
+}
+
+@Preview(
+    name = "ProbeTestBody: fs=L accuracy landscape overflow check",
+    device = NEXUS7,
+    showBackground = true,
+)
+@Composable
+private fun ProbeTestBodyFsLargeAccuracyLandscape() = PreviewBox(fsLargeSeed) {
+    ProbeTestBody(
+        vm = SampleFixtures.probeTestWithAccuracy,
+        samplesIdx = 4,
+        dispatcher = null,
+        uDp = 56.dp,
+        onSamplesUp = {},
+        onSamplesDown = {},
         modifier = androidx.compose.ui.Modifier.fillMaxSize(),
     )
 }

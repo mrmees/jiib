@@ -1,5 +1,8 @@
 package works.mees.jiib.ui.calibration
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,16 +14,25 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -28,9 +40,13 @@ import java.util.Locale
 import works.mees.jiib.R
 import works.mees.jiib.calibration.ApplyBabystepHolder
 import works.mees.jiib.calibration.ApplyBabystepVm
+import works.mees.jiib.calibration.ProbeAccuracyResult
 import works.mees.jiib.calibration.ProbeHubHolder
 import works.mees.jiib.calibration.ProbeTool
 import works.mees.jiib.calibration.ProbeToolEntry
+import works.mees.jiib.calibration.ProbeTestHolder
+import works.mees.jiib.calibration.ProbeTestVm
+import works.mees.jiib.command.ProbeAccuracyArgs
 import works.mees.jiib.command.CommandDispatcher
 import works.mees.jiib.command.CommandRegistry
 import works.mees.jiib.command.GatingState
@@ -57,6 +73,10 @@ import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 import works.mees.jiib.theme.fsSp
+
+// Samples steps for the ProbeTest samples stepper in [ProbeTestBody].
+private val SAMPLES_STEPS: List<Int> = listOf(1, 2, 3, 5, 10, 20, 30, 50)
+private val SAMPLES_DEFAULT_IDX: Int = SAMPLES_STEPS.indexOf(10).coerceAtLeast(0) // index 4
 
 /**
  * Shared model for a pending confirm dialog hosted at the [ProbeContent] level.
@@ -100,6 +120,7 @@ fun ProbeScreen(
     container: AppContainer,
     probeHubHolder: ProbeHubHolder,
     applyBabystepHolder: ApplyBabystepHolder,
+    probeTestHolder: ProbeTestHolder,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -110,8 +131,10 @@ fun ProbeScreen(
     val isPrinting = printerState.printState == PrintState.Printing ||
         printerState.printState == PrintState.Paused
     val applyBabystepVm by applyBabystepHolder.vm.collectAsStateWithLifecycle()
+    val probeTestVm by probeTestHolder.vm.collectAsStateWithLifecycle()
 
     var selected by remember { mutableStateOf<ProbeTool?>(null) }
+    var samplesIdx by remember { mutableStateOf(SAMPLES_DEFAULT_IDX) }
     // D-05: pre-select first tool + reconcile against the current visible list.
     // Writing state during composition is valid here — the condition settles after at most one
     // extra recomposition (once selected is set, the `if` body no longer fires).
@@ -119,15 +142,26 @@ fun ProbeScreen(
         selected = tools.firstOrNull()?.tool
     }
 
+    // Auto-query when PROBE_TEST is first shown or re-selected to populate triggered/lastZ.
+    LaunchedEffect(selected) {
+        if (selected == ProbeTool.PROBE_TEST) {
+            dispatcher?.dispatch(CommandRegistry.queryProbe, Unit)
+        }
+    }
+
     ProbeContent(
         tools = tools,
         selected = selected,
         applyBabystepVm = applyBabystepVm,
+        probeTestVm = probeTestVm,
+        samplesIdx = samplesIdx,
         dispatcher = dispatcher,
         isPrinting = isPrinting,
         gating = gating,
         onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
         onSelect = { selected = it },
+        onSamplesUp = { samplesIdx = (samplesIdx + 1).coerceAtMost(SAMPLES_STEPS.lastIndex) },
+        onSamplesDown = { samplesIdx = (samplesIdx - 1).coerceAtLeast(0) },
         onBack = onBack,
         modifier = modifier,
     )
@@ -150,11 +184,15 @@ internal fun ProbeContent(
     tools: List<ProbeToolEntry>,
     selected: ProbeTool?,
     applyBabystepVm: ApplyBabystepVm = ApplyBabystepVm(),
+    probeTestVm: ProbeTestVm = ProbeTestVm(),
+    samplesIdx: Int = SAMPLES_DEFAULT_IDX,
     dispatcher: CommandDispatcher? = null,
     isPrinting: Boolean = false,
     gating: GatingState = GatingState.Idle,
     onEmergencyStop: () -> Unit = {},
     onSelect: (ProbeTool) -> Unit,
+    onSamplesUp: () -> Unit = {},
+    onSamplesDown: () -> Unit = {},
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -201,10 +239,19 @@ internal fun ProbeContent(
                             onRequestConfirm = { pending = it },
                             modifier = Modifier.fillMaxSize(),
                         )
+                        ProbeTool.PROBE_TEST -> ProbeTestBody(
+                            vm = probeTestVm,
+                            samplesIdx = samplesIdx,
+                            dispatcher = dispatcher,
+                            uDp = grid.uDp,
+                            onSamplesUp = onSamplesUp,
+                            onSamplesDown = onSamplesDown,
+                            modifier = Modifier.fillMaxSize(),
+                        )
                         else -> {
-                            // Placeholder body for tools not yet wired (later tasks).
-                            // onRequestConfirm = { pending = it } is available for R4/R5/R6 bodies
-                            // to call when they need a guard; pass it in here when wiring future tools.
+                            // Placeholder body for tools not yet wired (R4/R5/R6 tasks).
+                            // onRequestConfirm = { pending = it } is available for future bodies
+                            // that need a guard; pass it in here when wiring them.
                             if (selected != null) {
                                 Text(
                                     text = stringResource(probeToolTitleRes(selected)),
@@ -247,6 +294,20 @@ internal fun ProbeContent(
                                             ?.let { babystepFmt(it) } ?: "—",
                                         style = JiibType.dataInline.toTextStyle(t),
                                         color = t.text2,
+                                    )
+                                })
+                                // Trailing readout: OPEN/TRIGGERED color dot for PROBE_TEST row.
+                                ProbeTool.PROBE_TEST -> ({
+                                    val dotColor = when (probeTestVm.triggered) {
+                                        true  -> t.stop
+                                        false -> t.accent
+                                        null  -> t.text3
+                                    }
+                                    Box(
+                                        Modifier
+                                            .size(10.dp)
+                                            .clip(CircleShape)
+                                            .background(dotColor),
                                     )
                                 })
                                 else -> null
@@ -439,6 +500,187 @@ internal fun ApplyBabystepBody(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// ProbeTestBody — Focus content for the Probe Test tool
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Focus body for the Probe Test tool (Task R3). Renders four rows of content:
+ *  Row1 — color-coded status dot (t.stop = TRIGGERED, t.accent = OPEN) + status text + last-Z.
+ *  Row2 — six-stat accuracy grid (range / σ / avg / median / min / max) when [ProbeTestVm.accuracy]
+ *    is non-null; a single "—" placeholder otherwise.
+ *  Row3 — samples stepper `[−] n [+]` (endpoints disable at 0 / lastIndex).
+ *  Row4 — `[Query]` + `[Probe Once]` + `[Run Accuracy]` buttons (all [Intent.Go]).
+ *
+ * No [ConfirmGuard] is needed here (no SAVE_CONFIG path). No foot-bar actions — the foot bar
+ * stays Back-only from [ProbeContent]'s field. The `dispatcher` is called directly from the
+ * buttons, matching the [ApplyBabystepBody] pattern.
+ *
+ * The auto-queryProbe [LaunchedEffect] lives in the STATEFUL [ProbeScreen], not here.
+ */
+@Composable
+internal fun ProbeTestBody(
+    vm: ProbeTestVm,
+    samplesIdx: Int,
+    dispatcher: CommandDispatcher?,
+    uDp: Dp,
+    onSamplesUp: () -> Unit,
+    onSamplesDown: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val t = LocalTokens.current
+    Box(modifier, contentAlignment = Alignment.Center) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            // ── Row1: Status dot + OPEN/TRIGGERED text + last Z ───────────────
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                val dotColor = when (vm.triggered) {
+                    true  -> t.stop
+                    false -> t.accent
+                    null  -> t.text3
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Box(
+                        Modifier
+                            .size(14.dp)
+                            .clip(CircleShape)
+                            .background(dotColor),
+                    )
+                    val statusText = when (vm.triggered) {
+                        true  -> stringResource(R.string.probe_test_status_triggered)
+                        false -> stringResource(R.string.probe_test_status_open)
+                        null  -> "—"
+                    }
+                    Text(
+                        text = statusText,
+                        style = JiibType.body.toTextStyle(t),
+                        color = dotColor,
+                    )
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.probe_test_last_z_label),
+                        style = JiibType.caption.toTextStyle(t),
+                        color = t.text2,
+                    )
+                    Text(
+                        text = vm.lastZ?.let { probeTestFmtZ(it) } ?: "—",
+                        style = JiibType.statValue.toTextStyle(t),
+                        color = t.text,
+                    )
+                    if (vm.lastZ != null) {
+                        Text(
+                            text = "mm",
+                            style = JiibType.caption.toTextStyle(t),
+                            color = t.text3,
+                        )
+                    }
+                }
+            }
+
+            // ── Row2: Accuracy stat block (or "—" when no run yet) ────────────
+            val acc = vm.accuracy
+            if (acc != null) {
+                ProbeTestAccuracyBlock(acc)
+            } else {
+                Text(
+                    text = "—",
+                    style = JiibType.statValue.toTextStyle(t),
+                    color = t.text3,
+                )
+            }
+
+            // ── Row3: Samples stepper [−] n [+] ───────────────────────────────
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                OutlinedControl(
+                    label = "",
+                    onClick = onSamplesDown,
+                    modifier = Modifier
+                        .weight(1f)
+                        .then(
+                            if (samplesIdx > 0) Modifier
+                            else Modifier.alpha(0.38f).semantics { disabled() },
+                        ),
+                    intent = Intent.Neutral,
+                    icon = JiibIcons.Decrease,
+                    contentDescription = stringResource(R.string.probe_test_cd_samples_decrease),
+                    enabled = samplesIdx > 0,
+                )
+                ProbeTestSamplesDisplay(
+                    samples = SAMPLES_STEPS[samplesIdx],
+                    modifier = Modifier.weight(1f),
+                )
+                OutlinedControl(
+                    label = "",
+                    onClick = onSamplesUp,
+                    modifier = Modifier
+                        .weight(1f)
+                        .then(
+                            if (samplesIdx < SAMPLES_STEPS.lastIndex) Modifier
+                            else Modifier.alpha(0.38f).semantics { disabled() },
+                        ),
+                    intent = Intent.Neutral,
+                    icon = JiibIcons.Increase,
+                    contentDescription = stringResource(R.string.probe_test_cd_samples_increase),
+                    enabled = samplesIdx < SAMPLES_STEPS.lastIndex,
+                )
+            }
+
+            // ── Row4: Query + Probe Once + Run Accuracy (all Go intent) ───────
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                OutlinedControl(
+                    label = stringResource(R.string.probe_test_query),
+                    icon = JiibIcons.ProbeQuery,
+                    onClick = { dispatcher?.dispatch(CommandRegistry.queryProbe, Unit) },
+                    intent = Intent.Go,
+                    modifier = Modifier.weight(1f),
+                )
+                OutlinedControl(
+                    label = stringResource(R.string.probe_test_probe_once),
+                    icon = JiibIcons.ProbeOnce,
+                    onClick = { dispatcher?.dispatch(CommandRegistry.probeOnce, Unit) },
+                    intent = Intent.Go,
+                    modifier = Modifier.weight(1f),
+                )
+                OutlinedControl(
+                    label = stringResource(R.string.probe_test_run_accuracy),
+                    icon = JiibIcons.CalibrationRun,
+                    onClick = {
+                        dispatcher?.dispatch(
+                            CommandRegistry.probeAccuracy,
+                            ProbeAccuracyArgs(SAMPLES_STEPS[samplesIdx]),
+                        )
+                    },
+                    intent = Intent.Go,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Private helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -469,3 +711,86 @@ private fun BabystepOffsetRow(label: String, value: String, modifier: Modifier =
 
 /** Three-decimal mm formatting — matches the precision used in [ApplyBabystepScreen]. */
 private fun babystepFmt(v: Double): String = String.format(Locale.US, "%.3f", v)
+
+/** Four-decimal mm format for probe Z values (matches [ProbeTestScreen]'s precision). */
+private fun probeTestFmtZ(v: Double): String = String.format(Locale.US, "%.4f", v)
+
+/**
+ * Six-stat accuracy grid from a PROBE_ACCURACY run.
+ * Two columns of three label/value pairs: range+σ+avg (left), median+min+max (right).
+ * Matches the layout in [ProbeTestScreen.ProbeAccuracyBlock].
+ */
+@Composable
+private fun ProbeTestAccuracyBlock(acc: ProbeAccuracyResult, modifier: Modifier = Modifier) {
+    val t = LocalTokens.current
+    val col1 = listOf(
+        Pair(stringResource(R.string.probe_test_accuracy_range),   probeTestFmtZ(acc.range)),
+        Pair(stringResource(R.string.probe_test_accuracy_std_dev), probeTestFmtZ(acc.stdDev)),
+        Pair(stringResource(R.string.probe_test_accuracy_average), probeTestFmtZ(acc.average)),
+    )
+    val col2 = listOf(
+        Pair(stringResource(R.string.probe_test_accuracy_median),  probeTestFmtZ(acc.median)),
+        Pair(stringResource(R.string.probe_test_accuracy_min),     probeTestFmtZ(acc.minimum)),
+        Pair(stringResource(R.string.probe_test_accuracy_max),     probeTestFmtZ(acc.maximum)),
+    )
+    Row(
+        modifier = modifier.fillMaxWidth(0.92f),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        listOf(col1, col2).forEach { col ->
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                col.forEach { (label, value) ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            text = label,
+                            style = JiibType.caption.toTextStyle(t),
+                            color = t.text2,
+                        )
+                        Text(
+                            text = value,
+                            style = JiibType.dataInline.toTextStyle(t),
+                            color = t.text,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Read-only center cell for the [ProbeTestBody] samples stepper — shows the count and
+ * the "Samples" label. Mirrors [ProbeTestScreen.SamplesDisplay].
+ */
+@Composable
+private fun ProbeTestSamplesDisplay(samples: Int, modifier: Modifier = Modifier) {
+    val t = LocalTokens.current
+    val shape = RoundedCornerShape(t.rCtrl)
+    Box(
+        modifier.clip(shape).border(BorderStroke(2.dp, t.outline), shape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(vertical = 4.dp),
+        ) {
+            Text(
+                text = samples.toString(),
+                style = JiibType.statValue.toTextStyle(t),
+                color = t.text,
+            )
+            Text(
+                text = stringResource(R.string.probe_test_samples_label),
+                style = JiibType.caption.toTextStyle(t),
+                color = t.text3,
+            )
+        }
+    }
+}

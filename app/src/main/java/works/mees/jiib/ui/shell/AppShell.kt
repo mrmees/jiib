@@ -43,6 +43,7 @@ import works.mees.jiib.calibration.BedMeshHolder
 import works.mees.jiib.calibration.CalibrationHubHolder
 import works.mees.jiib.calibration.CalibrationRoutine
 import works.mees.jiib.calibration.ProbeHubHolder
+import works.mees.jiib.calibration.ProbeTestHolder
 import works.mees.jiib.calibration.ScrewsTiltHolder
 import works.mees.jiib.calibration.TiltHolder
 import works.mees.jiib.command.CommandRegistry
@@ -400,10 +401,12 @@ fun AppShell(
     // CalibrationProbe / ProbeHub / ProbeXxx routes are gone. ProbeHubHolder feeds the new
     // single ProbeScreen's tool list. ApplyBabystepHolder is re-hoisted here (R2) because
     // the APPLY_BABYSTEP Focus body lives inside ProbeScreen, not its own route.
+    // R3: ProbeTestHolder re-hoisted here — the PROBE_TEST Focus body lives inside ProbeScreen.
     val probeHubHolder = remember(store) {
         ProbeHubHolder(scope = scope, store = store, showUnsupportedTools = container.showUnsupportedTools)
     }
     val applyBabystepHolder = remember(store) { ApplyBabystepHolder(scope = scope, store = store) }
+    val probeTestHolder = remember(store) { ProbeTestHolder(scope = scope, store = store) }
     // D-01 move #2 (22-07): TiltScreen/BedMeshScreen now take their holder directly and collect
     // holder.vm internally. The holders built above stay in AppShell.
 
@@ -687,11 +690,13 @@ fun AppShell(
             // R1: single Focus-centric Probe screen replaces the old ProbeHub + 5 tool sub-routes.
             // ProbeHubHolder still feeds the tool list; all old screen/holder imports are retired.
             // R2: ApplyBabystepHolder re-hoisted here (above) feeds the APPLY_BABYSTEP Focus body.
+            // R3: ProbeTestHolder re-hoisted here (above) feeds the PROBE_TEST Focus body.
             composable<NavDest.Probe> {
                 ProbeScreen(
                     container = container,
                     probeHubHolder = probeHubHolder,
                     applyBabystepHolder = applyBabystepHolder,
+                    probeTestHolder = probeTestHolder,
                     onBack = { navController.popBackStack() },
                 )
             }
