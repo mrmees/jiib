@@ -227,8 +227,12 @@ class MainActivity : ComponentActivity() {
          */
         const val EXTRA_START_DEST = "start_dest"
 
-        /** Bound on the cold-start hasConfig read (ms) — the splash never holds longer than this. */
-        private const val BOOT_HASCONFIG_TIMEOUT_MS = 1000L
+        // Bound on the cold-start hasConfig read (ms) — the splash never holds longer than this, and on
+        // timeout falls back to false (first-run/setup). 3s (not 1s): on a slow device (Nexus 7 cold
+        // eMMC + cold DataStore) the first read can exceed 1s, and a too-tight cap times out → false →
+        // a brief WRONG flash of the setup screen for a configured user (UAT: flox cold start only,
+        // never warm reopen). The real read completes well under 3s; this is just the safety ceiling.
+        private const val BOOT_HASCONFIG_TIMEOUT_MS = 3000L
     }
 }
 

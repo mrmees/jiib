@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -15,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -78,6 +80,14 @@ fun SplashScreen(
     // real themed recovery set. brandMode is gated upstream so it is true ONLY during the initial connect.
     val mode = if (brandMode) RecoveryMode.Connecting else recoveryMode(hasConfig, state)
 
+    // Standardize the splash across orientations (UAT): size the content BLOCK by the SHORTER screen
+    // dimension so the lockup + reason + buttons render at the SAME proportions in portrait and
+    // landscape. Previously the lockup was 0.6×WIDTH, which in landscape (~1150px on the Nexus 7)
+    // filled the height and pushed the recovery buttons off-screen. screenWidthDp/HeightDp track the
+    // current orientation, so minOf() is always the short side.
+    val cfg = LocalConfiguration.current
+    val blockDp = minOf(cfg.screenWidthDp, cfg.screenHeightDp).dp
+
     Box(modifier.fillMaxSize().background(if (brandMode) Color.Black else t.bg)) {
         // Gutter omitted (LAYOUT.md): the Field's recovery buttons ARE the navigation (hard override).
         ScreenScaffold(
@@ -90,7 +100,10 @@ fun SplashScreen(
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    SplashBrandLockup(forceWhite = brandMode)
+                    SplashBrandLockup(
+                        forceWhite = brandMode,
+                        modifier = Modifier.width(blockDp * 0.6f),
+                    )
                     Text(
                         text = if (brandMode) stringResource(R.string.splash_connecting)
                             else reasonText(hasConfig, state),
@@ -98,10 +111,10 @@ fun SplashScreen(
                         // GeistMono: the reason often carries a verbatim Klippy/MCU message (tabular).
                         style = JiibType.dataInline.toTextStyle(t),
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(top = 12.dp, bottom = 28.dp),
+                        modifier = Modifier.width(blockDp).padding(top = 12.dp, bottom = 28.dp),
                     )
                     Row(
-                        Modifier.fillMaxWidth(),
+                        Modifier.width(blockDp),
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         when (mode) {
@@ -180,15 +193,16 @@ fun SplashScreen(
  * centers it horizontally.
  */
 @Composable
-internal fun SplashBrandLockup(forceWhite: Boolean = false) {
+internal fun SplashBrandLockup(
+    forceWhite: Boolean = false,
+    modifier: Modifier = Modifier.fillMaxWidth(0.6f),
+) {
     val t = LocalTokens.current
     Icon(
         painter = painterResource(R.drawable.jiib_lockup),
         contentDescription = stringResource(R.string.cd_jiib_logo),
         tint = if (forceWhite) Color.White else brandTint(t.accent, t.bg, t.text),
-        modifier = Modifier
-            .fillMaxWidth(0.6f)
-            .wrapContentHeight(),
+        modifier = modifier.wrapContentHeight(),
     )
 }
 
