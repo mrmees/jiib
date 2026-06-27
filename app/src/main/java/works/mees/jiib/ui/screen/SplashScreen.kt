@@ -196,12 +196,14 @@ fun SplashScreen(
  * centers it horizontally.
  */
 /**
- * In-app connecting/recovery lockup width — FIXED (not screen-relative) so it matches the OS splash
- * lockup ([drawable/splash_lockup]), which the system renders at a fixed size inside the circular icon
- * mask (~150dp of ink at scale 0.55). Tunable: bump together with the splash_lockup group scale if the
- * two need to read larger. ~160dp here yields ink ≈ the OS splash lockup's ink for a seamless handoff.
+ * In-app connecting/recovery lockup width — FIXED (not screen-relative). Sized so the WORDMARK portion
+ * of this full lockup (icon + name) reads at ~the same size as the OS splash, which now shows the
+ * "jiib" wordmark alone ([drawable/splash_wordmark]) at near-max size in the circular icon slot. The
+ * wordmark is ~0.565 of the lockup width, so a 275dp lockup → ~155dp wordmark ≈ the splash wordmark;
+ * the name carries across the handoff at a matching size while the sail joins it on the connecting
+ * screen. Tunable: adjust together with the splash_wordmark group scale. Fixed-size is landscape-safe.
  */
-private val SplashLockupWidth = 160.dp
+private val SplashLockupWidth = 275.dp
 
 @Composable
 internal fun SplashBrandLockup(

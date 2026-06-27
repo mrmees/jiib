@@ -12,13 +12,13 @@
     <!--
       Cold-start splash theme (AndroidX core-splashscreen). The launcher activity wears this at
       process start; installSplashScreen() swaps to postSplashScreenTheme once the first frame is
-      ready. Black bg + the FULL white lockup (icon + name), inset to clear the circular icon mask
-      (splash_lockup), sized to read like the in-app connecting lockup for a seamless handoff.
-      Identical on API 23 (Nexus) and API 31+ (Moto).
+      ready. Black bg + the white "jiib" WORDMARK (name only, no sail), scaled to nearly fill the
+      circular icon mask (splash_wordmark) — a wide-short wordmark uses the masked slot far better
+      than the square lockup, so it reads at max size. Identical on API 23 (Nexus) and API 31+ (Moto).
     -->
     <style name="Theme.JiibDisplay.Splash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/splash_background</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_lockup</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_wordmark</item>
         <item name="postSplashScreenTheme">@style/Theme.JiibDisplay</item>
     </style>
 </resources>
