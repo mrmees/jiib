@@ -37,4 +37,16 @@ class FocusEdgeTest {
         assertEquals(false, headerShowsEStop(isPrinting = true, onEmergencyStop = null))
         assertEquals(false, headerShowsEStop(isPrinting = false, onEmergencyStop = null))
     }
+
+    @Test
+    fun header_shows_estop_when_safety_active_regardless_of_printing() {
+        // safetyActive=true, handler wired → shows e-stop even when NOT printing (the gated-state fix)
+        assertEquals(true, headerShowsEStop(isPrinting = false, onEmergencyStop = {}, safetyActive = true))
+        // safetyActive=true, no handler → still suppressed (no handler = no e-stop, ever)
+        assertEquals(false, headerShowsEStop(isPrinting = false, onEmergencyStop = null, safetyActive = true))
+        // safetyActive=false (default) → existing isPrinting path unchanged
+        assertEquals(false, headerShowsEStop(isPrinting = false, onEmergencyStop = {}, safetyActive = false))
+        // both true → still shows (not harmful, just redundant)
+        assertEquals(true, headerShowsEStop(isPrinting = true, onEmergencyStop = {}, safetyActive = true))
+    }
 }

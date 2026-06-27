@@ -31,6 +31,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.res.stringResource
@@ -48,9 +49,13 @@ import works.mees.jiib.calibration.CalibrationRoutine
 import works.mees.jiib.command.BedMeshProfileArgs
 import works.mees.jiib.command.CommandRegistry
 import works.mees.jiib.command.DispatchEvent
+import works.mees.jiib.command.GatingState
 import works.mees.jiib.command.PrinterCommands
 import works.mees.jiib.command.dispatch
 import works.mees.jiib.designsystem.ConfirmGuard
+import works.mees.jiib.designsystem.components.ConfirmOnBack
+import works.mees.jiib.designsystem.components.HardLockStatusCard
+import works.mees.jiib.designsystem.components.UnknownStatusCard
 import works.mees.jiib.designsystem.Severity
 import works.mees.jiib.designsystem.SeverityToast
 import works.mees.jiib.designsystem.components.FootAction
@@ -157,6 +162,10 @@ fun BedMeshScreen(
     val printerState by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
     val isPrinting = printerState.printState == PrintState.Printing ||
         printerState.printState == PrintState.Paused
+    val gating by container.gatingState.collectAsStateWithLifecycle(initialValue = GatingState.Idle)
+    val locked = (gating as? GatingState.Locked)?.key?.let {
+        it == "bed_mesh_calibrate" || it.startsWith("home")
+    } == true
     val vm by holder.vm.collectAsStateWithLifecycle()
 
     // Ephemeral UI state — rememberSaveable so both survive rotation (27-UI-SPEC orientation rule).
@@ -205,108 +214,112 @@ fun BedMeshScreen(
         }
     }
 
-    BedMeshContent(
-        vm = vm,
-        selectedProfile = selectedProfile,
-        fieldMode = fieldMode,
-        editing = editing,
-        showRemoveGuard = showRemoveGuard,
-        showSaveConfigGuard = showSaveConfigGuard,
-        toastError = toastError,
-        isPrinting = isPrinting,
-        dispatcherPresent = dispatcher != null,
-        onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
-        onCycleScaleMode = { holder.cycleScaleMode() },
-        onSelectProfile = { name ->
-            selectedProfile = name
-            editing = false
-        },
-        onClearMesh = {
-            dispatcher?.dispatch(CommandRegistry.bedMeshClear, Unit)
-            selectedProfile = null
-            editing = false
-            // BED_MESH_CLEAR is runtime-only; saved profiles untouched; no SAVE_CONFIG guard.
-        },
-        onOpenMeshConfig = {
-            fieldMode = MeshFieldMode.MeshConfig
-            editing = false
-        },
-        onOpenConfigEditor = { item -> fieldMode = MeshFieldMode.MeshConfigEditor(item) },
-        onBackToConfigList = { fieldMode = MeshFieldMode.MeshConfig },
-        onBackToProfileList = { fieldMode = MeshFieldMode.ProfileList },
-        onSetViewType = { container.setBedMeshViewType(it) },
-        onSetHighColorSel = { container.setBedMeshHighColorSel(it) },
-        onSetLowColorSel = { container.setBedMeshLowColorSel(it) },
-        onShowSaveName = { fieldMode = MeshFieldMode.SaveName(defaultProfileName()) },
-        onSaveNameConfirm = { name ->
-            val d = dispatcher
-            fieldMode = MeshFieldMode.ProfileList
-            // WR-05 (27-review): raise the amber SAVE_CONFIG restart guard only when the save
-            // dispatch was actually sent — never invite a Klipper restart for a save that never
-            // went out. (A server-side Failure under the save key retracts the guard above.)
-            if (d != null) {
-                d.dispatch(CommandRegistry.bedMeshProfileSave, BedMeshProfileArgs(name))
-                showSaveConfigGuard = true
-            }
-        },
-        onSaveNameCancel = { fieldMode = MeshFieldMode.ProfileList },
-        onApplyProfile = { name ->
-            dispatcher?.dispatch(CommandRegistry.bedMeshProfileLoad, BedMeshProfileArgs(name))
-        },
-        onShowRemoveGuard = { showRemoveGuard = true },
-        onRemoveConfirm = {
-            val d = dispatcher
-            val target = selectedProfile ?: vm.model.profileName
-            if (d != null && target.isNotEmpty() && target != "default") {
-                d.dispatch(CommandRegistry.bedMeshProfileRemove, BedMeshProfileArgs(target))
-                // WR-02 (27-review, updated): REMOVE is runtime-only by design — the profile
-                // resurrects on the next firmware restart without a manual SAVE_CONFIG, but the
-                // owner does NOT want a restart prompt on delete. No SAVE_CONFIG guard on removal.
-            }
-            selectedProfile = null
-            editing = false
-            showRemoveGuard = false
-        },
-        onRemoveCancel = { showRemoveGuard = false },
-        onSaveConfigConfirm = {
-            dispatcher?.dispatch(CommandRegistry.saveConfig, Unit)
-            showSaveConfigGuard = false
-        },
-        onSaveConfigCancel = { showSaveConfigGuard = false },
-        onEditOpen = { editing = true },
-        onEditApply = { name ->
-            dispatcher?.dispatch(CommandRegistry.bedMeshProfileLoad, BedMeshProfileArgs(name))
-            editing = false
-        },
-        onEditSave = { newName ->
-            val d = dispatcher
-            val active = vm.model.profileName
-            val kind = classifyMeshEdit(active, vm.isEmpty, selectedProfile, vm.profileNames.toSet())
-            if (d != null) {
-                if (kind == MeshEditKind.ACTIVE_SAVED && newName != active) {
-                    // Rename = ONE ordered script (SAVE new -> REMOVE old). Using the single
-                    // bedMeshProfileRename command avoids two separate dispatches that could race.
-                    d.dispatch(CommandRegistry.bedMeshProfileRename, BedMeshRenameArgs(old = active, new = newName))
-                } else {
-                    // Active-unsaved save (or active-saved with unchanged name): plain SAVE.
-                    d.dispatch(CommandRegistry.bedMeshProfileSave, BedMeshProfileArgs(newName))
+    ConfirmOnBack(enabled = locked, onBack = onBack) { requestBack ->
+        BedMeshContent(
+            vm = vm,
+            selectedProfile = selectedProfile,
+            fieldMode = fieldMode,
+            editing = editing,
+            showRemoveGuard = showRemoveGuard,
+            showSaveConfigGuard = showSaveConfigGuard,
+            toastError = toastError,
+            isPrinting = isPrinting,
+            dispatcherPresent = dispatcher != null,
+            gating = gating,
+            onAcknowledgeUnknown = { dispatcher?.acknowledgeUnresolved() },
+            onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
+            onCycleScaleMode = { holder.cycleScaleMode() },
+            onSelectProfile = { name ->
+                selectedProfile = name
+                editing = false
+            },
+            onClearMesh = {
+                dispatcher?.dispatch(CommandRegistry.bedMeshClear, Unit)
+                selectedProfile = null
+                editing = false
+                // BED_MESH_CLEAR is runtime-only; saved profiles untouched; no SAVE_CONFIG guard.
+            },
+            onOpenMeshConfig = {
+                fieldMode = MeshFieldMode.MeshConfig
+                editing = false
+            },
+            onOpenConfigEditor = { item -> fieldMode = MeshFieldMode.MeshConfigEditor(item) },
+            onBackToConfigList = { fieldMode = MeshFieldMode.MeshConfig },
+            onBackToProfileList = { fieldMode = MeshFieldMode.ProfileList },
+            onSetViewType = { container.setBedMeshViewType(it) },
+            onSetHighColorSel = { container.setBedMeshHighColorSel(it) },
+            onSetLowColorSel = { container.setBedMeshLowColorSel(it) },
+            onShowSaveName = { fieldMode = MeshFieldMode.SaveName(defaultProfileName()) },
+            onSaveNameConfirm = { name ->
+                val d = dispatcher
+                fieldMode = MeshFieldMode.ProfileList
+                // WR-05 (27-review): raise the amber SAVE_CONFIG restart guard only when the save
+                // dispatch was actually sent — never invite a Klipper restart for a save that never
+                // went out. (A server-side Failure under the save key retracts the guard above.)
+                if (d != null) {
+                    d.dispatch(CommandRegistry.bedMeshProfileSave, BedMeshProfileArgs(name))
+                    showSaveConfigGuard = true
                 }
-                showSaveConfigGuard = true
-            }
-            editing = false
-        },
-        onEditDelete = {
-            // Raise the red ConfirmGuard instead of dispatching immediately.
-            // onRemoveConfirm carries the actual dispatch + SAVE_CONFIG guard + form close.
-            showRemoveGuard = true
-        },
-        onEditCancel = { editing = false },
-        onHomeAll = { dispatcher?.dispatch(CommandRegistry.homeAll, Unit) },
-        onCalibrate = { dispatcher?.dispatch(CommandRegistry.bedMeshCalibrate, Unit) },
-        onDismissError = { toastError = null },
-        onBack = onBack,
-        modifier = modifier,
-    )
+            },
+            onSaveNameCancel = { fieldMode = MeshFieldMode.ProfileList },
+            onApplyProfile = { name ->
+                dispatcher?.dispatch(CommandRegistry.bedMeshProfileLoad, BedMeshProfileArgs(name))
+            },
+            onShowRemoveGuard = { showRemoveGuard = true },
+            onRemoveConfirm = {
+                val d = dispatcher
+                val target = selectedProfile ?: vm.model.profileName
+                if (d != null && target.isNotEmpty() && target != "default") {
+                    d.dispatch(CommandRegistry.bedMeshProfileRemove, BedMeshProfileArgs(target))
+                    // WR-02 (27-review, updated): REMOVE is runtime-only by design — the profile
+                    // resurrects on the next firmware restart without a manual SAVE_CONFIG, but the
+                    // owner does NOT want a restart prompt on delete. No SAVE_CONFIG guard on removal.
+                }
+                selectedProfile = null
+                editing = false
+                showRemoveGuard = false
+            },
+            onRemoveCancel = { showRemoveGuard = false },
+            onSaveConfigConfirm = {
+                dispatcher?.dispatch(CommandRegistry.saveConfig, Unit)
+                showSaveConfigGuard = false
+            },
+            onSaveConfigCancel = { showSaveConfigGuard = false },
+            onEditOpen = { editing = true },
+            onEditApply = { name ->
+                dispatcher?.dispatch(CommandRegistry.bedMeshProfileLoad, BedMeshProfileArgs(name))
+                editing = false
+            },
+            onEditSave = { newName ->
+                val d = dispatcher
+                val active = vm.model.profileName
+                val kind = classifyMeshEdit(active, vm.isEmpty, selectedProfile, vm.profileNames.toSet())
+                if (d != null) {
+                    if (kind == MeshEditKind.ACTIVE_SAVED && newName != active) {
+                        // Rename = ONE ordered script (SAVE new -> REMOVE old). Using the single
+                        // bedMeshProfileRename command avoids two separate dispatches that could race.
+                        d.dispatch(CommandRegistry.bedMeshProfileRename, BedMeshRenameArgs(old = active, new = newName))
+                    } else {
+                        // Active-unsaved save (or active-saved with unchanged name): plain SAVE.
+                        d.dispatch(CommandRegistry.bedMeshProfileSave, BedMeshProfileArgs(newName))
+                    }
+                    showSaveConfigGuard = true
+                }
+                editing = false
+            },
+            onEditDelete = {
+                // Raise the red ConfirmGuard instead of dispatching immediately.
+                // onRemoveConfirm carries the actual dispatch + SAVE_CONFIG guard + form close.
+                showRemoveGuard = true
+            },
+            onEditCancel = { editing = false },
+            onHomeAll = { dispatcher?.dispatch(CommandRegistry.homeAll, Unit) },
+            onCalibrate = { dispatcher?.dispatch(CommandRegistry.bedMeshCalibrate, Unit) },
+            onDismissError = { toastError = null },
+            onBack = requestBack,
+            modifier = modifier,
+        )
+    }
 }
 
 /**
@@ -383,6 +396,8 @@ internal fun BedMeshContent(
     toastError: String?,
     isPrinting: Boolean,
     dispatcherPresent: Boolean,
+    gating: GatingState = GatingState.Idle,
+    onAcknowledgeUnknown: () -> Unit = {},
     onEmergencyStop: () -> Unit,
     onCycleScaleMode: () -> Unit,
     onSelectProfile: (String) -> Unit,
@@ -419,6 +434,18 @@ internal fun BedMeshContent(
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
 
+        // HardLock morph: BedMesh owns "bed_mesh_calibrate" and "home_*" (Home All on this screen).
+        // While locked the Focus short-circuits to HardLockStatusCard and secondary Field actions
+        // are dimmed. gatingState is global so filter to this screen's owned keys only.
+        val meshLockedLabel = (gating as? GatingState.Locked)?.key?.let { key ->
+            when {
+                key == "bed_mesh_calibrate" -> stringResource(R.string.gating_calibrating_mesh)
+                key.startsWith("home")      -> stringResource(R.string.gating_homing)
+                else                        -> null
+            }
+        }
+        val isLocked = meshLockedLabel != null
+
         Box(Modifier.fillMaxSize()) {
             ScreenScaffold(
                 focus = {
@@ -428,12 +455,26 @@ internal fun BedMeshContent(
                         uDp = grid.uDp,
                         modifier = Modifier.fillMaxSize(),
                         isPrinting = isPrinting,
+                        safetyActive = gating !is GatingState.Idle,
                         onEmergencyStop = onEmergencyStop,
                         onPanic = onEmergencyStop,
-                        trailingActionIcon = if (!isPrinting && fieldMode !is MeshFieldMode.MeshConfig && fieldMode !is MeshFieldMode.MeshConfigEditor) JiibIcons.Edit else null,
-                        onTrailingAction = if (!isPrinting && fieldMode !is MeshFieldMode.MeshConfig && fieldMode !is MeshFieldMode.MeshConfigEditor) onEditOpen else null,
+                        trailingActionIcon = if (!isPrinting && !isLocked && fieldMode !is MeshFieldMode.MeshConfig && fieldMode !is MeshFieldMode.MeshConfigEditor) JiibIcons.Edit else null,
+                        onTrailingAction = if (!isPrinting && !isLocked && fieldMode !is MeshFieldMode.MeshConfig && fieldMode !is MeshFieldMode.MeshConfigEditor) onEditOpen else null,
                         trailingActionContentDescription = "Edit mesh profile",
                     ) {
+                        // Unknown Focus morph (precedence: Unknown > Locked > normal content): when
+                        // the link or firmware can't confirm the HardLock completed, show "Still
+                        // running" and require explicit dismissal. E-stop stays live above.
+                        if (gating is GatingState.Unknown) {
+                            UnknownStatusCard(grid.uDp, onDismiss = onAcknowledgeUnknown, Modifier.fillMaxSize())
+                            return@FocusFrame
+                        }
+                        // HardLock Focus morph: while calibrating or homing, replace the entire Focus
+                        // body with a centered status card. E-stop stays live in the FocusFrame header.
+                        if (meshLockedLabel != null) {
+                            HardLockStatusCard(meshLockedLabel, grid.uDp, Modifier.fillMaxSize())
+                            return@FocusFrame
+                        }
                         when {
                             editing -> {
                                 val kind = classifyMeshEdit(
@@ -483,9 +524,11 @@ internal fun BedMeshContent(
                     when (fieldMode) {
                         is MeshFieldMode.ProfileList -> {
                             // Profile list: Clear Mesh (conditional top) + profiles + Mesh Config (bottom)
-                            ListBlock(modifier = Modifier.weight(1f)) {
-                                // Clear Mesh row — only when a live mesh is loaded and not printing
-                                if (!vm.isEmpty && !isPrinting) {
+                            // Dim while calibrating (HardLock) — secondary actions are non-interactive
+                            // visually; clicks on purely-local-state rows are harmless but de-emphasized.
+                            ListBlock(modifier = Modifier.weight(1f).alpha(if (isLocked) 0.38f else 1f)) {
+                                // Clear Mesh row — only when a live mesh is loaded, not printing, and not calibrating
+                                if (!vm.isEmpty && !isPrinting && !isLocked) {
                                     item(key = "__clear__") {
                                         ListRow(
                                             selected = false,
@@ -585,7 +628,9 @@ internal fun BedMeshContent(
                                 }
                             }
 
-                            // Simplified footer: Back + (Home All | Calibrate), gated by !isPrinting
+                            // Simplified footer: Back + (Home All | Calibrate), gated by !isPrinting.
+                            // While locked (calibrating), non-Back buttons are disabled — keep Back
+                            // and e-stop live so the user can always navigate away (guarded by ConfirmOnBack).
                             FootButtonBar(
                                 uDp = grid.uDp,
                                 actions = buildList {
@@ -601,7 +646,7 @@ internal fun BedMeshContent(
                                             add(footAction(
                                                 ControlSpecs.calibrationHomeAll,
                                                 onClick = onHomeAll,
-                                                enabled = dispatcherPresent,
+                                                enabled = dispatcherPresent && !isLocked,
                                             ))
                                         } else {
                                             add(FootAction(
@@ -610,7 +655,7 @@ internal fun BedMeshContent(
                                                 icon = JiibIcons.CalibrationRun,
                                                 onClick = onCalibrate,
                                                 intent = Intent.Go,
-                                                enabled = dispatcherPresent,
+                                                enabled = dispatcherPresent && !isLocked,
                                             ))
                                         }
                                     }

@@ -30,6 +30,8 @@ import kotlinx.coroutines.withTimeoutOrNull
 import works.mees.jiib.net.ConnectionProbe
 import works.mees.jiib.net.ProbeResult
 import works.mees.jiib.command.CommandDispatcher
+import works.mees.jiib.command.GatingState
+import works.mees.jiib.command.deriveGatingState
 import works.mees.jiib.config.ConnectionConfig
 import works.mees.jiib.config.shouldSeedName
 import works.mees.jiib.config.ConnectionStore
@@ -884,6 +886,17 @@ class AppContainer(
 
     /** The current session's dispatcher, or null when idle. */
     val dispatcher: Flow<CommandDispatcher?> = spine.map { it?.dispatcher }
+
+    /** Single gating signal for the UI: folds the dispatcher's active set with connection + klippy. */
+    val gatingState: Flow<GatingState> =
+        spine.flatMapLatest { handle ->
+            val d = handle?.dispatcher
+            val store = handle?.store
+            if (d == null || store == null) flowOf(GatingState.Idle)
+            else combine(d.activeGating, d.unresolvedHardLock, store.printerState) { active, unresolved, ps ->
+                deriveGatingState(active, unresolved, ps.connection, ps.klippyState)
+            }
+        }
 
     /** Live one-shot-per-filename gcode metadata; null when idle / unavailable (260601-sip Inc 2). */
     val printMetadata: Flow<PrintMetadata?> =

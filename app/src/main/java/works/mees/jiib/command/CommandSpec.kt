@@ -32,6 +32,16 @@ data class CommandSemantics(
     val acceptance: String,
 )
 
+/** UI gating behavior for a command (ready-for-action gating). See the gating design spec. */
+enum class GatingMode {
+    /** No gating — toggles, settings, instant commands. */
+    None,
+    /** Controls stay tappable (queueable); a non-blocking "busy" indicator shows while running. */
+    SoftBusy,
+    /** Focus morphs to a status card, Field dims, confirm-on-back. E-stop stays live. */
+    HardLock,
+}
+
 data class CommandSpec<P>(
     val catalogId: String,
     val transport: CommandTransport,
@@ -39,5 +49,11 @@ data class CommandSpec<P>(
     val dispatchKey: (P) -> String,
     val params: (P) -> JsonElement?,
     val availability: AvailabilityPredicate = AvailabilityPredicate.Always,
+    /** When true, the gcode script gets a trailing `\nM400` so the reply means "motion drained." */
+    val fence: Boolean = false,
+    /** UI gating behavior — drives busy indicator / Focus morph / confirm-on-back. */
+    val gating: GatingMode = GatingMode.None,
+    /** Per-command action deadline override (ms); null → dispatcher default (gcode = 120s). */
+    val gatingTimeoutMs: Long? = null,
     val semantics: CommandSemantics,
 )

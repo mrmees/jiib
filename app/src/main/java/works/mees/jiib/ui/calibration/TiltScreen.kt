@@ -35,8 +35,12 @@ import works.mees.jiib.calibration.tiltState
 import works.mees.jiib.state.PrintState
 import works.mees.jiib.state.PrinterState
 import works.mees.jiib.command.CommandRegistry
+import works.mees.jiib.command.GatingState
 import works.mees.jiib.command.dispatch
+import works.mees.jiib.designsystem.components.ConfirmOnBack
 import works.mees.jiib.designsystem.components.FootAction
+import works.mees.jiib.designsystem.components.HardLockStatusCard
+import works.mees.jiib.designsystem.components.UnknownStatusCard
 import works.mees.jiib.designsystem.components.FocusFrame
 import works.mees.jiib.designsystem.components.FootButtonBar
 import works.mees.jiib.designsystem.components.footAction
@@ -77,6 +81,7 @@ fun TiltScreen(
     val printerState by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
     val isPrinting = printerState.printState == PrintState.Printing ||
         printerState.printState == PrintState.Paused
+    val gating by container.gatingState.collectAsStateWithLifecycle(initialValue = GatingState.Idle)
     val vm by holder.vm.collectAsStateWithLifecycle()
 
     val runCommand = when (variant) {
@@ -93,22 +98,33 @@ fun TiltScreen(
     val running = runCommand.dispatchKey(Unit) in inFlight
     val state = tiltState(ran = vm.ran, running = running, failed = vm.failed)
 
-    TiltContent(
-        vm = vm,
-        variant = variant,
-        state = state,
-        running = running,
-        isPrinting = isPrinting,
-        onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
-        onRun = {
-            val d = dispatcher ?: return@TiltContent
-            d.dispatch(runCommand, Unit)
-            holder.markDispatched()
-        },
-        onHome = { dispatcher?.dispatch(CommandRegistry.homeAll, Unit) },
-        onBack = onBack,
-        modifier = modifier,
-    )
+    // Confirm-on-back: armed ONLY when this screen owns the HardLock. Tilt owns both
+    // "quad_gantry_level" (QGL variant) and "z_tilt_adjust" (ZTilt variant). Filter to these
+    // keys so a different screen's HardLock never triggers the guard here.
+    val tiltLocked = (gating as? GatingState.Locked)?.key?.let { key ->
+        key == "quad_gantry_level" || key == "z_tilt_adjust" || key.startsWith("home")
+    } == true
+
+    ConfirmOnBack(enabled = tiltLocked, onBack = onBack) { requestBack ->
+        TiltContent(
+            vm = vm,
+            variant = variant,
+            state = state,
+            running = running,
+            isPrinting = isPrinting,
+            gating = gating,
+            onAcknowledgeUnknown = { dispatcher?.acknowledgeUnresolved() },
+            onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
+            onRun = {
+                val d = dispatcher ?: return@TiltContent
+                d.dispatch(runCommand, Unit)
+                holder.markDispatched()
+            },
+            onHome = { dispatcher?.dispatch(CommandRegistry.homeAll, Unit) },
+            onBack = requestBack,
+            modifier = modifier,
+        )
+    }
 }
 
 /**
@@ -128,6 +144,8 @@ fun TiltContent(
     state: TiltState = TiltState.Idle,
     running: Boolean = false,
     isPrinting: Boolean = false,
+    gating: GatingState = GatingState.Idle,
+    onAcknowledgeUnknown: () -> Unit = {},
     onEmergencyStop: () -> Unit = {},
     onRun: () -> Unit = {},
     onHome: () -> Unit = {},
@@ -151,6 +169,20 @@ fun TiltContent(
                 TiltVariant.ZTilt -> CalibrationRoutine.Z_TILT
                 TiltVariant.Qgl   -> CalibrationRoutine.QUAD_GANTRY_LEVEL
             }
+
+            // HardLock morph: Tilt owns "quad_gantry_level" (QGL) and "z_tilt_adjust" (ZTilt).
+            // Resolve the per-variant label; null means this screen doesn't own the active lock
+            // and the Focus renders normally. `running` (from inFlight) still drives the foot.
+            val tiltLockedLabel = (gating as? GatingState.Locked)?.key?.let { key ->
+                when {
+                    key == "quad_gantry_level" -> stringResource(R.string.gating_leveling_gantry)
+                    key == "z_tilt_adjust"     -> stringResource(R.string.gating_z_tilt)
+                    key.startsWith("home")     -> stringResource(R.string.gating_homing)
+                    else                       -> null
+                }
+            }
+            val tiltLocked = tiltLockedLabel != null
+
             ScreenScaffold(
                 focus = {
                     FocusFrame(
@@ -159,9 +191,23 @@ fun TiltContent(
                         uDp = grid.uDp,
                         modifier = Modifier.fillMaxSize(),
                         isPrinting = isPrinting,
+                        safetyActive = gating !is GatingState.Idle,
                         onEmergencyStop = onEmergencyStop,
                         onPanic = onEmergencyStop,
                     ) {
+                        // Unknown Focus morph (precedence: Unknown > Locked > normal content): when
+                        // the link or firmware can't confirm the HardLock completed, show "Still
+                        // running" and require explicit dismissal. E-stop stays live above.
+                        if (gating is GatingState.Unknown) {
+                            UnknownStatusCard(grid.uDp, onDismiss = onAcknowledgeUnknown, Modifier.fillMaxSize())
+                            return@FocusFrame
+                        }
+                        // HardLock Focus morph: while running, replace the entire Focus body with
+                        // a centered status card. E-stop stays live in the FocusFrame header.
+                        if (tiltLockedLabel != null) {
+                            HardLockStatusCard(tiltLockedLabel, grid.uDp, Modifier.fillMaxSize())
+                            return@FocusFrame
+                        }
                         TiltFocus(
                             title = title,
                             state = state,
@@ -179,6 +225,10 @@ fun TiltContent(
                         modifier = Modifier.weight(1f),
                     )
                     // State-adaptive FootButtonBar (D-10).
+                    // While locked (tilt/QGL running), non-Back buttons are disabled — Back
+                    // (guarded by ConfirmOnBack) and e-stop stay live. The `running` branch
+                    // already shows a disabled "Running" button so the lock and running states
+                    // are consistent; the guard on the other branches is belt-and-suspenders.
                     FootButtonBar(
                         uDp = grid.uDp,
                         actions = buildList {
@@ -193,7 +243,7 @@ fun TiltContent(
                             when {
                                 !vm.homedGate -> {
                                     // Unhomed: offer Home All.
-                                    add(footAction(ControlSpecs.calibrationHomeAll, onClick = onHome))
+                                    add(footAction(ControlSpecs.calibrationHomeAll, onClick = onHome, enabled = !tiltLocked))
                                 }
                                 running -> {
                                     // Running: non-interactive.
@@ -212,6 +262,7 @@ fun TiltContent(
                                         icon = JiibIcons.Revert,
                                         onClick = onRun,
                                         intent = Intent.Go, // R5: expected re-run action
+                                        enabled = !tiltLocked,
                                     ))
                                 }
                                 else -> {
@@ -221,7 +272,7 @@ fun TiltContent(
                                         icon = JiibIcons.CalibrationRun,
                                         onClick = onRun,
                                         intent = Intent.Go, // R5: the screen's expected action
-                                        enabled = !running,
+                                        enabled = !running && !tiltLocked,
                                     ))
                                 }
                             }

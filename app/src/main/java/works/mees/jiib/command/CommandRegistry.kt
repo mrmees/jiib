@@ -496,6 +496,8 @@ object CommandRegistry {
             PrinterCommands.moveTo(args.x, args.y, args.z, args.feedMmMin, args.minBounds, args.maxBounds)
         },
         availability = AvailabilityPredicate.ObjectPresent("toolhead"),
+        fence = true,
+        gating = GatingMode.SoftBusy,
     )
 
     val jog: CommandSpec<JogArgs> = gcode(
@@ -503,6 +505,8 @@ object CommandRegistry {
         key = { args -> "jog_${args.axis}" },
         gcode = { args -> PrinterCommands.jog(args.axis, args.mm, args.feedMmMin) },
         availability = AvailabilityPredicate.ObjectPresent("toolhead"),
+        fence = true,
+        gating = GatingMode.SoftBusy,
     )
 
     val overrideJog: CommandSpec<JogArgs> = gcode(
@@ -510,6 +514,8 @@ object CommandRegistry {
         key = { args -> "override_jog_${args.axis}" },
         gcode = { args -> PrinterCommands.overrideJog(args.axis, args.mm, args.feedMmMin) },
         availability = AvailabilityPredicate.ObjectPresent("toolhead"),
+        fence = true,
+        gating = GatingMode.SoftBusy,
     )
 
     val forceMove: CommandSpec<ForceMoveArgs> = gcode(
@@ -517,6 +523,8 @@ object CommandRegistry {
         key = { args -> "jog_${args.axis}" },
         gcode = { args -> PrinterCommands.forceMove(args.axis, args.mm, args.velocityMmS) },
         availability = AvailabilityPredicate.GcodeCommandPresent("FORCE_MOVE"),
+        fence = true,
+        gating = GatingMode.SoftBusy,
     )
 
     val homeAll: CommandSpec<Unit> = gcode(
@@ -524,6 +532,8 @@ object CommandRegistry {
         key = { "home_all" },
         gcode = { PrinterCommands.homeAll() },
         availability = AvailabilityPredicate.ObjectPresent("toolhead"),
+        fence = true,
+        gating = GatingMode.HardLock,
     )
 
     val homeXY: CommandSpec<Unit> = gcode(
@@ -531,6 +541,8 @@ object CommandRegistry {
         key = { "home_xy" },
         gcode = { PrinterCommands.homeXY() },
         availability = AvailabilityPredicate.ObjectPresent("toolhead"),
+        fence = true,
+        gating = GatingMode.HardLock,
     )
 
     val homeAxis: CommandSpec<HomeAxisArgs> = gcode(
@@ -538,6 +550,8 @@ object CommandRegistry {
         key = { args -> "home_${args.axis}" },
         gcode = { args -> PrinterCommands.homeAxis(args.axis) },
         availability = AvailabilityPredicate.ObjectPresent("toolhead"),
+        fence = true,
+        gating = GatingMode.HardLock,
     )
 
     val extrude: CommandSpec<ExtrudeArgs> = gcode(
@@ -545,6 +559,8 @@ object CommandRegistry {
         key = { args -> if (args.mm < 0) "retract" else "extrude" },
         gcode = { args -> PrinterCommands.extrude(args.mm, args.feedMmMin) },
         availability = AvailabilityPredicate.ObjectPresent("extruder"),
+        fence = true,
+        gating = GatingMode.SoftBusy,
     )
 
     val selectTool: CommandSpec<SelectToolArgs> = gcode(
@@ -559,6 +575,9 @@ object CommandRegistry {
         key = { "load" },
         gcode = { PrinterCommands.loadFilament() },
         availability = AvailabilityPredicate.MacroPresent(CommandMap.loadFilament.macro),
+        fence = true,
+        gating = GatingMode.SoftBusy,
+        gatingTimeoutMs = 600_000L,
     )
 
     val unloadFilament: CommandSpec<Unit> = gcode(
@@ -566,6 +585,9 @@ object CommandRegistry {
         key = { "unload" },
         gcode = { PrinterCommands.unloadFilament() },
         availability = AvailabilityPredicate.MacroPresent(CommandMap.unloadFilament.macro),
+        fence = true,
+        gating = GatingMode.SoftBusy,
+        gatingTimeoutMs = 600_000L,
     )
 
     val cooldown: CommandSpec<Unit> = gcode(
@@ -597,6 +619,9 @@ object CommandRegistry {
         key = { "screws_tilt" },
         gcode = { PrinterCommands.SCREWS_TILT_CALCULATE },
         availability = AvailabilityPredicate.ObjectPresent("screws_tilt_adjust"),
+        fence = true,
+        gating = GatingMode.HardLock,
+        gatingTimeoutMs = 600_000L,
     )
 
     val zTiltAdjust: CommandSpec<Unit> = gcode(
@@ -604,6 +629,9 @@ object CommandRegistry {
         key = { "z_tilt_adjust" },
         gcode = { PrinterCommands.Z_TILT_ADJUST },
         availability = AvailabilityPredicate.ObjectPresent("z_tilt"),
+        fence = true,
+        gating = GatingMode.HardLock,
+        gatingTimeoutMs = 600_000L,
     )
 
     val quadGantryLevel: CommandSpec<Unit> = gcode(
@@ -612,6 +640,9 @@ object CommandRegistry {
         gcode = { PrinterCommands.QUAD_GANTRY_LEVEL },
         // Built blind (D-02): gates itself off on both test printers via the live object predicate.
         availability = AvailabilityPredicate.ObjectPresent("quad_gantry_level"),
+        fence = true,
+        gating = GatingMode.HardLock,
+        gatingTimeoutMs = 600_000L,
     )
 
     val bedMeshCalibrate: CommandSpec<Unit> = gcode(
@@ -619,6 +650,9 @@ object CommandRegistry {
         key = { "bed_mesh_calibrate" },
         gcode = { PrinterCommands.BED_MESH_CALIBRATE },
         availability = AvailabilityPredicate.ObjectPresent("bed_mesh"),
+        fence = true,
+        gating = GatingMode.HardLock,
+        gatingTimeoutMs = 600_000L,
     )
 
     val bedMeshClear: CommandSpec<Unit> = gcode(
@@ -966,13 +1000,22 @@ object CommandRegistry {
         key: (P) -> String,
         gcode: (P) -> String,
         availability: AvailabilityPredicate,
+        fence: Boolean = false,
+        gating: GatingMode = GatingMode.None,
+        gatingTimeoutMs: Long? = null,
     ): CommandSpec<P> = CommandSpec(
         catalogId = catalogId,
         transport = CommandTransport.GcodeScript,
         method = JsonRpcMethods.GCODE_SCRIPT,
         dispatchKey = key,
-        params = { args -> PrinterCommands.scriptParams(gcode(args)) },
+        params = { args ->
+            val body = gcode(args)
+            PrinterCommands.scriptParams(if (fence) "$body\nM400" else body)
+        },
         availability = availability,
+        fence = fence,
+        gating = gating,
+        gatingTimeoutMs = gatingTimeoutMs,
         semantics = gcodeSemantics,
     )
 }

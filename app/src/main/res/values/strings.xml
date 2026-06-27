@@ -805,4 +805,17 @@
     <string name="conn_fail_unknown">Could not connect</string>
     <string name="conn_save_anyway">Save anyway</string>
     <string name="conn_scan">Scan</string>
+
+    <!-- Gating / ready-for-action UI (B1 + later B tasks) -->
+    <string name="gating_moving">Moving…</string>
+    <string name="gating_extruding">Extruding…</string>
+    <string name="gating_homing">Homing…</string>
+    <string name="gating_calibrating_mesh">Calibrating bed mesh…</string>
+    <string name="gating_screws_tilt">Measuring bed screws…</string>
+    <string name="gating_leveling_gantry">Leveling gantry…</string>
+    <string name="gating_z_tilt">Adjusting Z tilt…</string>
+    <string name="gating_unknown_title">Still running</string>
+    <string name="gating_unknown_message">The printer may still be working. Check the printer, then dismiss.</string>
+    <string name="gating_unknown_dismiss">Dismiss</string>
+    <string name="gating_back_guard_message">The printer keeps working in the background. Leave this screen?</string>
 </resources>

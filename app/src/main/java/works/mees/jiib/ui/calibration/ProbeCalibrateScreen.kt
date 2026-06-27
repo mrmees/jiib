@@ -47,14 +47,18 @@ import works.mees.jiib.calibration.ProbePageState
 import works.mees.jiib.command.CommandDispatcher
 import works.mees.jiib.command.CommandRegistry
 import works.mees.jiib.command.DispatchEvent
+import works.mees.jiib.command.GatingState
 import works.mees.jiib.command.TestZArgs
 import works.mees.jiib.command.dispatch
 import works.mees.jiib.designsystem.ConfirmGuard
 import works.mees.jiib.designsystem.Severity
 import works.mees.jiib.designsystem.SeverityToast
+import works.mees.jiib.designsystem.components.ConfirmOnBack
 import works.mees.jiib.designsystem.components.FootAction
 import works.mees.jiib.designsystem.components.FocusFrame
 import works.mees.jiib.designsystem.components.FootButtonBar
+import works.mees.jiib.designsystem.components.HardLockStatusCard
+import works.mees.jiib.designsystem.components.UnknownStatusCard
 import works.mees.jiib.designsystem.components.footAction
 import works.mees.jiib.designsystem.icons.JiibIcon
 import works.mees.jiib.designsystem.icons.JiibIconView
@@ -102,6 +106,10 @@ fun ProbeCalibrateScreen(
     val printerState by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
     val isPrinting = printerState.printState == PrintState.Printing ||
         printerState.printState == PrintState.Paused
+    val gating by container.gatingState.collectAsStateWithLifecycle(initialValue = GatingState.Idle)
+    // ProbeCalibrate is gated on home_* only. probe_calibrate/testz/accept/abort are intentionally
+    // NOT HardLock commands — the interactive probe session must stay fully live while homing is idle.
+    val isHoming = (gating as? GatingState.Locked)?.key?.startsWith("home") == true
     val vm by holder.vm.collectAsStateWithLifecycle()
 
     // Pitfall 3: fresh-instance reset on entry — clears sawActive/captured from any prior session.
@@ -144,44 +152,48 @@ fun ProbeCalibrateScreen(
         }
     }
 
-    ProbeCalibrateContent(
-        vm = vm,
-        step = step,
-        steps = testzSteps,
-        starting = starting,
-        saveGuard = saveGuard,
-        toastError = toastError,
-        isPrinting = isPrinting,
-        onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
-        enabled = vm.state == ProbePageState.Active && dispatcher != null && "testz" !in inFlight,
-        onTestZUp = { dispatcher?.dispatch(CommandRegistry.testZ, TestZArgs(step)) },
-        onTestZDown = { dispatcher?.dispatch(CommandRegistry.testZ, TestZArgs(-step)) },
-        onStepUp = { step = testzSteps[(testzSteps.indexOf(step).let { if (it < 0) 0 else it } + 1).coerceAtMost(testzSteps.lastIndex)] },
-        onStepDown = { step = testzSteps[(testzSteps.indexOf(step).let { if (it < 0) 0 else it } - 1).coerceAtLeast(0)] },
-        onHomeAll = { dispatcher?.dispatch(CommandRegistry.homeAll, Unit) },
-        onStart = {
-            val d = dispatcher ?: return@ProbeCalibrateContent
-            if (vm.startCommand == "Z_ENDSTOP_CALIBRATE") {
-                d.dispatch(CommandRegistry.zEndstopCalibrate, Unit)
-            } else {
-                d.dispatch(CommandRegistry.probeCalibrate, Unit)
-            }
-        },
-        onAccept = { dispatcher?.dispatch(CommandRegistry.accept, Unit) },
-        onAbort = {
-            holder.markAborted()
-            dispatcher?.dispatch(CommandRegistry.abort, Unit)
-        },
-        onSaveGuardShow = { saveGuard = true },
-        onSaveConfirm = {
-            dispatcher?.dispatch(CommandRegistry.saveConfig, Unit)
-            saveGuard = false
-        },
-        onSaveCancel = { saveGuard = false },
-        onDismissError = { toastError = null },
-        onBack = onBack,
-        modifier = modifier,
-    )
+    ConfirmOnBack(enabled = isHoming, onBack = onBack) { requestBack ->
+        ProbeCalibrateContent(
+            vm = vm,
+            step = step,
+            steps = testzSteps,
+            starting = starting,
+            saveGuard = saveGuard,
+            toastError = toastError,
+            isPrinting = isPrinting,
+            gating = gating,
+            onAcknowledgeUnknown = { dispatcher?.acknowledgeUnresolved() },
+            onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
+            enabled = vm.state == ProbePageState.Active && dispatcher != null && "testz" !in inFlight,
+            onTestZUp = { dispatcher?.dispatch(CommandRegistry.testZ, TestZArgs(step)) },
+            onTestZDown = { dispatcher?.dispatch(CommandRegistry.testZ, TestZArgs(-step)) },
+            onStepUp = { step = testzSteps[(testzSteps.indexOf(step).let { if (it < 0) 0 else it } + 1).coerceAtMost(testzSteps.lastIndex)] },
+            onStepDown = { step = testzSteps[(testzSteps.indexOf(step).let { if (it < 0) 0 else it } - 1).coerceAtLeast(0)] },
+            onHomeAll = { dispatcher?.dispatch(CommandRegistry.homeAll, Unit) },
+            onStart = {
+                val d = dispatcher ?: return@ProbeCalibrateContent
+                if (vm.startCommand == "Z_ENDSTOP_CALIBRATE") {
+                    d.dispatch(CommandRegistry.zEndstopCalibrate, Unit)
+                } else {
+                    d.dispatch(CommandRegistry.probeCalibrate, Unit)
+                }
+            },
+            onAccept = { dispatcher?.dispatch(CommandRegistry.accept, Unit) },
+            onAbort = {
+                holder.markAborted()
+                dispatcher?.dispatch(CommandRegistry.abort, Unit)
+            },
+            onSaveGuardShow = { saveGuard = true },
+            onSaveConfirm = {
+                dispatcher?.dispatch(CommandRegistry.saveConfig, Unit)
+                saveGuard = false
+            },
+            onSaveCancel = { saveGuard = false },
+            onDismissError = { toastError = null },
+            onBack = requestBack,
+            modifier = modifier,
+        )
+    }
 }
 
 /**
@@ -203,6 +215,8 @@ fun ProbeCalibrateContent(
     saveGuard: Boolean,
     toastError: String?,
     isPrinting: Boolean = false,
+    gating: GatingState = GatingState.Idle,
+    onAcknowledgeUnknown: () -> Unit = {},
     onEmergencyStop: () -> Unit = {},
     enabled: Boolean,
     onTestZUp: () -> Unit,
@@ -226,6 +240,11 @@ fun ProbeCalibrateContent(
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
 
+        // HardLock morph: ProbeCalibrate owns "home_*" only. probe_calibrate/testz/accept/abort
+        // are NOT HardLock commands — the interactive probe session stays fully live; only homing
+        // (dispatched from the foot when unhomed) triggers the lock morph.
+        val isHoming = (gating as? GatingState.Locked)?.key?.startsWith("home") == true
+
         Box(Modifier.fillMaxSize()) {
             ScreenScaffold(
                 focus = {
@@ -235,9 +254,23 @@ fun ProbeCalibrateContent(
                         uDp = grid.uDp,
                         modifier = Modifier.fillMaxSize(),
                         isPrinting = isPrinting,
+                        safetyActive = gating !is GatingState.Idle,
                         onEmergencyStop = onEmergencyStop,
                         onPanic = onEmergencyStop,
                     ) {
+                        // Unknown Focus morph (precedence: Unknown > Locked > normal content): when
+                        // the link or firmware can't confirm the HardLock completed, show "Still
+                        // running" and require explicit dismissal. E-stop stays live above.
+                        if (gating is GatingState.Unknown) {
+                            UnknownStatusCard(grid.uDp, onDismiss = onAcknowledgeUnknown, Modifier.fillMaxSize())
+                            return@FocusFrame
+                        }
+                        // HardLock Focus morph: while homing, replace the entire Focus body with a
+                        // centered status card. E-stop stays live in the FocusFrame header.
+                        if (isHoming) {
+                            HardLockStatusCard(stringResource(R.string.gating_homing), grid.uDp, Modifier.fillMaxSize())
+                            return@FocusFrame
+                        }
                         ProbeFocus(vm = vm, modifier = Modifier.fillMaxSize().padding(8.dp))
                     }
                 },
@@ -354,7 +387,7 @@ fun ProbeCalibrateContent(
                                         intent = Intent.Accent,
                                         contentDescription = stringResource(R.string.common_back),
                                     ))
-                                    add(footAction(ControlSpecs.calibrationHomeAll, onClick = onHomeAll))
+                                    add(footAction(ControlSpecs.calibrationHomeAll, onClick = onHomeAll, enabled = !isHoming))
                                 } else {
                                     // Back FIRST (accent); Start = go (the screen's expected action).
                                     add(FootAction(

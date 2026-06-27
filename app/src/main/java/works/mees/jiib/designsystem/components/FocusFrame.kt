@@ -180,11 +180,18 @@ fun focusEdgeStroke(edge: FocusEdge, outline: Color): EdgeStroke? = when (edge) 
 
 /**
  * Pure (host-testable) rule for the Focus header icon slot: the slot renders the e-stop button
- * (vs the inert identity glyph) ONLY while a print is active AND a halt handler is wired. Splash /
- * previews pass `onEmergencyStop = null` and so never show an e-stop.
+ * (vs the inert identity glyph) when a print is active OR [safetyActive] is true, AND a halt
+ * handler is wired. Splash / previews pass `onEmergencyStop = null` and so never show an e-stop.
+ *
+ * [safetyActive] is set by gated screens (homing, mesh, jog, extrude) whenever the gating state
+ * is non-Idle, so the e-stop is reachable during ALL motion-gated operations — not only while
+ * printing. The [isPrinting] path is preserved unchanged; [safetyActive] only WIDENS the trigger.
  */
-fun headerShowsEStop(isPrinting: Boolean, onEmergencyStop: (() -> Unit)?): Boolean =
-    isPrinting && onEmergencyStop != null
+fun headerShowsEStop(
+    isPrinting: Boolean,
+    onEmergencyStop: (() -> Unit)?,
+    safetyActive: Boolean = false,
+): Boolean = (isPrinting || safetyActive) && onEmergencyStop != null
 
 /**
  * The universal Focus container (Focus Frame law). Every Focus except Webcam uses this shell.
@@ -218,6 +225,10 @@ fun headerShowsEStop(isPrinting: Boolean, onEmergencyStop: (() -> Unit)?): Boole
  *                        never by the caller.
  * @param edge             the Focus edge mode; defaults to [FocusEdge.Neutral].
  * @param isPrinting       when true AND [onEmergencyStop] is non-null, the icon slot shows e-stop.
+ * @param safetyActive     when true, the e-stop shows regardless of [isPrinting] — used by gated
+ *                         screens (homing, mesh, jog, extrude) to show the e-stop during ALL
+ *                         non-Idle gating states, not only while a print is active. Defaults to
+ *                         false so all existing non-gated callers are byte-for-byte unchanged.
  * @param onEmergencyStop  firmware E-stop handler; null means no e-stop is ever shown.
  * @param onPanic          optional long-press instant halt (no guard) wired to the e-stop slot.
  * @param contentInset     inner inset on the content area's SIDES + BOTTOM (the TOP is always 0 so
@@ -234,6 +245,7 @@ fun FocusFrame(
     modifier: Modifier = Modifier,
     edge: FocusEdge = FocusEdge.Neutral,
     isPrinting: Boolean = false,
+    safetyActive: Boolean = false,
     onEmergencyStop: (() -> Unit)? = null,
     onPanic: (() -> Unit)? = null,
     contentInset: Dp = FocusInset,
@@ -274,6 +286,7 @@ fun FocusFrame(
             iconTint = iconTint,
             uDp = uDp,
             isPrinting = isPrinting,
+            safetyActive = safetyActive,
             onEmergencyStop = onEmergencyStop,
             onPanic = onPanic,
             trailingActionIcon = trailingActionIcon,
@@ -320,6 +333,7 @@ private fun FocusHeader(
     iconTint: Color? = null,
     uDp: Dp,
     isPrinting: Boolean,
+    safetyActive: Boolean,
     onEmergencyStop: (() -> Unit)?,
     onPanic: (() -> Unit)?,
     trailingActionIcon: JiibIcon? = null,
@@ -377,7 +391,7 @@ private fun FocusHeader(
         // old OutlinedControl wrapper double-boxed the disabled_by_default glyph — itself a square — and
         // tinted it text-color, not red; owner UAT 2026-06-16.)
         Box(modifier = Modifier.align(Alignment.CenterStart)) {
-            if (headerShowsEStop(isPrinting, onEmergencyStop)) {
+            if (headerShowsEStop(isPrinting, onEmergencyStop, safetyActive)) {
                 Box(
                     modifier = Modifier
                         .size(slot)
