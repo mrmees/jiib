@@ -234,9 +234,6 @@ fun ProbeCalibrateContent(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val t = LocalTokens.current
-    val idx = steps.indexOf(step).let { if (it < 0) 0 else it }
-
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
 
@@ -252,7 +249,7 @@ fun ProbeCalibrateContent(
             ScreenScaffold(
                 focus = {
                     FocusFrame(
-                        title = stringResource(routineTitleRes(CalibrationRoutine.PROBE_CALIBRATE)),
+                        title = stringResource(R.string.probe_tool_z_offset_calibrate_title),
                         icon = routineIconToken(CalibrationRoutine.PROBE_CALIBRATE),
                         uDp = grid.uDp,
                         modifier = Modifier.fillMaxSize(),
@@ -278,93 +275,17 @@ fun ProbeCalibrateContent(
                     }
                 },
                 field = {
-                    // D-08: two vertical 3-cell columns side by side (the Move motif).
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        // Column 1: Z-nudge column with live-Z readout center cell.
-                        // Outline = t.directional.z (Z-axis identity, same as Move's Z column).
-                        Column(
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            // Z-up: TESTZ +step (accent, physical command)
-                            ProbeIconButton(
-                                glyphName = "arrow_upward",
-                                contentDescription = stringResource(R.string.probe_cd_raise),
-                                onClick = onTestZUp,
-                                modifier = Modifier.weight(1f).fillMaxWidth(),
-                                intent = Intent.Accent,
-                                iconTint = t.accent,
-                                enabled = enabled,
-                            )
-                            // D-08 center cell: live-Z readout (Geist Mono, t.directional.z outline)
-                            ZReadoutDisplay(
-                                zValue = vm.zPosition ?: vm.savedZOffset,
-                                modifier = Modifier.weight(1f).fillMaxWidth(),
-                            )
-                            // Z-down: TESTZ -step (accent, physical command)
-                            ProbeIconButton(
-                                glyphName = "arrow_downward",
-                                contentDescription = stringResource(R.string.probe_cd_lower),
-                                onClick = onTestZDown,
-                                modifier = Modifier.weight(1f).fillMaxWidth(),
-                                intent = Intent.Accent,
-                                iconTint = t.accent,
-                                enabled = enabled,
-                            )
-                        }
-                        // Column 2: step selector (neutral — a setting, not a directional control).
-                        Column(
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            // Control baseline audit (Phase 4b, owner ruling 2026-06-15): the
-                            // step-size ± migrate off the hand-rolled ProbeIconButton rogue onto the
-                            // canonical OutlinedControl with the REGISTERED Increase/Decrease tokens
-                            // (kills the raw "add"/"remove" ligature strings). Stays Intent.Neutral —
-                            // this picks a magnitude (a setting), it does not command motion (§b#2).
-                            // The vertical paired-column "Move motif" layout is preserved (owner kept
-                            // the paired columns; the Z-nudge column beside it is a bed-area jog and
-                            // stays as-is). End-stop disablement dims via the StepperRow/WR-07
-                            // convention (alpha 0.38 + semantics{disabled()}) so a dead end-button
-                            // reads as disabled rather than active-but-inert (R10).
-                            OutlinedControl(
-                                label = "",
-                                onClick = onStepUp,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxWidth()
-                                    .then(
-                                        if (idx < steps.lastIndex) Modifier
-                                        else Modifier.alpha(0.38f).semantics { disabled() },
-                                    ),
-                                intent = Intent.Neutral,
-                                icon = JiibIcons.Increase,
-                                contentDescription = stringResource(R.string.probe_cd_step_larger),
-                                enabled = idx < steps.lastIndex,
-                            )
-                            StepDisplay(value = step, modifier = Modifier.weight(1f).fillMaxWidth())
-                            OutlinedControl(
-                                label = "",
-                                onClick = onStepDown,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxWidth()
-                                    .then(
-                                        if (idx > 0) Modifier
-                                        else Modifier.alpha(0.38f).semantics { disabled() },
-                                    ),
-                                intent = Intent.Neutral,
-                                icon = JiibIcons.Decrease,
-                                contentDescription = stringResource(R.string.probe_cd_step_smaller),
-                                enabled = idx > 0,
-                            )
-                        }
-                    }
+                    ManualProbeJog(
+                        vm = vm,
+                        step = step,
+                        steps = steps,
+                        enabled = enabled,
+                        onTestZUp = onTestZUp,
+                        onTestZDown = onTestZDown,
+                        onStepUp = onStepUp,
+                        onStepDown = onStepDown,
+                        modifier = Modifier.fillMaxWidth().weight(1f),
+                    )
                     // D-09: state-adaptive FootButtonBar (verbatim semantics from prior gutter).
                     FootButtonBar(
                         uDp = grid.uDp,
@@ -471,6 +392,108 @@ fun ProbeCalibrateContent(
                     )
                 }
             }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ManualProbeJog — reusable Field jog widget (two-column Move motif, D-08)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Reusable two-column jog widget (D-08 Move motif):
+ *  - Column 1 (Z-nudge): Z-up (TESTZ +step) / [ZReadoutDisplay] / Z-down (TESTZ -step)
+ *  - Column 2 (step selector): Increase / [StepDisplay] / Decrease
+ *
+ * Used by [ProbeCalibrateContent] and Task 20's Eddy Calibrate screen.
+ */
+@Composable
+internal fun ManualProbeJog(
+    vm: ProbeCalibrateVm,
+    step: Double,
+    steps: List<Double>,
+    enabled: Boolean,
+    onTestZUp: () -> Unit,
+    onTestZDown: () -> Unit,
+    onStepUp: () -> Unit,
+    onStepDown: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val t = LocalTokens.current
+    val idx = steps.indexOf(step).let { if (it < 0) 0 else it }
+    // D-08: two vertical 3-cell columns side by side (the Move motif).
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        // Column 1: Z-nudge column with live-Z readout center cell.
+        // Outline = t.directional.z (Z-axis identity, same as Move's Z column).
+        Column(
+            modifier = Modifier.weight(1f).fillMaxHeight(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            // Z-up: TESTZ +step (accent, physical command)
+            ProbeIconButton(
+                glyphName = "arrow_upward",
+                contentDescription = stringResource(R.string.probe_cd_raise),
+                onClick = onTestZUp,
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                intent = Intent.Accent,
+                iconTint = t.accent,
+                enabled = enabled,
+            )
+            // D-08 center cell: live-Z readout (Geist Mono, t.directional.z outline)
+            ZReadoutDisplay(
+                zValue = vm.zPosition ?: vm.savedZOffset,
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+            )
+            // Z-down: TESTZ -step (accent, physical command)
+            ProbeIconButton(
+                glyphName = "arrow_downward",
+                contentDescription = stringResource(R.string.probe_cd_lower),
+                onClick = onTestZDown,
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                intent = Intent.Accent,
+                iconTint = t.accent,
+                enabled = enabled,
+            )
+        }
+        // Column 2: step selector (neutral — a setting, not a directional control).
+        Column(
+            modifier = Modifier.weight(1f).fillMaxHeight(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            OutlinedControl(
+                label = "",
+                onClick = onStepUp,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .then(
+                        if (idx < steps.lastIndex) Modifier
+                        else Modifier.alpha(0.38f).semantics { disabled() },
+                    ),
+                intent = Intent.Neutral,
+                icon = JiibIcons.Increase,
+                contentDescription = stringResource(R.string.probe_cd_step_larger),
+                enabled = idx < steps.lastIndex,
+            )
+            StepDisplay(value = step, modifier = Modifier.weight(1f).fillMaxWidth())
+            OutlinedControl(
+                label = "",
+                onClick = onStepDown,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .then(
+                        if (idx > 0) Modifier
+                        else Modifier.alpha(0.38f).semantics { disabled() },
+                    ),
+                intent = Intent.Neutral,
+                icon = JiibIcons.Decrease,
+                contentDescription = stringResource(R.string.probe_cd_step_smaller),
+                enabled = idx > 0,
+            )
         }
     }
 }
