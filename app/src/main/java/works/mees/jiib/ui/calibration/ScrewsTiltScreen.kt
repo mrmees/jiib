@@ -90,7 +90,9 @@ fun ScrewsTiltScreen(
     val isPrinting = printerState.printState == PrintState.Printing ||
         printerState.printState == PrintState.Paused
     val gating by container.gatingState.collectAsStateWithLifecycle(initialValue = GatingState.Idle)
-    val locked = (gating as? GatingState.Locked)?.key == "screws_tilt"
+    val locked = (gating as? GatingState.Locked)?.key?.let {
+        it == "screws_tilt" || it.startsWith("home")
+    } == true
     val inFlight by remember(dispatcher) {
         dispatcher?.inFlight ?: MutableStateFlow(emptySet())
     }.collectAsStateWithLifecycle(initialValue = emptySet())
@@ -177,10 +179,18 @@ fun ScrewsTiltContent(
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
 
-        // HardLock morph: ScrewsTilt owns "screws_tilt". Drive the Focus morph off gatingState (the
-        // authoritative HardLock signal), not the local `running` flag. `running` (from inFlight)
-        // still drives the foot-button state; `armed` still gates result display in the wrapper.
-        val isLocked = (gating as? GatingState.Locked)?.key == "screws_tilt"
+        // HardLock morph: ScrewsTilt owns "screws_tilt" and "home_*" (Home All on this screen).
+        // Drive the Focus morph off gatingState (the authoritative HardLock signal), not the local
+        // `running` flag. `running` (from inFlight) still drives the foot-button state; `armed`
+        // still gates result display in the wrapper.
+        val screwsLockedLabel = (gating as? GatingState.Locked)?.key?.let { key ->
+            when {
+                key == "screws_tilt"   -> stringResource(R.string.gating_screws_tilt)
+                key.startsWith("home") -> stringResource(R.string.gating_homing)
+                else                   -> null
+            }
+        }
+        val isLocked = screwsLockedLabel != null
 
         Box(Modifier.fillMaxSize()) {
             ScreenScaffold(
@@ -202,14 +212,10 @@ fun ScrewsTiltContent(
                             UnknownStatusCard(grid.uDp, onDismiss = onAcknowledgeUnknown, Modifier.fillMaxSize())
                             return@FocusFrame
                         }
-                        // HardLock Focus morph: while measuring, replace the entire Focus body
-                        // with a centered status card. E-stop stays live in the FocusFrame header.
-                        if (isLocked) {
-                            HardLockStatusCard(
-                                stringResource(R.string.gating_screws_tilt),
-                                grid.uDp,
-                                Modifier.fillMaxSize(),
-                            )
+                        // HardLock Focus morph: while measuring or homing, replace the entire Focus
+                        // body with a centered status card. E-stop stays live in the FocusFrame header.
+                        if (screwsLockedLabel != null) {
+                            HardLockStatusCard(screwsLockedLabel, grid.uDp, Modifier.fillMaxSize())
                             return@FocusFrame
                         }
                         ScrewsTiltFocus(vm = vm, modifier = Modifier.fillMaxSize().padding(8.dp))

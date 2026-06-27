@@ -102,7 +102,7 @@ fun TiltScreen(
     // "quad_gantry_level" (QGL variant) and "z_tilt_adjust" (ZTilt variant). Filter to these
     // keys so a different screen's HardLock never triggers the guard here.
     val tiltLocked = (gating as? GatingState.Locked)?.key?.let { key ->
-        key == "quad_gantry_level" || key == "z_tilt_adjust"
+        key == "quad_gantry_level" || key == "z_tilt_adjust" || key.startsWith("home")
     } == true
 
     ConfirmOnBack(enabled = tiltLocked, onBack = onBack) { requestBack ->
@@ -173,10 +173,13 @@ fun TiltContent(
             // HardLock morph: Tilt owns "quad_gantry_level" (QGL) and "z_tilt_adjust" (ZTilt).
             // Resolve the per-variant label; null means this screen doesn't own the active lock
             // and the Focus renders normally. `running` (from inFlight) still drives the foot.
-            val tiltLockedLabel = when ((gating as? GatingState.Locked)?.key) {
-                "quad_gantry_level" -> stringResource(R.string.gating_leveling_gantry)
-                "z_tilt_adjust"     -> stringResource(R.string.gating_z_tilt)
-                else                -> null
+            val tiltLockedLabel = (gating as? GatingState.Locked)?.key?.let { key ->
+                when {
+                    key == "quad_gantry_level" -> stringResource(R.string.gating_leveling_gantry)
+                    key == "z_tilt_adjust"     -> stringResource(R.string.gating_z_tilt)
+                    key.startsWith("home")     -> stringResource(R.string.gating_homing)
+                    else                       -> null
+                }
             }
             val tiltLocked = tiltLockedLabel != null
 

@@ -163,7 +163,9 @@ fun BedMeshScreen(
     val isPrinting = printerState.printState == PrintState.Printing ||
         printerState.printState == PrintState.Paused
     val gating by container.gatingState.collectAsStateWithLifecycle(initialValue = GatingState.Idle)
-    val locked = (gating as? GatingState.Locked)?.key == "bed_mesh_calibrate"
+    val locked = (gating as? GatingState.Locked)?.key?.let {
+        it == "bed_mesh_calibrate" || it.startsWith("home")
+    } == true
     val vm by holder.vm.collectAsStateWithLifecycle()
 
     // Ephemeral UI state — rememberSaveable so both survive rotation (27-UI-SPEC orientation rule).
@@ -432,10 +434,17 @@ internal fun BedMeshContent(
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
 
-        // HardLock morph: BedMesh owns "bed_mesh_calibrate". While locked the Focus short-circuits
-        // to HardLockStatusCard and secondary Field actions are dimmed. gatingState is global so
-        // filter to this screen's key — never react to another screen's HardLock.
-        val isLocked = (gating as? GatingState.Locked)?.key == "bed_mesh_calibrate"
+        // HardLock morph: BedMesh owns "bed_mesh_calibrate" and "home_*" (Home All on this screen).
+        // While locked the Focus short-circuits to HardLockStatusCard and secondary Field actions
+        // are dimmed. gatingState is global so filter to this screen's owned keys only.
+        val meshLockedLabel = (gating as? GatingState.Locked)?.key?.let { key ->
+            when {
+                key == "bed_mesh_calibrate" -> stringResource(R.string.gating_calibrating_mesh)
+                key.startsWith("home")      -> stringResource(R.string.gating_homing)
+                else                        -> null
+            }
+        }
+        val isLocked = meshLockedLabel != null
 
         Box(Modifier.fillMaxSize()) {
             ScreenScaffold(
@@ -460,14 +469,10 @@ internal fun BedMeshContent(
                             UnknownStatusCard(grid.uDp, onDismiss = onAcknowledgeUnknown, Modifier.fillMaxSize())
                             return@FocusFrame
                         }
-                        // HardLock Focus morph: while calibrating, replace the entire Focus body
-                        // with a centered status card. E-stop stays live in the FocusFrame header.
-                        if (isLocked) {
-                            HardLockStatusCard(
-                                stringResource(R.string.gating_calibrating_mesh),
-                                grid.uDp,
-                                Modifier.fillMaxSize(),
-                            )
+                        // HardLock Focus morph: while calibrating or homing, replace the entire Focus
+                        // body with a centered status card. E-stop stays live in the FocusFrame header.
+                        if (meshLockedLabel != null) {
+                            HardLockStatusCard(meshLockedLabel, grid.uDp, Modifier.fillMaxSize())
                             return@FocusFrame
                         }
                         when {
