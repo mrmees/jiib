@@ -35,6 +35,7 @@ class ApplyBabystepHolderTest {
         val store = PrinterStateStore(backgroundScope)
         val holder = ApplyBabystepHolder(backgroundScope, store)
 
+        store.setCapabilities(Capabilities(objects = setOf("probe", "manual_probe")))
         store.setProbeZOffset(2.04f)
         store.seed(PrinterState(gcodeZOffset = -0.06))
         runCurrent()
@@ -53,6 +54,7 @@ class ApplyBabystepHolderTest {
         val store = PrinterStateStore(backgroundScope)
         val holder = ApplyBabystepHolder(backgroundScope, store)
 
+        store.setCapabilities(Capabilities(objects = setOf("probe", "manual_probe")))
         store.setProbeZOffset(1.00f)
         store.seed(PrinterState(gcodeZOffset = 0.10))
         runCurrent()
@@ -68,6 +70,7 @@ class ApplyBabystepHolderTest {
         val store = PrinterStateStore(backgroundScope)
         val holder = ApplyBabystepHolder(backgroundScope, store)
 
+        store.setCapabilities(Capabilities(objects = setOf("probe", "manual_probe")))
         store.setProbeZOffset(2.04f)
         store.seed(PrinterState(gcodeZOffset = 0.0))
         runCurrent()
@@ -95,6 +98,7 @@ class ApplyBabystepHolderTest {
         val store = PrinterStateStore(backgroundScope)
         val holder = ApplyBabystepHolder(backgroundScope, store)
 
+        store.setCapabilities(Capabilities(objects = setOf("probe", "manual_probe")))
         store.setProbeZOffset(2.04f)
         store.seed(PrinterState(gcodeZOffset = null))
         runCurrent()
@@ -126,5 +130,26 @@ class ApplyBabystepHolderTest {
         runCurrent()
 
         assertEquals("Z_OFFSET_APPLY_ENDSTOP", holder.vm.value.applyCommand)
+    }
+
+    @Test
+    fun probeLessEndstopOffsetProducesNewOffsetAndCanApply() = runTest(UnconfinedTestDispatcher()) {
+        val store = PrinterStateStore(backgroundScope)
+        val holder = ApplyBabystepHolder(backgroundScope, store)
+
+        // No probe in caps → Z_OFFSET_APPLY_ENDSTOP; savedOffset sourced from stepper_z.position_endstop
+        store.setCapabilities(Capabilities(objects = setOf("manual_probe")))
+        store.setEndstopZOffset(0.50f)
+        store.seed(PrinterState(gcodeZOffset = -0.06))
+        runCurrent()
+
+        val vm = holder.vm.value
+        // savedOffset from endstopZOffset (Float→Double, use 1e-5 tolerance)
+        assertEquals("savedOffset from endstopZOffset", 0.50, vm.savedOffset!!, 1e-5)
+        assertEquals("liveBabystep", -0.06, vm.liveBabystep!!, 1e-9)
+        // Klipper Z_OFFSET_APPLY_ENDSTOP: new = saved - babystep → 0.50 - (-0.06) = 0.56
+        assertEquals("newOffset = saved - babystep ≈ 0.56", 0.56, vm.newOffset!!, 1e-5)
+        assertEquals("applyCommand", "Z_OFFSET_APPLY_ENDSTOP", vm.applyCommand)
+        assertTrue("canApply when endstopZOffset set and babystep non-zero", vm.canApply)
     }
 }

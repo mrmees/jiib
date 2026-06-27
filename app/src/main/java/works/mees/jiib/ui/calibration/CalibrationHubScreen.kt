@@ -72,8 +72,10 @@ fun CalibrationHubScreen(
         printerState.printState == PrintState.Paused
     var selected by remember { mutableStateOf<CalibrationRoutine?>(null) }
     // D-05: pre-select the first entry so Focus is never empty on initial render.
+    // Reconcile: if capabilities change, selected may point at a now-absent entry — reset to the
+    // new first visible item (or null if the list is empty) so Focus/Open stay consistent.
     LaunchedEffect(routines) {
-        if (selected == null) selected = routines.firstOrNull()?.routine
+        if (selected == null || routines.none { it.routine == selected }) selected = routines.firstOrNull()?.routine
     }
 
     CalibrationHubContent(

@@ -564,6 +564,10 @@ class MoonrakerSession(
             // The saved probe z_offset (09-07): shown as the idle "current Z offset" on Probe-Calibrate.
             // Same one-shot configfile result (Pitfall 3, no extra query); null on a probe-less printer.
             store.setProbeZOffset(settings?.objectOrNull("probe")?.floatOrNullAt("z_offset"))
+            // The saved stepper_z position_endstop: used by Z_OFFSET_APPLY_ENDSTOP on probe-less printers.
+            // Same one-shot configfile result (Pitfall 3, no extra query); null when a [probe] is present
+            // (not needed on that path) or when stepper_z has no position_endstop (virtual endstop setup).
+            store.setEndstopZOffset(settings?.objectOrNull("stepper_z")?.floatOrNullAt("position_endstop"))
 
             // (c) the `[screws_tilt_adjust]` config — screw coords + names (D-04/D-06) — the one-shot the
             // Screws-Tilt holder COMBINEs for the to-scale bed + per-point labels. Same configfile result;

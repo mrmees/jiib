@@ -70,8 +70,10 @@ fun ProbeHubScreen(
         printerState.printState == PrintState.Paused
     var selected by remember { mutableStateOf<ProbeTool?>(null) }
     // D-05: pre-select the first entry so Focus is never empty on initial render.
+    // Reconcile: if capabilities change or a tool is hidden, selected may point at a now-absent entry —
+    // reset to the new first visible item (or null if the list is empty) so Focus/Open stay consistent.
     LaunchedEffect(tools) {
-        if (selected == null) selected = tools.firstOrNull()?.tool
+        if (selected == null || tools.none { it.tool == selected }) selected = tools.firstOrNull()?.tool
     }
 
     ProbeHubContent(

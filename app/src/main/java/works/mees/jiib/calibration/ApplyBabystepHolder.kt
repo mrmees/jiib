@@ -62,19 +62,28 @@ class ApplyBabystepHolder(
 
     init {
         scope.launch {
-            combine(store.probeZOffset, store.printerState, store.capabilities) {
-                probeZOffset, printerState, caps ->
-                buildVm(probeZOffset, printerState, caps)
+            combine(store.probeZOffset, store.endstopZOffset, store.printerState, store.capabilities) {
+                probeZOffset, endstopZOffset, printerState, caps ->
+                buildVm(probeZOffset, endstopZOffset, printerState, caps)
             }.collect { _vm.value = it }
         }
     }
 
     private fun buildVm(
         probeZOffset: Float?,
+        endstopZOffset: Float?,
         printerState: PrinterState,
         caps: Capabilities,
     ): ApplyBabystepVm {
-        val savedOffset = probeZOffset?.toDouble()
+        // Resolve the apply command first so savedOffset selection agrees with it.
+        val applyCommand = zOffsetApplyGate(caps)
+        // Probe-present: saved offset is probe.z_offset; probe-less: stepper_z.position_endstop.
+        // Z_OFFSET_APPLY_ENDSTOP subtracts the gcode offset from position_endstop — same arithmetic.
+        val savedOffset = if (applyCommand == "Z_OFFSET_APPLY_PROBE") {
+            probeZOffset?.toDouble()
+        } else {
+            endstopZOffset?.toDouble()
+        }
         val liveBabystep = printerState.gcodeZOffset
 
         // Klipper: new_calibrate = z_offset - homing_origin.z  (babystep shifts the frame; subtract it)
@@ -86,7 +95,7 @@ class ApplyBabystepHolder(
             savedOffset = savedOffset,
             liveBabystep = liveBabystep,
             newOffset = newOffset,
-            applyCommand = zOffsetApplyGate(caps),
+            applyCommand = applyCommand,
             canApply = canApply,
         )
     }
