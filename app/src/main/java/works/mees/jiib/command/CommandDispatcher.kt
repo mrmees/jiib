@@ -85,8 +85,20 @@ class CommandDispatcher(
     )
 
     private val _inFlight = MutableStateFlow<Set<String>>(emptySet())
-    /** Keys with a wrapped call currently running — drive control busy/disabled state off this. */
+    /**
+     * Keys with a HardLock or None-gated wrapped call currently running — drive control busy/disabled
+     * state off this. SoftBusy commands are intentionally EXCLUDED so their controls stay tappable
+     * (queueable re-taps) while the command is still in flight.
+     */
     val inFlight: StateFlow<Set<String>> = _inFlight.asStateFlow()
+
+    /** One running command. [id] is unique so SoftBusy re-taps each get their own entry. */
+    data class ActiveCommand(val id: Long, val key: String, val gating: GatingMode)
+
+    private val idCounter = java.util.concurrent.atomic.AtomicLong(0L)
+    private val _activeGating = MutableStateFlow<List<ActiveCommand>>(emptyList())
+    /** Every running command incl. SoftBusy (which is absent from [inFlight]) — drives the gating UI. */
+    val activeGating: StateFlow<List<ActiveCommand>> = _activeGating.asStateFlow()
 
     private val _events = MutableSharedFlow<DispatchEvent>(
         extraBufferCapacity = EVENT_BUFFER,
@@ -117,21 +129,37 @@ class CommandDispatcher(
     private val lastAccepted = java.util.concurrent.ConcurrentHashMap<String, Long>()
 
     /**
-     * Issue an action [method] under [key]. No-op if [key] is in-flight (busy) or within the
-     * debounce window of the last accepted dispatch for that key; otherwise marks [key] in-flight
-     * and launches the wrapped call, removing the key (and toasting any typed failure) on completion.
+     * Issue an action [method] under [key].
+     *
+     * - **[GatingMode.None] / [GatingMode.HardLock]**: drop-guarded — while [key] is in [inFlight]
+     *   a re-tap is rejected (emits [rejectedKey]) and [key] stays in [inFlight] until the call
+     *   completes or times out. This is the legacy "busy guard" behavior.
+     * - **[GatingMode.SoftBusy]**: queueable — the in-flight guard is SKIPPED so re-taps launch
+     *   their own parallel call (e.g. rapid jog taps all reach the printer). Debounce still applies
+     *   as an accidental double-fire guard. The key is intentionally EXCLUDED from [inFlight] so
+     *   the control stays enabled.
+     *
+     * An optional per-command [timeoutMs] override replaces the default gcode/non-gcode ceiling.
+     * All running commands (including SoftBusy) are tracked in [activeGating].
      */
-    fun dispatch(key: String, method: String, params: JsonElement? = null) {
-        // Busy guard — a running key is never re-entered. (R10: the early return is unchanged;
-        // the only delta is the feedback emission + debug counter log before returning.)
-        if (key in _inFlight.value) {
+    fun dispatch(
+        key: String,
+        method: String,
+        params: JsonElement? = null,
+        gating: GatingMode = GatingMode.None,
+        timeoutMs: Long? = null,
+    ) {
+        val queueable = gating == GatingMode.SoftBusy
+
+        // Busy guard — a running key is never re-entered, EXCEPT queueable (SoftBusy) which queues.
+        if (!queueable && key in _inFlight.value) {
             _rejectedKey.tryEmit(key)
             if (BuildConfig.DEBUG) Log.d(TAG, "reject: key=$key reason=in_flight")
             return
         }
 
-        // Debounce — drop a re-tap within the window of the last accepted dispatch. (R10: guard
-        // expression and 400ms default UNCHANGED — feedback emission only.)
+        // Debounce — drop a re-tap within the window of the last accepted dispatch (applies to all).
+        // (R10: guard expression and 400ms default UNCHANGED — feedback emission only.)
         val now = timeSource()
         val prev = lastAccepted[key]
         if (prev != null && now - prev < debounceMs) {
@@ -143,17 +171,18 @@ class CommandDispatcher(
         }
         lastAccepted[key] = now
 
-        // Per-command timeout: gcode.script's reply is gated on the gcode COMPLETING (homing/probe,
-        // bed mesh, filament load/unload macros routinely run tens of seconds), so it gets the long
-        // GCODE_TIMEOUT_MS. Every other method (emergency_stop, queries) replies promptly and keeps
-        // the short default. Both the inner request() deadline AND the outer withTimeout use the same
-        // perCmdTimeout so they no longer race at 10s (G4).
-        val perCmdTimeout = if (method == JsonRpcMethods.GCODE_SCRIPT) GCODE_TIMEOUT_MS else timeoutMs
+        // Per-command timeout: explicit override wins; else gcode.script gets the long ceiling so
+        // homing/probe/mesh/load-unload macros don't trip a false "command could not be sent" (G4).
+        val perCmdTimeout = timeoutMs
+            ?: if (method == JsonRpcMethods.GCODE_SCRIPT) GCODE_TIMEOUT_MS else this.timeoutMs
 
-        _inFlight.update { it + key }
+        val id = idCounter.getAndIncrement()
+        if (!queueable) _inFlight.update { it + key }
+        _activeGating.update { it + ActiveCommand(id, key, gating) }
         scope.launch {
             try {
                 withTimeout(perCmdTimeout) { request(method, params, perCmdTimeout) }
+                onGatedExit(key, gating, cleanly = true)
             } catch (e: RpcConnectionException) {
                 // Disambiguate a slow-but-valid gcode (request-await Timeout — frame WAS sent and
                 // accepted, reply just hasn't arrived) from a genuine transport failure (no
@@ -167,6 +196,7 @@ class CommandDispatcher(
                         "$method failed: command could not be sent"
                 }
                 _events.tryEmit(DispatchEvent.Failure(key, message))
+                onGatedExit(key, gating, cleanly = false)
             } catch (e: RpcError) {
                 // Server-side gcode rejection (out-of-range move, failing macro, heater fault). The
                 // printer returned a JSON-RPC error envelope; JsonRpcClient completed the deferred
@@ -175,14 +205,20 @@ class CommandDispatcher(
                 // gcode-rejection text and never carries a credential, but the key (an action id) and
                 // method name are non-secret, consistent with the transport/timeout branches above.
                 _events.tryEmit(DispatchEvent.Failure(key, e.message ?: method))
+                onGatedExit(key, gating, cleanly = true) // server answered — a rejection IS a resolution
             } catch (e: TimeoutCancellationException) {
                 // The dispatcher's own UI deadline fired.
                 _events.tryEmit(DispatchEvent.Failure(key, "$method timed out"))
+                onGatedExit(key, gating, cleanly = false)
             } finally {
-                _inFlight.update { it - key }
+                if (!queueable) _inFlight.update { it - key }
+                _activeGating.update { list -> list.filterNot { it.id == id } }
             }
         }
     }
+
+    /** Called when a gated command exits (cleanly or via error/timeout). A3 fills in the body. */
+    private fun onGatedExit(key: String, gating: GatingMode, cleanly: Boolean) { /* A3 fills this in */ }
 
     /**
      * One-shot request/response READ (e.g. `printer.query_endstops/status`). Unlike [dispatch],
