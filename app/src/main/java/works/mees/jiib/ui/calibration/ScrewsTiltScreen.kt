@@ -22,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -37,7 +38,10 @@ import works.mees.jiib.calibration.ScrewsTiltHolder
 import works.mees.jiib.calibration.ScrewsTiltVm
 import works.mees.jiib.command.CommandRegistry
 import works.mees.jiib.command.DispatchEvent
+import works.mees.jiib.command.GatingState
 import works.mees.jiib.command.dispatch
+import works.mees.jiib.designsystem.components.ConfirmOnBack
+import works.mees.jiib.designsystem.components.HardLockStatusCard
 import works.mees.jiib.designsystem.Severity
 import works.mees.jiib.designsystem.SeverityToast
 import works.mees.jiib.designsystem.components.FootAction
@@ -84,6 +88,8 @@ fun ScrewsTiltScreen(
     val printerState by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
     val isPrinting = printerState.printState == PrintState.Printing ||
         printerState.printState == PrintState.Paused
+    val gating by container.gatingState.collectAsStateWithLifecycle(initialValue = GatingState.Idle)
+    val locked = (gating as? GatingState.Locked)?.key == "screws_tilt"
     val inFlight by remember(dispatcher) {
         dispatcher?.inFlight ?: MutableStateFlow(emptySet())
     }.collectAsStateWithLifecycle(initialValue = emptySet())
@@ -112,30 +118,34 @@ fun ScrewsTiltScreen(
     val running = runKey in inFlight
 
     // Armed: Run tapped this visit. showResults = armed && !running so stale turns never show.
+    // `armed` is retained for result display; the Focus morph is driven by gatingState (locked).
     var armed by remember { mutableStateOf(false) }
     LaunchedEffect(armed, running) { holder.setShowResults(armed && !running) }
 
     val errorText = failureText ?: vm.errorText
 
-    ScrewsTiltContent(
-        vm = vm,
-        running = running,
-        errorText = errorText,
-        isPrinting = isPrinting,
-        onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
-        onRun = {
-            if (!running) {
-                dispatcher?.dispatch(CommandRegistry.screwsTiltCalculate, Unit)
-                armed = true
-            }
-        },
-        onHome = {
-            val key = CommandRegistry.homeAll.dispatchKey(Unit)
-            if (key !in inFlight) dispatcher?.dispatch(CommandRegistry.homeAll, Unit)
-        },
-        onBack = onBack,
-        modifier = modifier,
-    )
+    ConfirmOnBack(enabled = locked, onBack = onBack) { requestBack ->
+        ScrewsTiltContent(
+            vm = vm,
+            running = running,
+            errorText = errorText,
+            isPrinting = isPrinting,
+            gating = gating,
+            onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
+            onRun = {
+                if (!running) {
+                    dispatcher?.dispatch(CommandRegistry.screwsTiltCalculate, Unit)
+                    armed = true
+                }
+            },
+            onHome = {
+                val key = CommandRegistry.homeAll.dispatchKey(Unit)
+                if (key !in inFlight) dispatcher?.dispatch(CommandRegistry.homeAll, Unit)
+            },
+            onBack = requestBack,
+            modifier = modifier,
+        )
+    }
 }
 
 /**
@@ -154,6 +164,7 @@ fun ScrewsTiltContent(
     running: Boolean = false,
     errorText: String? = null,
     isPrinting: Boolean = false,
+    gating: GatingState = GatingState.Idle,
     onEmergencyStop: () -> Unit = {},
     onRun: () -> Unit = {},
     onHome: () -> Unit = {},
@@ -162,6 +173,12 @@ fun ScrewsTiltContent(
 ) {
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
+
+        // HardLock morph: ScrewsTilt owns "screws_tilt". Drive the Focus morph off gatingState (the
+        // authoritative HardLock signal), not the local `running` flag. `running` (from inFlight)
+        // still drives the foot-button state; `armed` still gates result display in the wrapper.
+        val isLocked = (gating as? GatingState.Locked)?.key == "screws_tilt"
+
         Box(Modifier.fillMaxSize()) {
             ScreenScaffold(
                 focus = {
@@ -174,14 +191,27 @@ fun ScrewsTiltContent(
                         onEmergencyStop = onEmergencyStop,
                         onPanic = onEmergencyStop,
                     ) {
+                        // HardLock Focus morph: while measuring, replace the entire Focus body
+                        // with a centered status card. E-stop stays live in the FocusFrame header.
+                        if (isLocked) {
+                            HardLockStatusCard(
+                                stringResource(R.string.gating_screws_tilt),
+                                grid.uDp,
+                                Modifier.fillMaxSize(),
+                            )
+                            return@FocusFrame
+                        }
                         ScrewsTiltFocus(vm = vm, modifier = Modifier.fillMaxSize().padding(8.dp))
                     }
                 },
                 field = {
                     // ListBlock suppresses swipe-up drawer automatically (scrollable Field — Pitfall 1).
+                    // Dim while locked — screw rows are informational (onClick = no-op) so alpha-only
+                    // is sufficient; no click-blocking required.
                     ListBlock(
                         modifier = Modifier
-                            .weight(1f),
+                            .weight(1f)
+                            .alpha(if (isLocked) 0.38f else 1f),
                     ) {
                         items(vm.points, key = { it.key }) { point ->
                             ScrewListRow(point = point, uDp = grid.uDp)
@@ -191,6 +221,8 @@ fun ScrewsTiltContent(
                         SeverityToast(Severity.Error, it, Modifier.fillMaxWidth())
                     }
                     // State-adaptive FootButtonBar (D-10).
+                    // While locked, non-Back buttons are disabled — Back (guarded by ConfirmOnBack)
+                    // and e-stop stay live.
                     FootButtonBar(
                         uDp = grid.uDp,
                         actions = buildList {
@@ -205,7 +237,7 @@ fun ScrewsTiltContent(
                             when {
                                 !vm.homedGate -> {
                                     // Unhomed: offer Home All instead of Run.
-                                    add(footAction(ControlSpecs.calibrationHomeAll, onClick = onHome))
+                                    add(footAction(ControlSpecs.calibrationHomeAll, onClick = onHome, enabled = !isLocked))
                                 }
                                 running -> {
                                     // Running: non-interactive; no abort in current impl.
@@ -224,6 +256,7 @@ fun ScrewsTiltContent(
                                         icon = JiibIcons.Revert,
                                         onClick = onRun,
                                         intent = Intent.Go, // R5: expected re-run action
+                                        enabled = !isLocked,
                                     ))
                                 }
                                 else -> {
@@ -233,6 +266,7 @@ fun ScrewsTiltContent(
                                         icon = JiibIcons.CalibrationRun,
                                         onClick = onRun,
                                         intent = Intent.Go, // R5: the screen's expected action
+                                        enabled = !isLocked,
                                     ))
                                 }
                             }
