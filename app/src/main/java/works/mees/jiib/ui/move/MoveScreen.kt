@@ -49,6 +49,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import works.mees.jiib.R
 import works.mees.jiib.command.CommandRegistry
 import works.mees.jiib.command.CommandSpec
+import works.mees.jiib.command.GatingMode
+import works.mees.jiib.command.GatingState
 import works.mees.jiib.command.HomeAxisArgs
 import works.mees.jiib.command.JogArgs
 import works.mees.jiib.command.MoveToArgs
@@ -131,6 +133,7 @@ fun MoveScreen(
     val inFlight by remember(dispatcher) {
         dispatcher?.inFlight ?: MutableStateFlow(emptySet())
     }.collectAsStateWithLifecycle(initialValue = emptySet())
+    val gating by container.gatingState.collectAsStateWithLifecycle(initialValue = GatingState.Idle)
     val vm by holder.vm.collectAsStateWithLifecycle()
     val printerState by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
     val isPrinting = printerState.printState == PrintState.Printing ||
@@ -142,9 +145,11 @@ fun MoveScreen(
             ?: IncrementControls.defaultValueMap().getValue("move_microstep")).toImmutableList()
     }
 
-    // One in-flight-guarded dispatch helper — every action funnels through the registry (no raw rpc).
+    // One dispatch helper — every action funnels through the registry (no raw rpc).
+    // SoftBusy commands are queueable — the dispatcher handles debounce/queuing; skip the inFlight
+    // block for them so rapid jog taps accumulate rather than being swallowed here.
     fun <P> dispatchCommand(command: CommandSpec<P>, args: P) {
-        if (command.dispatchKey(args) in inFlight) return
+        if (command.gating != GatingMode.SoftBusy && command.dispatchKey(args) in inFlight) return
         dispatcher?.dispatch(command, args)
     }
 
@@ -152,6 +157,7 @@ fun MoveScreen(
         vm = vm,
         savedLocations = savedLocations,
         isPrinting = isPrinting,
+        gating = gating,
         onMoveTo = { x, y, z ->
             dispatchCommand(
                 CommandRegistry.moveTo,
@@ -196,6 +202,7 @@ internal fun MoveHubContent(
     vm: MoveVm,
     savedLocations: List<SavedLocation>,
     isPrinting: Boolean,
+    gating: GatingState = GatingState.Idle,
     onMoveTo: (Double?, Double?, Double?) -> Unit,
     onJog: (String, Double) -> Unit,
     onHomeAll: () -> Unit,
@@ -248,6 +255,13 @@ internal fun MoveHubContent(
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
 
+        // Show "Moving…" only when a Move-owned SoftBusy key is active. gatingState is global so we
+        // must filter to the keys this screen owns — Move owns move_to, jog_*, override_jog_*.
+        // TODO(owner ICON LAW): confirm final motion-busy glyph — MoveTouch is the placeholder.
+        val moveBusy = (gating as? GatingState.Busy)?.key?.let {
+            it == "move_to" || it.startsWith("jog_") || it.startsWith("override_jog_")
+        } == true
+
         ScreenScaffold(
             focus = {
                 FocusFrame(
@@ -261,6 +275,8 @@ internal fun MoveHubContent(
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
                     contentInset = FocusInset / 2, // match FineTuneScreen's focus rhythm (8dp, not 16dp)
+                    trailingStatusIcon = if (moveBusy) JiibIcons.MoveTouch else null,
+                    trailingStatusContentDescription = if (moveBusy) stringResource(R.string.gating_moving) else null,
                 ) {
                     when (mode) {
                         MoveMode.TouchMove -> {

@@ -36,6 +36,8 @@ import works.mees.jiib.R
 import works.mees.jiib.command.CommandRegistry
 import works.mees.jiib.command.DispatchEvent
 import works.mees.jiib.command.ExtrudeArgs
+import works.mees.jiib.command.GatingMode
+import works.mees.jiib.command.GatingState
 import works.mees.jiib.command.MacroInvocation
 import works.mees.jiib.command.PrinterCommands
 import works.mees.jiib.command.SelectToolArgs
@@ -146,6 +148,7 @@ fun ExtrudeScreen(
     val inFlight by remember(dispatcher) {
         dispatcher?.inFlight ?: kotlinx.coroutines.flow.MutableStateFlow(emptySet())
     }.collectAsStateWithLifecycle(initialValue = emptySet())
+    val gating by container.gatingState.collectAsStateWithLifecycle(initialValue = GatingState.Idle)
     val vm by holder.vm.collectAsStateWithLifecycle()
     val heatPresets by container.activeHeatPresets.collectAsStateWithLifecycle(emptyList())
     val caps by container.capabilities.collectAsStateWithLifecycle(initialValue = Capabilities())
@@ -183,15 +186,15 @@ fun ExtrudeScreen(
         inFlight = inFlight,
         failureText = failureText,
         isPrinting = isPrinting,
+        gating = gating,
         heatersRows = heatersRows,
         onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
+        // SoftBusy — dispatcher queues re-taps; no screen-side inFlight guard needed.
         onExtrude = { dist, speed ->
-            val key = CommandRegistry.extrude.dispatchKey(ExtrudeArgs(dist, speed * 60))
-            if (key !in inFlight) dispatcher?.dispatch(CommandRegistry.extrude, ExtrudeArgs(dist, speed * 60))
+            dispatcher?.dispatch(CommandRegistry.extrude, ExtrudeArgs(dist, speed * 60))
         },
         onRetract = { dist, speed ->
-            val key = CommandRegistry.extrude.dispatchKey(ExtrudeArgs(-dist, speed * 60))
-            if (key !in inFlight) dispatcher?.dispatch(CommandRegistry.extrude, ExtrudeArgs(-dist, speed * 60))
+            dispatcher?.dispatch(CommandRegistry.extrude, ExtrudeArgs(-dist, speed * 60))
         },
         onSelectTool = { i ->
             if (CommandRegistry.selectTool.dispatchKey(SelectToolArgs(i)) !in inFlight) {
@@ -215,14 +218,14 @@ fun ExtrudeScreen(
             }
         },
         onRunMacro = { name ->
-            val key = "macro_$name"
-            if (key !in inFlight) {
-                dispatcher?.dispatch(
-                    key = key,
-                    method = JsonRpcMethods.GCODE_SCRIPT,
-                    params = PrinterCommands.scriptParams(MacroInvocation.buildRaw(name, "")),
-                )
-            }
+            // Pinned macros are SoftBusy (no fence — arbitrary macros are not fenced). Pass
+            // GatingMode.SoftBusy so the global gatingState tracks them and the busy indicator fires.
+            dispatcher?.dispatch(
+                key = "macro_$name",
+                method = JsonRpcMethods.GCODE_SCRIPT,
+                params = PrinterCommands.scriptParams(MacroInvocation.buildRaw(name, "")),
+                gating = GatingMode.SoftBusy,
+            )
         },
         onToggleMacroPin = { name -> container.toggleExtrudeMacroPin(name) },
         onBack = onBack,
@@ -269,6 +272,7 @@ private fun ExtrudeContent(
     inFlight: Set<String>,
     failureText: String?,
     isPrinting: Boolean = false,
+    gating: GatingState = GatingState.Idle,
     heatersRows: List<HeatersRow> = emptyList(),
     onEmergencyStop: (() -> Unit)? = null,
     onExtrude: (distance: Double, speed: Int) -> Unit,
@@ -301,6 +305,13 @@ private fun ExtrudeContent(
         if (speed > vm.maxExtrudeVelocity) speed = vm.maxExtrudeVelocity
     }
 
+    // Show "Extruding…" only when an Extrude-owned SoftBusy key is active. gatingState is global so
+    // filter to the keys this screen owns — Extrude owns extrude, retract, load, unload, macro_*.
+    // TODO(owner ICON LAW): confirm final extrude-busy glyph — MoveTouch is the placeholder.
+    val extrudeBusy = (gating as? GatingState.Busy)?.key?.let {
+        it == "extrude" || it == "retract" || it == "load" || it == "unload" || it.startsWith("macro_")
+    } == true
+
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
 
@@ -315,6 +326,8 @@ private fun ExtrudeContent(
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
                     contentInset = FocusInset / 2, // shared adjustment-focus rhythm (matches Fine-Tune)
+                    trailingStatusIcon = if (extrudeBusy) JiibIcons.MoveTouch else null,
+                    trailingStatusContentDescription = if (extrudeBusy) stringResource(R.string.gating_extruding) else null,
                 ) {
                     FocusGrid(
                         vm = vm,
