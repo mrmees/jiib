@@ -29,6 +29,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -59,6 +60,7 @@ import works.mees.jiib.designsystem.ConfirmGuard
 import works.mees.jiib.designsystem.components.AxisOption
 import works.mees.jiib.designsystem.components.AxisSelectorRow
 import works.mees.jiib.designsystem.components.FocusFrame
+import works.mees.jiib.designsystem.components.HardLockStatusCard
 import works.mees.jiib.designsystem.layout.FocusInset
 import works.mees.jiib.designsystem.components.FootAction
 import works.mees.jiib.designsystem.components.FootButtonBar
@@ -262,6 +264,13 @@ internal fun MoveHubContent(
             it == "move_to" || it.startsWith("jog_") || it.startsWith("override_jog_")
         } == true
 
+        // HardLock morph: Move owns all home_* keys. While locked, the Focus short-circuits to a
+        // centered HardLockStatusCard and the Field nav rows are dimmed/disabled. gatingState is
+        // global so filter to Move-owned HardLock keys (all start with "home").
+        val lockedKey = (gating as? GatingState.Locked)?.key
+        val homingLabelRes = lockedKey?.let { if (it.startsWith("home")) R.string.gating_homing else null }
+        val isHoming = homingLabelRes != null
+
         ScreenScaffold(
             focus = {
                 FocusFrame(
@@ -278,6 +287,13 @@ internal fun MoveHubContent(
                     trailingStatusIcon = if (moveBusy) JiibIcons.MoveTouch else null,
                     trailingStatusContentDescription = if (moveBusy) stringResource(R.string.gating_moving) else null,
                 ) {
+                    // HardLock Focus morph: while homing, replace the entire Focus body with a
+                    // centered status card. E-stop stays live in the FocusFrame header (above).
+                    if (homingLabelRes != null) {
+                        HardLockStatusCard(stringResource(homingLabelRes), grid.uDp, Modifier.fillMaxSize())
+                        return@FocusFrame
+                    }
+
                     when (mode) {
                         MoveMode.TouchMove -> {
                             Column(modifier = Modifier.fillMaxSize()) {
@@ -815,39 +831,39 @@ internal fun MoveHubContent(
                     // Homing rows (never "selected") — gated by availability. Home All moved to the foot bar.
                     if (avail.homeXY) {
                         item("home_xy") {
-                            MoveRow("Home XY", JiibIcons.HomeStateUnhomed, false, grid.uDp, t.accent) { onHomeXY() }
+                            MoveRow("Home XY", JiibIcons.HomeStateUnhomed, false, grid.uDp, t.accent, enabled = !isHoming) { onHomeXY() }
                         }
                     }
                     if (avail.homeZ) {
                         item("home_z") {
-                            MoveRow("Home Z", JiibIcons.HomeStateUnhomed, false, grid.uDp, t.accent) { onHomeAxis("Z") }
+                            MoveRow("Home Z", JiibIcons.HomeStateUnhomed, false, grid.uDp, t.accent, enabled = !isHoming) { onHomeAxis("Z") }
                         }
                     }
                     // Mode-selecting nav rows (selected = this row's mode == current mode).
                     if (avail.touchMove) {
                         item("touch_move") {
-                            MoveRow("Touch Move", JiibIcons.MoveTouch, mode == MoveMode.TouchMove, grid.uDp, t.accent) {
+                            MoveRow("Touch Move", JiibIcons.MoveTouch, mode == MoveMode.TouchMove, grid.uDp, t.accent, enabled = !isHoming) {
                                 mode = MoveMode.TouchMove
                             }
                         }
                     }
                     if (avail.xy) {
                         item("xy") {
-                            MoveRow("XY Position", JiibIcons.MoveXY, mode == MoveMode.XY, grid.uDp, t.accent) {
+                            MoveRow("XY Position", JiibIcons.MoveXY, mode == MoveMode.XY, grid.uDp, t.accent, enabled = !isHoming) {
                                 mode = MoveMode.XY
                             }
                         }
                     }
                     if (avail.z) {
                         item("z") {
-                            MoveRow("Z Position", JiibIcons.MoveZ, mode == MoveMode.Z, grid.uDp, t.accent) {
+                            MoveRow("Z Position", JiibIcons.MoveZ, mode == MoveMode.Z, grid.uDp, t.accent, enabled = !isHoming) {
                                 mode = MoveMode.Z
                             }
                         }
                     }
                     if (avail.microstep) {
                         item("microstep") {
-                            MoveRow("Microstep", JiibIcons.FineTune, mode == MoveMode.Microstep, grid.uDp, t.accent) {
+                            MoveRow("Microstep", JiibIcons.FineTune, mode == MoveMode.Microstep, grid.uDp, t.accent, enabled = !isHoming) {
                                 mode = MoveMode.Microstep
                             }
                         }
@@ -856,7 +872,7 @@ internal fun MoveHubContent(
                     // known coordinate frame). Hidden entirely otherwise. Add Bookmark leads the group.
                     if (vm.allHomed) {
                         item("add_bookmark") {
-                            MoveRow("Add Bookmark", JiibIcons.SaveLocation, mode == MoveMode.SaveDialog, grid.uDp, t.accent) {
+                            MoveRow("Add Bookmark", JiibIcons.SaveLocation, mode == MoveMode.SaveDialog, grid.uDp, t.accent, enabled = !isHoming) {
                                 mode = MoveMode.SaveDialog
                             }
                         }
@@ -867,6 +883,7 @@ internal fun MoveHubContent(
                                 mode == MoveMode.Bookmark(loc.name),
                                 grid.uDp,
                                 t.accent,
+                                enabled = !isHoming,
                             ) { mode = MoveMode.Bookmark(loc.name) }
                         }
                     }
@@ -878,14 +895,16 @@ internal fun MoveHubContent(
                             mode == MoveMode.Endstops,
                             grid.uDp,
                             t.accent,
+                            enabled = !isHoming,
                         ) { mode = MoveMode.Endstops }
                     }
                     // Disable Motors — destructive utility, pinned at the bottom. Fires immediately on
                     // tap (owner: one tap, no confirm); does NOT swap the Focus. Red icon (t.stop) reads
                     // destructive on a translucent row. Un-homes the printer → the LaunchedEffect above
                     // drops any transient Focus and the bookmark group + motion rows collapse.
+                    // Disabled while homing (same as all nav rows) to prevent mid-homing interruption.
                     item("disable_motors") {
-                        MoveRow("Disable Motors", JiibIcons.MoveDisableMotors, false, grid.uDp, t.stop) {
+                        MoveRow("Disable Motors", JiibIcons.MoveDisableMotors, false, grid.uDp, t.stop, enabled = !isHoming) {
                             onDisableSteppers()
                         }
                     }
@@ -996,7 +1015,13 @@ private fun ZRangeLabels(top: String, bottom: String) {
     }
 }
 
-/** A single Field action row — canonical [ListRow] with a leading icon and a label. */
+/**
+ * A single Field action row — canonical [ListRow] with a leading icon and a label.
+ *
+ * @param enabled when false the row is visually dimmed (alpha 0.38) and its click is a no-op.
+ *                Used to disable nav rows while a HardLock op (homing) is running without
+ *                touching the foot Back button or the FocusFrame e-stop.
+ */
 @Composable
 private fun MoveRow(
     label: String,
@@ -1004,12 +1029,14 @@ private fun MoveRow(
     selected: Boolean,
     uDp: androidx.compose.ui.unit.Dp,
     tint: androidx.compose.ui.graphics.Color,
+    enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
     ListRow(
         selected = selected,
-        onClick = onClick,
+        onClick = if (enabled) onClick else ({}),
         uDp = uDp,
+        modifier = if (!enabled) Modifier.alpha(0.38f) else Modifier,
         leadingContent = { ListRowIcon(icon = icon, uDp = uDp, tint = tint) },
     ) {
         ListRowLabel(label)
