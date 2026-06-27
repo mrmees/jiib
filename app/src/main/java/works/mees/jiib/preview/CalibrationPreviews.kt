@@ -10,6 +10,8 @@ import works.mees.jiib.calibration.CalibrationRoutine
 import works.mees.jiib.calibration.ProbePageState
 import works.mees.jiib.calibration.ProbeTool
 import works.mees.jiib.calibration.TiltState
+import works.mees.jiib.calibration.ApplyBabystepVm
+import works.mees.jiib.ui.calibration.ApplyBabystepBody
 import works.mees.jiib.ui.calibration.ApplyBabystepContent
 import works.mees.jiib.ui.calibration.BedMeshContent
 import works.mees.jiib.ui.calibration.CalibrationHubContent
@@ -2116,5 +2118,111 @@ private fun ProbeScreenFsLargeOverflowPortrait() = PreviewBox(fsLargeSeed) {
         selected = ProbeTool.Z_OFFSET,
         onSelect = {},
         onBack = {},
+    )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ProbeContent + ApplyBabystepBody previews (Task R2)
+//
+// Targets both the ProbeContent seam (APPLY_BABYSTEP selected) and the standalone
+// ApplyBabystepBody composable (WARNING-5 preview-first convention). No live Moonraker.
+//
+// Axes:
+//  - ProbeContent: APPLY_BABYSTEP selected, canApply=true + canApply=false
+//  - ApplyBabystepBody: canApply=true (values populated) × 2 themes; canApply=false
+//  - fs=L overflow check (portrait): verifies hero value + buttons don't clip
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Preview(
+    name = "ProbeScreen: APPLY_BABYSTEP selected, canApply=true (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ProbeScreenApplyBabystepCanApply() = PreviewBox(colorfulDark) {
+    ProbeContent(
+        tools = SampleFixtures.probeToolList,
+        selected = ProbeTool.APPLY_BABYSTEP,
+        applyBabystepVm = SampleFixtures.applyBabystepCanApply,
+        onSelect = {},
+        onBack = {},
+    )
+}
+
+@Preview(
+    name = "ProbeScreen: APPLY_BABYSTEP selected, canApply=false / no data (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ProbeScreenApplyBabystepNoData() = PreviewBox(colorfulDark) {
+    ProbeContent(
+        tools = SampleFixtures.probeToolList,
+        selected = ProbeTool.APPLY_BABYSTEP,
+        applyBabystepVm = SampleFixtures.applyBabystepNoData,
+        onSelect = {},
+        onBack = {},
+    )
+}
+
+// ── ApplyBabystepBody standalone previews ────────────────────────────────────
+
+@Preview(
+    name = "ApplyBabystepBody: canApply=true dark (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ApplyBabystepBodyCanApplyDark() = PreviewBox(colorfulDark) {
+    ApplyBabystepBody(
+        vm = SampleFixtures.applyBabystepCanApply,
+        dispatcher = null,
+        uDp = 56.dp,
+        modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+    )
+}
+
+@Preview(
+    name = "ApplyBabystepBody: canApply=true light (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ApplyBabystepBodyCanApplyLight() = PreviewBox(colorfulLight) {
+    ApplyBabystepBody(
+        vm = SampleFixtures.applyBabystepCanApply,
+        dispatcher = null,
+        uDp = 56.dp,
+        modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+    )
+}
+
+@Preview(
+    name = "ApplyBabystepBody: canApply=false / no data (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ApplyBabystepBodyNoData() = PreviewBox(colorfulDark) {
+    ApplyBabystepBody(
+        vm = SampleFixtures.applyBabystepNoData,
+        dispatcher = null,
+        uDp = 56.dp,
+        modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+    )
+}
+
+@Preview(
+    name = "ApplyBabystepBody: fs=L overflow check (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ApplyBabystepBodyFsLarge() = PreviewBox(fsLargeSeed) {
+    ApplyBabystepBody(
+        vm = SampleFixtures.applyBabystepCanApply,
+        dispatcher = null,
+        uDp = 56.dp,
+        modifier = androidx.compose.ui.Modifier.fillMaxSize(),
     )
 }
