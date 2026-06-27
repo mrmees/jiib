@@ -58,6 +58,7 @@ import works.mees.jiib.command.MoveToArgs
 import works.mees.jiib.command.dispatch
 import works.mees.jiib.designsystem.ConfirmGuard
 import works.mees.jiib.designsystem.components.AxisOption
+import works.mees.jiib.designsystem.components.ConfirmOnBack
 import works.mees.jiib.designsystem.components.AxisSelectorRow
 import works.mees.jiib.designsystem.components.FocusFrame
 import works.mees.jiib.designsystem.components.HardLockStatusCard
@@ -147,6 +148,12 @@ fun MoveScreen(
             ?: IncrementControls.defaultValueMap().getValue("move_microstep")).toImmutableList()
     }
 
+    // Confirm-on-back: armed ONLY when Move owns the HardLock (homing keys start with "home").
+    // Global GatingState.Locked may come from other screens; filter to Move-owned keys so a
+    // non-Move lock doesn't trigger the guard here.
+    val lockedKey = (gating as? GatingState.Locked)?.key
+    val locked = lockedKey?.startsWith("home") == true
+
     // One dispatch helper — every action funnels through the registry (no raw rpc).
     // SoftBusy commands are queueable — the dispatcher handles debounce/queuing; skip the inFlight
     // block for them so rapid jog taps accumulate rather than being swallowed here.
@@ -155,33 +162,35 @@ fun MoveScreen(
         dispatcher?.dispatch(command, args)
     }
 
-    MoveHubContent(
-        vm = vm,
-        savedLocations = savedLocations,
-        isPrinting = isPrinting,
-        gating = gating,
-        onMoveTo = { x, y, z ->
-            dispatchCommand(
-                CommandRegistry.moveTo,
-                MoveToArgs(x, y, z, vm.travelFeedMmMin, vm.axisMin, vm.axisMax),
-            )
-        },
-        onJog = { axis, mm -> dispatchCommand(CommandRegistry.jog, JogArgs(axis, mm, vm.travelFeedMmMin)) },
-        onHomeAll = { dispatchCommand(CommandRegistry.homeAll, Unit) },
-        onDisableSteppers = { dispatchCommand(CommandRegistry.disableSteppers, Unit) },
-        onHomeXY = { dispatchCommand(CommandRegistry.homeXY, Unit) },
-        onHomeAxis = { axis -> dispatchCommand(CommandRegistry.homeAxis, HomeAxisArgs(axis)) },
-        onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
-        onSaveLocation = { container.saveLocation(it) },
-        onDeleteLocation = { container.deleteLocation(it) },
-        queryEndstops = {
-            val d = dispatcher ?: error("no active session")
-            parseEndstops(d.query(CommandRegistry.queryEndstops, Unit))
-        },
-        onBack = onBack,
-        microstepSteps = microstepSteps,
-        modifier = modifier,
-    )
+    ConfirmOnBack(enabled = locked, onBack = onBack) { requestBack ->
+        MoveHubContent(
+            vm = vm,
+            savedLocations = savedLocations,
+            isPrinting = isPrinting,
+            gating = gating,
+            onMoveTo = { x, y, z ->
+                dispatchCommand(
+                    CommandRegistry.moveTo,
+                    MoveToArgs(x, y, z, vm.travelFeedMmMin, vm.axisMin, vm.axisMax),
+                )
+            },
+            onJog = { axis, mm -> dispatchCommand(CommandRegistry.jog, JogArgs(axis, mm, vm.travelFeedMmMin)) },
+            onHomeAll = { dispatchCommand(CommandRegistry.homeAll, Unit) },
+            onDisableSteppers = { dispatchCommand(CommandRegistry.disableSteppers, Unit) },
+            onHomeXY = { dispatchCommand(CommandRegistry.homeXY, Unit) },
+            onHomeAxis = { axis -> dispatchCommand(CommandRegistry.homeAxis, HomeAxisArgs(axis)) },
+            onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
+            onSaveLocation = { container.saveLocation(it) },
+            onDeleteLocation = { container.deleteLocation(it) },
+            queryEndstops = {
+                val d = dispatcher ?: error("no active session")
+                parseEndstops(d.query(CommandRegistry.queryEndstops, Unit))
+            },
+            onBack = requestBack,
+            microstepSteps = microstepSteps,
+            modifier = modifier,
+        )
+    }
 }
 
 /**
