@@ -191,6 +191,7 @@ fun ProbeScreen(
         step = step,
         steps = testzSteps,
         starting = starting,
+        inFlight = inFlight,
         samplesIdx = samplesIdx,
         dispatcher = dispatcher,
         isPrinting = isPrinting,
@@ -250,6 +251,7 @@ internal fun ProbeContent(
     step: Double = 0.05,
     steps: List<Double> = IncrementControls.defaultValueMap().getValue("probe_testz"),
     starting: Boolean = false,
+    inFlight: Set<String> = emptySet(),
     samplesIdx: Int = SAMPLES_DEFAULT_IDX,
     dispatcher: CommandDispatcher? = null,
     isPrinting: Boolean = false,
@@ -274,11 +276,8 @@ internal fun ProbeContent(
     // Z-Offset session lock: disable Field row selection + suppress foot-bar Back while active.
     val zActiveOrStarting = probeCalibrateVm.state == ProbePageState.Active || starting
 
-    // Live in-flight set — used to gate ManualProbeJog (no-op TESTZ while a jog is in flight)
-    // and to compute the "Starting…" immediate-feedback state in ZOffsetBody.
-    val inFlight by remember(dispatcher) {
-        dispatcher?.inFlight ?: MutableStateFlow(emptySet())
-    }.collectAsStateWithLifecycle(initialValue = emptySet())
+    // inFlight is threaded in as a param (already collected in ProbeScreen) — single subscriber.
+    // Used to gate ManualProbeJog: no-op TESTZ while a jog is already in flight.
     val jogEnabled = probeCalibrateVm.state == ProbePageState.Active &&
         dispatcher != null && "testz" !in inFlight
 
@@ -437,14 +436,12 @@ internal fun ProbeContent(
                                             .background(dotColor),
                                     )
                                 })
-                                // Trailing readout: live Z (Active) or saved offset (Idle/Accepted).
+                                // Trailing readout: PERSISTED saved z_offset (negated) across ALL
+                                // states. Intentionally stable — the Focus hero shows the in-session
+                                // delta (currentZ - saved); they are different quantities by design,
+                                // not a disagreement.
                                 ProbeTool.Z_OFFSET -> ({
-                                    val zTrailing = when (probeCalibrateVm.state) {
-                                        ProbePageState.Active ->
-                                            probeCalibrateVm.zPosition?.let { fmtZOffset(it) }
-                                        else ->
-                                            probeCalibrateVm.savedZOffset?.let { fmtZOffset(-it) }
-                                    }
+                                    val zTrailing = probeCalibrateVm.savedZOffset?.let { fmtZOffset(-it) }
                                     Text(
                                         text = zTrailing ?: "—",
                                         style = JiibType.dataInline.toTextStyle(t),
@@ -544,11 +541,17 @@ internal fun ZOffsetBody(
 ) {
     val t = LocalTokens.current
 
-    // Row1 Z hero: state-adaptive value — negate savedZOffset (Moonraker stores positive).
+    // Row1 Z hero: proven delta formula from ProbeFocus (port, don't redesign).
+    // Idle → negated saved offset; Active/Accepted → currentZ - saved (delta from saved baseline).
+    val saved = vm.savedZOffset // raw, Moonraker stores positive
+    val currentZ = when (vm.state) {
+        ProbePageState.Active   -> vm.zPosition
+        ProbePageState.Accepted -> vm.capturedOffset
+        else                    -> null
+    }
     val zText: String = when (vm.state) {
-        ProbePageState.Idle     -> vm.savedZOffset?.let { fmtZOffset(-it) } ?: "—"
-        ProbePageState.Active   -> vm.zPosition?.let    { fmtZOffset(it)  } ?: "—"
-        ProbePageState.Accepted -> vm.capturedOffset?.let { fmtZOffset(it) } ?: "—"
+        ProbePageState.Idle -> saved?.let { fmtZOffset(-it) } ?: "—"
+        else -> if (saved != null && currentZ != null) fmtZOffset(currentZ - saved) else "—"
     }
 
     Column(
