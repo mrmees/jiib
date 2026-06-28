@@ -612,6 +612,12 @@ happened" (the retired hi-fi `.ctl` press-glow left no successor until now; THEM
   theme, so no content-color flip is needed (a full-saturation pressed fill was tried and
   rejected as too loud, owner).
 - **Pressed overrides the `fill` param** (a selected tile still shows the press tint while held).
+- **`ListRow` shares this mechanism (owner UAT 2026-06-28):** a pressed list row fills with the
+  NEUTRAL soft tint (`neutralSoftFill` — the same `Intent.Neutral` value, single-sourced so it
+  cannot drift), ripple off (`indication = null`). **Selection wins:** the neutral press tint
+  applies only to UNSELECTED rows; a selected (accent) row keeps its accent fill on press rather
+  than flashing gray. Border width/color are unchanged on press (no reflow). Replaces the default
+  ripple, which on dark themes just dimmed list rows and read as "nothing happened."
 - **Known tradeoff:** a control inside a *scrollable* container won't tint until the press clears
   Compose's tap-vs-scroll disambiguation (~the long-press threshold); foot-bar / non-scrollable
   controls tint instantly. An instant-everywhere fill would need custom press detection — deferred
