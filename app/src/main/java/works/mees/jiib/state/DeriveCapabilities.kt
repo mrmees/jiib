@@ -7,6 +7,12 @@ package works.mees.jiib.state
  * EVERY reconnect (STATE-02) and 02-02 tests prove gating deterministically off-hardware.
  */
 
+/** True when stepper_z homes off a PROBE virtual Z endstop (probe:z_virtual_endstop, bltouch:…, etc.) —
+ *  i.e. `stepper_z` in query_endstops IS the probe pin. Matches `z_virtual_endstop` specifically so
+ *  sensorless X/Y `virtual_endstop` pins do NOT trip it. */
+internal fun probeIsZEndstopFromPin(endstopPin: String?): Boolean =
+    endstopPin?.contains("z_virtual_endstop", ignoreCase = true) == true
+
 private val EXTRUDER_N = Regex("""extruder\d+""")
 
 private fun isExtruder(name: String): Boolean = name == "extruder" || name.matches(EXTRUDER_N)

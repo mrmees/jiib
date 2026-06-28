@@ -18,6 +18,10 @@ data class Capabilities(
     /** Whether a `heater_bed` exists. */
     val hasBed: Boolean = false,
 
+    /** stepper_z homes off a probe virtual endstop → the probe IS readable live via query_endstops
+     *  (`stepper_z` row). False on a separate physical Z endstop (probe not in query_endstops). */
+    val probeIsZEndstop: Boolean = false,
+
     /** Count of `extruder`, `extruder1`, `extruder2`, ... (toolchanger/multi-extruder support). */
     val extruderCount: Int = 0,
 
