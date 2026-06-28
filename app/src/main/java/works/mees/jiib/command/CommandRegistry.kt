@@ -827,6 +827,17 @@ object CommandRegistry {
     )
 
     /**
+     * `SET_GCODE_OFFSET Z=0 MOVE=1` — clear the live Z-babystep offset (Apply Babystepping "Clear").
+     * Same `gcode_move` gate as [babystepZ]; distinct catalogId so the drift guard stays unique.
+     */
+    val babystepClear: CommandSpec<Unit> = gcode(
+        catalogId = "KGC-SET_GCODE_OFFSET_CLEAR",
+        key = { "babystep_clear" },
+        gcode = { PrinterCommands.SET_GCODE_OFFSET_CLEAR },
+        availability = AvailabilityPredicate.ObjectPresent("gcode_move"),
+    )
+
+    /**
      * `SDCARD_RESET_FILE` — clear the loaded file after a Terminal print (D-05). Fixed const gcode, no
      * params; gated on `virtual_sdcard` (mirrors [printStart]).
      */
@@ -1044,6 +1055,7 @@ object CommandRegistry {
         abort,
         saveConfig,
         babystepZ,
+        babystepClear,
         dismissPrint,
         speedFactor,
         flowFactor,

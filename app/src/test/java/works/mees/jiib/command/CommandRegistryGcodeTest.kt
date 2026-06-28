@@ -274,6 +274,16 @@ class CommandRegistryGcodeTest {
         )
     }
 
+    @Test
+    fun `babystepClear zeroes the live gcode Z offset`() {
+        assertRegistryScript(CommandRegistry.babystepClear, Unit, PrinterCommands.SET_GCODE_OFFSET_CLEAR)
+        assertEquals("babystep_clear", CommandRegistry.babystepClear.dispatchKey(Unit))
+        assertEquals(
+            AvailabilityPredicate.ObjectPresent("gcode_move"),
+            CommandRegistry.babystepClear.availability,
+        )
+    }
+
     private fun <P> assertRegistryScript(
         spec: CommandSpec<P>,
         args: P,

@@ -243,6 +243,10 @@ object PrinterCommands {
     /** `PROBE` — run a single probe cycle and report the Z height. */
     const val PROBE = "PROBE"
 
+    /** `SET_GCODE_OFFSET Z=0 MOVE=1` — clear the live gcode Z offset (babystep) back to zero. MOVE=1
+     *  applies it immediately, mirroring the live-adjust nudge. Used by the Apply Babystepping "Clear". */
+    const val SET_GCODE_OFFSET_CLEAR = "SET_GCODE_OFFSET Z=0 MOVE=1"
+
     /** `Z_OFFSET_APPLY_PROBE` — persist the probe's live Z-offset to the config file. */
     const val Z_OFFSET_APPLY_PROBE = "Z_OFFSET_APPLY_PROBE"
 
