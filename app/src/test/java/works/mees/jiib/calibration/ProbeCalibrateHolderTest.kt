@@ -6,6 +6,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -168,6 +169,31 @@ class ProbeCalibrateHolderTest {
         store.seed(PrinterState(homedAxes = "xyz", manualProbe = ManualProbeObject(isActive = false)))
         runCurrent()
         assertTrue("all axes homed → gate open", holder.vm.value.homedGate)
+    }
+
+    @Test
+    fun `reset clears a captured Accepted offset - why it must not fire on re-select`() = runTest(UnconfinedTestDispatcher()) {
+        val store = PrinterStateStore(backgroundScope)
+        val holder = ProbeCalibrateHolder(backgroundScope, store)
+
+        // Drive to Accepted: Active (with macro-feedback Z) → is_active flips false → Accepted with capturedOffset.
+        // Reuses the same harness as acceptCapturesOffsetThenAccepted (lines ~118-136).
+        store.seed(PrinterState(manualProbe = ManualProbeObject(isActive = true, zPosition = 0.001)))
+        runCurrent()
+        store.onGcodeLine("// Z position: ?????? --> 0.25 <-- ??????")
+        runCurrent()
+        store.seed(PrinterState(manualProbe = ManualProbeObject(isActive = false)))
+        runCurrent()
+
+        assertEquals(ProbePageState.Accepted, holder.vm.value.state)
+        assertNotNull(holder.vm.value.capturedOffset)
+
+        holder.reset()
+
+        // After reset the pending Accepted is gone — exactly why the screen must NOT call reset() on every
+        // Z-Offset re-selection, only on real screen entry (ProbeScreen LaunchedEffect(Unit)).
+        assertEquals(ProbePageState.Idle, holder.vm.value.state)
+        assertNull(holder.vm.value.capturedOffset)
     }
 
     @Test

@@ -233,15 +233,15 @@ fun ProbeScreen(
         selected = tools.firstOrNull()?.tool
     }
 
-    // Auto-query when PROBE_TEST is first shown; reset the probe-calibrate holder on Z_OFFSET entry
-    // so a returning user never sees stale Accepted state (Pitfall 3).
+    // Auto-query when PROBE_TEST is first shown.
     // R5/R6: Clear the shared eddy console lines whenever the user switches to ANY eddy tool so
     // Drive Current ↔ Tap ↔ Calibrate switches don't show each other's leftover output.
     // R6: Also reset the eddy calibrate holder on EDDY_CALIBRATE entry (Pitfall 3, separate holder).
+    // NOTE: Z_OFFSET reset relocated to LaunchedEffect(Unit) below — resetting on every re-selection
+    // wiped a pending Accepted when switching tools and back (Task 5 / Codex #4).
     LaunchedEffect(selected) {
         when (selected) {
             ProbeTool.PROBE_TEST -> dispatcher?.dispatch(CommandRegistry.queryProbe, Unit)
-            ProbeTool.Z_OFFSET -> probeCalibrateHolder.reset()
             ProbeTool.EDDY_CALIBRATE -> {
                 eddyCalibrateHolder.reset()
                 eddyLines.clear()
@@ -251,6 +251,10 @@ fun ProbeScreen(
             else -> {}
         }
     }
+
+    // Screen-entry reset (mirrors TiltScreen.kt:93) — clears a STALE Accepted from a prior visit ONCE
+    // on entry; in-screen tool switches now preserve a freshly captured Accepted.
+    LaunchedEffect(Unit) { probeCalibrateHolder.reset() }
 
     // R6: Clear the sweep console when the paper-test session transitions Active→Accepted
     // so pre-sweep output (homing/probing noise) does not appear in the sweep console.
