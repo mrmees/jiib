@@ -69,6 +69,7 @@ import works.mees.jiib.calibration.ProbeToolEntry
 import works.mees.jiib.calibration.ProbeTestHolder
 import works.mees.jiib.calibration.ProbeTestVm
 import works.mees.jiib.calibration.eddyProbeDescriptor
+import works.mees.jiib.command.ApplyZOffsetSaveArgs
 import works.mees.jiib.command.BabystepArgs
 import works.mees.jiib.command.EddyChipArgs
 import works.mees.jiib.command.EddyTapArgs
@@ -562,12 +563,12 @@ internal fun ProbeContent(
             confirmLabel = saveTitle,
             warn = true,
             onConfirm = {
-                if (applyBabystepVm.applyCommand == PrinterCommands.Z_OFFSET_APPLY_PROBE) {
-                    dispatcher?.dispatch(CommandRegistry.zOffsetApplyProbe, Unit)
-                } else {
-                    dispatcher?.dispatch(CommandRegistry.zOffsetApplyEndstop, Unit)
-                }
-                dispatcher?.dispatch(CommandRegistry.saveConfig, Unit)
+                // ONE ordered gcode block (apply → SAVE_CONFIG). Two separate dispatches could reorder
+                // on the Dispatchers.Default command scope and SAVE_CONFIG the stale offset (Codex 2026-06-28).
+                dispatcher?.dispatch(
+                    CommandRegistry.applyZOffsetAndSave,
+                    ApplyZOffsetSaveArgs(applyBabystepVm.applyCommand),
+                )
             },
         )
     }

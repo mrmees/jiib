@@ -74,6 +74,14 @@ data class BedMeshRenameArgs(val old: String, val new: String)
  */
 data class BabystepArgs(val deltaMm: Double)
 
+/**
+ * Apply-then-save arg for the Live Z-Offset "Save & Restart" ([CommandRegistry.applyZOffsetAndSave]).
+ * [applyCommand] is the VM-selected [PrinterCommands.Z_OFFSET_APPLY_PROBE] / `..._ENDSTOP`. Sent as ONE
+ * ordered gcode block so apply runs before SAVE_CONFIG restarts — never two async dispatches (the
+ * command scope is Dispatchers.Default and could reorder the sends).
+ */
+data class ApplyZOffsetSaveArgs(val applyCommand: String)
+
 // --- Phase-17 Fine-Tune live-adjust args (D-03..D-12) -----------------------------------------------
 
 /** Speed-factor override (D-03) — [pct] is the DISPLAYED percent; [PrinterCommands.speedFactor] clamps. */
@@ -759,6 +767,20 @@ object CommandRegistry {
         availability = AvailabilityPredicate.GcodeCommandPresent("Z_OFFSET_APPLY_ENDSTOP"),
     )
 
+    /**
+     * `<Z_OFFSET_APPLY_*>\nSAVE_CONFIG` — the Live Z-Offset "Save & Restart": apply the live offset and
+     * persist+restart as ONE ordered gcode block. Fixes the apply/save race — the two MUST NOT be two
+     * async dispatches (the Dispatchers.Default scope could reorder the sends and SAVE_CONFIG the stale
+     * offset). Host action like [saveConfig], so availability is Always; the Save button is separately
+     * gated (canApply + !printing). The selected apply command rides in [ApplyZOffsetSaveArgs].
+     */
+    val applyZOffsetAndSave: CommandSpec<ApplyZOffsetSaveArgs> = gcode(
+        catalogId = "KGC-Z_OFFSET_APPLY_SAVE",
+        key = { "z_offset_apply_save" },
+        gcode = { PrinterCommands.applyZOffsetAndSave(it.applyCommand) },
+        availability = AvailabilityPredicate.Always,
+    )
+
     /** `PROBE_EDDY_CURRENT_CALIBRATE CHIP=<chip>` — eddy-current chip calibration. Gated on command presence. */
     val eddyCalibrate: CommandSpec<EddyChipArgs> = gcode(
         catalogId = "KGC-PROBE_EDDY_CURRENT_CALIBRATE",
@@ -1047,6 +1069,7 @@ object CommandRegistry {
         probeAccuracy,
         zOffsetApplyProbe,
         zOffsetApplyEndstop,
+        applyZOffsetAndSave,
         eddyCalibrate,
         eddyTapCalibrate,
         ldcDriveCurrent,

@@ -284,6 +284,27 @@ class CommandRegistryGcodeTest {
         )
     }
 
+    @Test
+    fun `applyZOffsetAndSave is one ordered apply-then-save gcode block`() {
+        // ONE gcode.script with both lines → Klipper runs apply then SAVE_CONFIG in order (no reorder
+        // race vs two async dispatches). Both probe and endstop apply paths.
+        assertRegistryScript(
+            CommandRegistry.applyZOffsetAndSave,
+            ApplyZOffsetSaveArgs(PrinterCommands.Z_OFFSET_APPLY_PROBE),
+            "Z_OFFSET_APPLY_PROBE\nSAVE_CONFIG",
+        )
+        assertRegistryScript(
+            CommandRegistry.applyZOffsetAndSave,
+            ApplyZOffsetSaveArgs(PrinterCommands.Z_OFFSET_APPLY_ENDSTOP),
+            "Z_OFFSET_APPLY_ENDSTOP\nSAVE_CONFIG",
+        )
+        assertEquals(
+            "z_offset_apply_save",
+            CommandRegistry.applyZOffsetAndSave.dispatchKey(ApplyZOffsetSaveArgs(PrinterCommands.Z_OFFSET_APPLY_PROBE)),
+        )
+        assertEquals(AvailabilityPredicate.Always, CommandRegistry.applyZOffsetAndSave.availability)
+    }
+
     private fun <P> assertRegistryScript(
         spec: CommandSpec<P>,
         args: P,

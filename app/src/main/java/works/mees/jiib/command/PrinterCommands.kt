@@ -486,6 +486,15 @@ object PrinterCommands {
         return "SET_GCODE_OFFSET Z_ADJUST=${formatZ(canonical)} MOVE=1"
     }
 
+    /**
+     * `<applyCommand>\nSAVE_CONFIG` — bake the live Z-offset into config THEN persist+restart, as ONE
+     * ordered gcode block. [applyCommand] MUST be [Z_OFFSET_APPLY_PROBE] or [Z_OFFSET_APPLY_ENDSTOP].
+     * Sent as a single `gcode.script` so Klipper runs apply-then-save in order — they must NOT be two
+     * separate async dispatches (the Dispatchers.Default command scope can reorder the sends, which
+     * would SAVE_CONFIG the stale offset and restart before the apply landed).
+     */
+    fun applyZOffsetAndSave(applyCommand: String): String = "$applyCommand\n$SAVE_CONFIG"
+
     // --- Phase-17 Fine-Tune live-adjust builders (D-03..D-12) -------------------------------------
 
     /**
