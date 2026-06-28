@@ -2032,3 +2032,14 @@ private fun fmtZ(v: Double): String = String.format(Locale.US, "%.3f", v)
 /** Step label: drop the trailing ".0" on whole-mm steps, keep the fractional ones (0.005 … 0.5). */
 private fun fmtStep(d: Double): String =
     if (d == d.toLong().toDouble()) d.toLong().toString() else d.toString()
+
+/** The three Active-state Focus readouts for Z-Offset, formatted. */
+internal data class ZReadouts(val saved: String, val currentZ: String, val increment: String)
+
+internal fun zOffsetActiveReadouts(vm: ProbeCalibrateVm, step: Double): ZReadouts {
+    val saved = vm.savedZOffset
+    val savedText = saved?.let { fmtZOffset(-it) } ?: "—"
+    val zPos = vm.zPosition
+    val currentZText = if (saved != null && zPos != null) fmtZOffset(zPos - saved) else "—"
+    return ZReadouts(saved = savedText, currentZ = currentZText, increment = fmtStep(step))
+}
