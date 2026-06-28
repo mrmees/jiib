@@ -1702,6 +1702,38 @@ internal fun probeToolTitleRes(tool: ProbeTool): Int = when (tool) {
     ProbeTool.EDDY_DRIVE_CURRENT -> R.string.probe_tool_eddy_drive_current_title
 }
 
+/** Field content mode — the Z-Offset Active session swaps the tool list for control rows. */
+internal enum class ProbeFieldMode { TOOL_LIST, Z_CONTROL_ROWS }
+
+/** Field foot-bar mode for the probe screen. */
+internal enum class ProbeFootMode { BACK, ABORT, NONE }
+
+/**
+ * The Field morph ONLY engages for the owner-tracked Z-Offset session while Active. Keyed on
+ * [activeSessionTool] (not [ProbePageState] alone, nor effectiveSelected) so an Eddy session — or an
+ * untracked/null-owner session — can never swap the Field to Z control rows.
+ */
+internal fun probeFieldMode(activeSessionTool: ProbeTool?, zState: ProbePageState): ProbeFieldMode =
+    if (activeSessionTool == ProbeTool.Z_OFFSET && zState == ProbePageState.Active) {
+        ProbeFieldMode.Z_CONTROL_ROWS
+    } else {
+        ProbeFieldMode.TOOL_LIST
+    }
+
+/**
+ * Foot-bar mode: Abort replaces Back ONLY during the Z-Offset Active session; any other active session
+ * (Eddy, or Z "starting") keeps the foot empty (unchanged suppression); otherwise Back.
+ */
+internal fun probeFootMode(
+    activeSessionTool: ProbeTool?,
+    zState: ProbePageState,
+    anySessionActive: Boolean,
+): ProbeFootMode = when {
+    activeSessionTool == ProbeTool.Z_OFFSET && zState == ProbePageState.Active -> ProbeFootMode.ABORT
+    anySessionActive -> ProbeFootMode.NONE
+    else -> ProbeFootMode.BACK
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // ManualProbeJog + helpers — moved here from ProbeCalibrateScreen (now deleted)
 // ─────────────────────────────────────────────────────────────────────────────
