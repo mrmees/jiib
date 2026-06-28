@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -41,6 +43,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.util.Locale
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -89,6 +92,7 @@ import works.mees.jiib.di.AppContainer
 import works.mees.jiib.state.Capabilities
 import works.mees.jiib.state.PrintState
 import works.mees.jiib.state.PrinterState
+import works.mees.jiib.theme.TextRole
 import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
@@ -370,6 +374,8 @@ internal fun ProbeContent(
     eddyStarting: Boolean = false,
     inFlight: Set<String> = emptySet(),
     samplesIdx: Int = SAMPLES_DEFAULT_IDX,
+    liveTriggered: Boolean? = null,
+    probeIsZEndstop: Boolean = false,
     dispatcher: CommandDispatcher? = null,
     isPrinting: Boolean = false,
     gating: GatingState = GatingState.Idle,
@@ -547,6 +553,8 @@ internal fun ProbeContent(
                             samplesIdx = samplesIdx,
                             dispatcher = dispatcher,
                             uDp = grid.uDp,
+                            liveTriggered = liveTriggered,
+                            probeIsZEndstop = probeIsZEndstop,
                             onSamplesUp = onSamplesUp,
                             onSamplesDown = onSamplesDown,
                             modifier = Modifier.fillMaxSize(),
@@ -682,20 +690,6 @@ internal fun ProbeContent(
                                                 ?.let { babystepFmt(it) } ?: "—",
                                             style = JiibType.dataInline.toTextStyle(t),
                                             color = t.text2,
-                                        )
-                                    })
-                                    // Trailing readout: OPEN/TRIGGERED color dot for PROBE_TEST row.
-                                    ProbeTool.PROBE_TEST -> ({
-                                        val dotColor = when (probeTestVm.triggered) {
-                                            true  -> t.stop
-                                            false -> t.accent
-                                            null  -> t.text3
-                                        }
-                                        Box(
-                                            Modifier
-                                                .size(10.dp)
-                                                .clip(CircleShape)
-                                                .background(dotColor),
                                         )
                                     })
                                     // Trailing readout: PERSISTED saved z_offset (negated) across ALL
@@ -1289,6 +1283,8 @@ internal fun ProbeTestBody(
     samplesIdx: Int,
     dispatcher: CommandDispatcher?,
     uDp: Dp,
+    liveTriggered: Boolean? = null,
+    probeIsZEndstop: Boolean = false,
     onSamplesUp: () -> Unit,
     onSamplesDown: () -> Unit,
     modifier: Modifier = Modifier,
@@ -1308,7 +1304,11 @@ internal fun ProbeTestBody(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                val dotColor = when (vm.triggered) {
+                // Live probe switch status — polled via query_endstops (stepper_z) ONLY when the probe
+                // is the Z endstop; otherwise no live indicator ("—"). Driven by liveTriggered (Task 4
+                // poll), NOT vm.triggered.
+                val shown: Boolean? = if (probeIsZEndstop) liveTriggered else null
+                val dotColor = when (shown) {
                     true  -> t.stop
                     false -> t.accent
                     null  -> t.text3
@@ -1323,7 +1323,7 @@ internal fun ProbeTestBody(
                             .clip(CircleShape)
                             .background(dotColor),
                     )
-                    val statusText = when (vm.triggered) {
+                    val statusText = when (shown) {
                         true  -> stringResource(R.string.probe_test_status_triggered)
                         false -> stringResource(R.string.probe_test_status_open)
                         null  -> "—"
@@ -1410,28 +1410,21 @@ internal fun ProbeTestBody(
                 )
             }
 
-            // ── Row4: Query + Probe Once + Run Accuracy (all Go intent) ───────
+            // ── Row4: Single Probe + Probe Accuracy (all Go intent) ───────────
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 OutlinedControl(
-                    label = stringResource(R.string.probe_test_query),
-                    icon = JiibIcons.ProbeQuery,
-                    onClick = { dispatcher?.dispatch(CommandRegistry.queryProbe, Unit) },
-                    intent = Intent.Go,
-                    modifier = Modifier.weight(1f),
-                )
-                OutlinedControl(
                     label = stringResource(R.string.probe_test_probe_once),
-                    icon = JiibIcons.ProbeOnce,
+                    icon = JiibIcons.ProbeSingle,
                     onClick = { dispatcher?.dispatch(CommandRegistry.probeOnce, Unit) },
                     intent = Intent.Go,
                     modifier = Modifier.weight(1f),
                 )
                 OutlinedControl(
                     label = stringResource(R.string.probe_test_run_accuracy),
-                    icon = JiibIcons.CalibrationRun,
+                    icon = JiibIcons.ProbeAccuracy,
                     onClick = {
                         dispatcher?.dispatch(
                             CommandRegistry.probeAccuracy,
@@ -1616,6 +1609,8 @@ private fun fmtZOffset(v: Double): String = String.format(Locale.US, "%.3f", v)
  * Six-stat accuracy grid from a PROBE_ACCURACY run.
  * Two columns of three label/value pairs: range+σ+avg (left), median+min+max (right).
  * Matches the layout in [ProbeTestScreen.ProbeAccuracyBlock].
+ * Values use [AccuracyAutoText] with weight(1f) so long numerals shrink to fit instead of
+ * overflowing on narrow Focus columns.
  */
 @Composable
 private fun ProbeTestAccuracyBlock(acc: ProbeAccuracyResult, modifier: Modifier = Modifier) {
@@ -1642,24 +1637,52 @@ private fun ProbeTestAccuracyBlock(acc: ProbeAccuracyResult, modifier: Modifier 
                 col.forEach { (label, value) ->
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text(
-                            text = label,
-                            style = JiibType.caption.toTextStyle(t),
-                            color = t.text2,
-                        )
-                        Text(
+                        AccuracyAutoText(label, JiibType.caption, t.text2)
+                        AccuracyAutoText(
                             text = value,
-                            style = JiibType.dataInline.toTextStyle(t),
+                            role = JiibType.dataInline,
                             color = t.text,
+                            modifier = Modifier.weight(1f),
+                            textAlign = TextAlign.End,
                         )
                     }
                 }
             }
         }
     }
+}
+
+/**
+ * Single-line shrink-to-fit text for the accuracy stat block.
+ *
+ * FONT-CONFORMANCE: derives TextStyle from the role (never inline fontFamily/fontSize) — the
+ * FontConformanceTest forbids raw inline TextStyle in ProbeScreen.kt.
+ * The value variant gets `Modifier.weight(1f)` + [TextAlign.End] so BasicText measures in a
+ * constrained width and TextAutoSize can actually shrink (an unconstrained BasicText never shrinks).
+ */
+@Composable
+private fun AccuracyAutoText(
+    text: String,
+    role: TextRole,
+    color: Color,
+    modifier: Modifier = Modifier,
+    textAlign: TextAlign = TextAlign.Start,
+) {
+    val t = LocalTokens.current
+    BasicText(
+        text = text,
+        style = role.toTextStyle(t).copy(color = color, textAlign = textAlign),
+        maxLines = 1,
+        softWrap = false,
+        autoSize = TextAutoSize.StepBased(
+            minFontSize = fsSp(12f, t.fs).sp,
+            maxFontSize = fsSp(role.baseSp, t.fs).sp,
+            stepSize = 1.sp,
+        ),
+        modifier = modifier,
+    )
 }
 
 /**
