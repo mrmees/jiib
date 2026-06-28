@@ -821,6 +821,14 @@ internal fun ZOffsetBody(
                 ReadoutRow(label = stringResource(R.string.calibration_difference), value = r.difference)
                 ReadoutRow(label = stringResource(R.string.calibration_increment), value = r.stepSize)
                 Spacer(Modifier.weight(1f))
+                // Footnote (above the buttons): explains the negated readout convention.
+                Text(
+                    text = stringResource(R.string.probe_calibrate_inverted_note),
+                    style = JiibType.caption.toTextStyle(t),
+                    color = t.text3,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = fsSp(4f, t.fs).dp),
+                )
                 OutlinedControl(
                     label = stringResource(R.string.calibration_accept),
                     icon = JiibIcons.CheckCircle,
