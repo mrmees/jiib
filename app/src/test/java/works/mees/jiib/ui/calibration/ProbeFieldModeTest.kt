@@ -50,4 +50,46 @@ class ProbeFieldModeTest {
         assertNull(orphanSessionAdoption(ProbePageState.Idle, null))                     // no live session
         assertNull(orphanSessionAdoption(ProbePageState.Accepted, null))                 // already accepted
     }
+
+    @Test fun `babystep morph engages only when selected + active + no session`() {
+        assertEquals(
+            ProbeFieldMode.BABYSTEP_CONTROL_ROWS,
+            probeFieldMode(null, ProbePageState.Idle, ProbeTool.APPLY_BABYSTEP, babystepActive = true),
+        )
+        // not active → list
+        assertEquals(
+            ProbeFieldMode.TOOL_LIST,
+            probeFieldMode(null, ProbePageState.Idle, ProbeTool.APPLY_BABYSTEP, babystepActive = false),
+        )
+        // different tool selected → list
+        assertEquals(
+            ProbeFieldMode.TOOL_LIST,
+            probeFieldMode(null, ProbePageState.Idle, ProbeTool.PROBE_TEST, babystepActive = true),
+        )
+    }
+
+    @Test fun `a live Z-Offset session wins over babystep active`() {
+        // Even with babystepActive true, an active Z session shows the Z control rows.
+        assertEquals(
+            ProbeFieldMode.Z_CONTROL_ROWS,
+            probeFieldMode(ProbeTool.Z_OFFSET, ProbePageState.Active, ProbeTool.APPLY_BABYSTEP, babystepActive = true),
+        )
+    }
+
+    @Test fun `an orphan-owned session never shows babystep rows`() {
+        // activeSessionTool != null (a tracked/eddy session) blocks the babystep branch.
+        assertEquals(
+            ProbeFieldMode.TOOL_LIST,
+            probeFieldMode(ProbeTool.EDDY_CALIBRATE, ProbePageState.Active, ProbeTool.APPLY_BABYSTEP, babystepActive = true),
+        )
+    }
+
+    @Test fun `a null-owner ACTIVE session (orphan, pre-adoption frame) never shows babystep rows`() {
+        // First frame before LaunchedEffect adopts an external manual_probe session: owner still null but
+        // zState already Active. The babystep branch must yield (a real session is mid-flight).
+        assertEquals(
+            ProbeFieldMode.TOOL_LIST,
+            probeFieldMode(null, ProbePageState.Active, ProbeTool.APPLY_BABYSTEP, babystepActive = true),
+        )
+    }
 }

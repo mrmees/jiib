@@ -719,6 +719,7 @@ internal fun ProbeContent(
                         onStepDown = onStepDown,
                         modifier = Modifier.weight(1f),
                     )
+                    ProbeFieldMode.BABYSTEP_CONTROL_ROWS -> {} // TODO Task 4: wire real babystep rows
                     ProbeFieldMode.TOOL_LIST -> ListBlock(modifier = Modifier.weight(1f)) {
                         items(tools, key = { it.tool.name }) { entry ->
                             // Session lock (D-09): while ANY probe session is active-or-starting
@@ -1774,23 +1775,31 @@ internal fun probeToolTitleRes(tool: ProbeTool): Int = when (tool) {
     ProbeTool.EDDY_DRIVE_CURRENT -> R.string.probe_tool_eddy_drive_current_title
 }
 
-/** Field content mode — the Z-Offset Active session swaps the tool list for control rows. */
-internal enum class ProbeFieldMode { TOOL_LIST, Z_CONTROL_ROWS }
+/** Field content mode — Z-Offset Active swaps to Z control rows; babystep Active swaps to its own. */
+internal enum class ProbeFieldMode { TOOL_LIST, Z_CONTROL_ROWS, BABYSTEP_CONTROL_ROWS }
 
 /** Field foot-bar mode for the probe screen. */
 internal enum class ProbeFootMode { BACK, ABORT, NONE }
 
 /**
- * The Field morph ONLY engages for the owner-tracked Z-Offset session while Active. Keyed on
- * [activeSessionTool] (not [ProbePageState] alone, nor effectiveSelected) so an Eddy session — or an
- * untracked/null-owner session — can never swap the Field to Z control rows.
+ * Field morph with explicit precedence: a REAL session always wins, then the local babystep morph.
+ *  1. Z-Offset manual_probe session Active → Z control rows.
+ *  2. else NO manual_probe session AT ALL — both no tracked owner ([activeSessionTool] == null) AND
+ *     not Active ([zState] != Active, so a null-owner orphan mid-adoption still wins) — AND babystep
+ *     tool selected AND [babystepActive] → babystep control rows.
+ *  3. else the tool list.
  */
-internal fun probeFieldMode(activeSessionTool: ProbeTool?, zState: ProbePageState): ProbeFieldMode =
-    if (activeSessionTool == ProbeTool.Z_OFFSET && zState == ProbePageState.Active) {
-        ProbeFieldMode.Z_CONTROL_ROWS
-    } else {
-        ProbeFieldMode.TOOL_LIST
-    }
+internal fun probeFieldMode(
+    activeSessionTool: ProbeTool?,
+    zState: ProbePageState,
+    selected: ProbeTool? = null,
+    babystepActive: Boolean = false,
+): ProbeFieldMode = when {
+    activeSessionTool == ProbeTool.Z_OFFSET && zState == ProbePageState.Active -> ProbeFieldMode.Z_CONTROL_ROWS
+    activeSessionTool == null && zState != ProbePageState.Active &&
+        selected == ProbeTool.APPLY_BABYSTEP && babystepActive -> ProbeFieldMode.BABYSTEP_CONTROL_ROWS
+    else -> ProbeFieldMode.TOOL_LIST
+}
 
 /**
  * Foot-bar mode: Abort replaces Back ONLY during the Z-Offset Active session; any other active session
