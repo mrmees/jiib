@@ -225,6 +225,12 @@ fun ProbeScreen(
         if (!sessionActiveForTracking) activeSessionTool = null
     }
 
+    var probeMoved by remember { mutableStateOf(false) }
+    // Reset the stow-note gate whenever the Z session is not Active, so a fresh session re-shows it.
+    LaunchedEffect(probeCalibrateVm.state) {
+        if (probeCalibrateVm.state != ProbePageState.Active) probeMoved = false
+    }
+
     var selected by remember { mutableStateOf<ProbeTool?>(null) }
     var samplesIdx by remember { mutableStateOf(SAMPLES_DEFAULT_IDX) }
     // D-05: pre-select first tool + reconcile against the current visible list.
@@ -291,12 +297,14 @@ fun ProbeScreen(
         eddyChip = eddyChip,
         eddySelectedStageIdx = eddySelectedStageIdx,
         onEddySelectStageIdx = { eddySelectedStageIdx = it },
+        probeMoved = probeMoved,
         onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
         onSelect = { selected = it },
         onSamplesUp = { samplesIdx = (samplesIdx + 1).coerceAtMost(SAMPLES_STEPS.lastIndex) },
         onSamplesDown = { samplesIdx = (samplesIdx - 1).coerceAtLeast(0) },
         onStart = {
             activeSessionTool = ProbeTool.Z_OFFSET  // FIX-3: mark owner before dispatch
+            probeMoved = false                       // fresh Z session re-shows the stow note
             val d = dispatcher ?: return@ProbeContent
             if (probeCalibrateVm.startCommand == PrinterCommands.Z_ENDSTOP_CALIBRATE) {
                 d.dispatch(CommandRegistry.zEndstopCalibrate, Unit)
@@ -319,8 +327,16 @@ fun ProbeScreen(
             dispatcher?.dispatch(CommandRegistry.abort, Unit)
         },
         onHomeAll = { dispatcher?.dispatch(CommandRegistry.homeAll, Unit) },
-        onTestZUp = { dispatcher?.dispatch(CommandRegistry.testZ, TestZArgs(step)) },
-        onTestZDown = { dispatcher?.dispatch(CommandRegistry.testZ, TestZArgs(-step)) },
+        onTestZUp = {
+            if (activeSessionTool == ProbeTool.Z_OFFSET &&
+                probeCalibrateVm.state == ProbePageState.Active) probeMoved = true
+            dispatcher?.dispatch(CommandRegistry.testZ, TestZArgs(step))
+        },
+        onTestZDown = {
+            if (activeSessionTool == ProbeTool.Z_OFFSET &&
+                probeCalibrateVm.state == ProbePageState.Active) probeMoved = true
+            dispatcher?.dispatch(CommandRegistry.testZ, TestZArgs(-step))
+        },
         onStepUp = {
             val idx = testzSteps.indexOf(step).let { if (it < 0) 0 else it }
             step = testzSteps[(idx + 1).coerceAtMost(testzSteps.lastIndex)]
@@ -388,6 +404,7 @@ internal fun ProbeContent(
     onEddyAccept: () -> Unit = {},
     onEddyAbort: () -> Unit = {},
     onHomeAll: () -> Unit = {},
+    probeMoved: Boolean = false,
     onTestZUp: () -> Unit = {},
     onTestZDown: () -> Unit = {},
     onStepUp: () -> Unit = {},
@@ -517,6 +534,7 @@ internal fun ProbeContent(
                             onAccept = onAccept,
                             onSaveConfig = onSaveConfig,
                             onHomeAll = onHomeAll,
+                            showStowNote = showStowNote(probeCalibrateVm.state, probeMoved),
                             modifier = Modifier.fillMaxSize(),
                         )
                         ProbeTool.APPLY_BABYSTEP -> ApplyBabystepBody(
@@ -767,6 +785,7 @@ internal fun ZOffsetBody(
     onAccept: () -> Unit,
     onSaveConfig: () -> Unit,
     onHomeAll: () -> Unit,
+    showStowNote: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
@@ -787,10 +806,20 @@ internal fun ZOffsetBody(
             }
             ProbePageState.Active -> {
                 val r = zOffsetActiveReadouts(vm, step)
+                if (showStowNote) {
+                    Text(
+                        text = stringResource(R.string.probe_calibrate_stow_note),
+                        style = JiibType.caption.toTextStyle(t),
+                        color = t.heat,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth().padding(vertical = fsSp(4f, t.fs).dp),
+                    )
+                }
                 Spacer(Modifier.weight(1f))
+                HeroReadoutRow(label = stringResource(R.string.calibration_current_offset), value = r.currentOffset)
                 ReadoutRow(label = stringResource(R.string.calibration_saved_offset), value = r.saved)
-                ZHero(text = r.currentZ)
-                ReadoutRow(label = stringResource(R.string.calibration_increment), value = r.increment)
+                ReadoutRow(label = stringResource(R.string.calibration_difference), value = r.difference)
+                ReadoutRow(label = stringResource(R.string.calibration_increment), value = r.stepSize)
                 Spacer(Modifier.weight(1f))
                 OutlinedControl(
                     label = stringResource(R.string.calibration_accept),
@@ -837,6 +866,20 @@ private fun ReadoutRow(label: String, value: String) {
         Text(text = label, style = JiibType.body.toTextStyle(t), color = t.text2)
         Spacer(Modifier.weight(1f))
         Text(text = "$value mm", style = JiibType.dataInline.toTextStyle(t), color = t.text)
+    }
+}
+
+/** Prominent labeled readout — the Current Offset hero line (label start, big accent2 value end). */
+@Composable
+private fun HeroReadoutRow(label: String, value: String) {
+    val t = LocalTokens.current
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = fsSp(12f, t.fs).dp, vertical = fsSp(2f, t.fs).dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(text = label, style = JiibType.body.toTextStyle(t), color = t.text2)
+        Spacer(Modifier.weight(1f))
+        Text(text = "$value mm", style = JiibType.statValue.toTextStyle(t), color = t.accent2)
     }
 }
 
@@ -1995,13 +2038,29 @@ private fun fmtZ(v: Double): String = String.format(Locale.US, "%.3f", v)
 private fun fmtStep(d: Double): String =
     if (d == d.toLong().toDouble()) d.toLong().toString() else d.toString()
 
-/** The three Active-state Focus readouts for Z-Offset, formatted. */
-internal data class ZReadouts(val saved: String, val currentZ: String, val increment: String)
+/** The four Active-state Focus readouts for Probe Calibrate, formatted (negated convention). */
+internal data class ZReadouts(
+    val currentOffset: String,
+    val saved: String,
+    val difference: String,
+    val stepSize: String,
+)
 
 internal fun zOffsetActiveReadouts(vm: ProbeCalibrateVm, step: Double): ZReadouts {
     val saved = vm.savedZOffset
-    val savedText = saved?.let { fmtZOffset(-it) } ?: "—"
     val zPos = vm.zPosition
-    val currentZText = if (saved != null && zPos != null) fmtZOffset(zPos - saved) else "—"
-    return ZReadouts(saved = savedText, currentZ = currentZText, increment = fmtStep(step))
+    val currentText = zPos?.let { fmtZOffset(-it) } ?: "—"
+    val savedText = saved?.let { fmtZOffset(-it) } ?: "—"
+    // Difference = displayed Current − displayed Saved = (-zPos) − (-saved) = saved − zPos.
+    val diffText = if (saved != null && zPos != null) fmtZOffset(saved - zPos) else "—"
+    return ZReadouts(
+        currentOffset = currentText,
+        saved = savedText,
+        difference = diffText,
+        stepSize = fmtStep(step),
+    )
 }
+
+/** Stow-probe reminder is shown only during Active and only until the user's first head move. */
+internal fun showStowNote(state: ProbePageState, probeMoved: Boolean): Boolean =
+    state == ProbePageState.Active && !probeMoved
