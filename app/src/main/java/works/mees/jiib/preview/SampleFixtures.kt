@@ -539,4 +539,12 @@ object SampleFixtures {
      * Represents the screen opened before Klipper has reported any offset data.
      */
     val applyBabystepNoData: ApplyBabystepVm = ApplyBabystepVm()
+
+    /** Active with a saved offset but ZERO live babystep → Clear/Save both disabled. */
+    val applyBabystepZero: ApplyBabystepVm = ApplyBabystepVm(
+        savedOffset = 2.040,
+        liveBabystep = 0.0,
+        newOffset = 2.040,
+        canApply = false,
+    )
 }

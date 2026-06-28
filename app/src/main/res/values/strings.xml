@@ -886,6 +886,10 @@
     <string name="probe_apply_babystep_action">Apply</string>
     <string name="probe_apply_babystep_confirm_title">Apply Babystepping?</string>
     <string name="probe_apply_babystep_confirm_message">Writes the live babystep into the saved z_offset. Use Save &amp; Restart to persist the change to config.</string>
+    <string name="probe_apply_babystep_adjust">Adjust</string>
+    <string name="probe_apply_babystep_clear">Clear</string>
+    <string name="cd_probe_apply_babystep_clear">Clear the live babystep offset</string>
+    <string name="cd_probe_apply_babystep_save">Bake the babystep into z_offset and save</string>
 
     <!-- Gating / ready-for-action UI (B1 + later B tasks) -->
     <string name="gating_moving">Moving…</string>

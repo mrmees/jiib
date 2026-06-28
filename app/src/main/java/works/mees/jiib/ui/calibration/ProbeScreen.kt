@@ -26,8 +26,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -67,6 +69,7 @@ import works.mees.jiib.calibration.ProbeToolEntry
 import works.mees.jiib.calibration.ProbeTestHolder
 import works.mees.jiib.calibration.ProbeTestVm
 import works.mees.jiib.calibration.eddyProbeDescriptor
+import works.mees.jiib.command.BabystepArgs
 import works.mees.jiib.command.EddyChipArgs
 import works.mees.jiib.command.EddyTapArgs
 import works.mees.jiib.command.ProbeAccuracyArgs
@@ -462,8 +465,19 @@ internal fun ProbeContent(
     // Combined session lock — either active session blocks tool switching and suppresses Back.
     val sessionActive = zActiveOrStarting || eddyActiveOrStarting
 
+    var babystepActive by remember { mutableStateOf(false) }
+    var babystepStepIdx by remember {
+        mutableIntStateOf(PrinterCommands.BABYSTEP_STEPS.indexOf(0.05).coerceAtLeast(0))
+    }
+    val babystepStep = PrinterCommands.BABYSTEP_STEPS[babystepStepIdx]
+    // Reset the local morph when leaving the tool or when any real session starts (precedence safety).
+    LaunchedEffect(selected) { if (selected != ProbeTool.APPLY_BABYSTEP) babystepActive = false }
+    LaunchedEffect(sessionActive) { if (sessionActive) babystepActive = false }
+    // System Back collapses the morph first (never fight AppShell's session Back-swallow).
+    BackHandler(enabled = babystepActive && !sessionActive) { babystepActive = false }
+
     // Z-Offset-specific Field/foot decisions (keyed on the owner-tracked tool — Eddy never trips it).
-    val zFieldMode = probeFieldMode(activeSessionTool, probeCalibrateVm.state)
+    val zFieldMode = probeFieldMode(activeSessionTool, probeCalibrateVm.state, selected, babystepActive)
     val zFootMode = probeFootMode(activeSessionTool, probeCalibrateVm.state, sessionActive)
 
     // inFlight is threaded in as a param (already collected in ProbeScreen) — single subscriber.
@@ -538,6 +552,29 @@ internal fun ProbeContent(
         )
     }
 
+    val babystepSaveTitle = stringResource(R.string.probe_apply_babystep_confirm_title)
+    val babystepSaveMessage = stringResource(R.string.probe_apply_babystep_confirm_message)
+    val babystepSaveLabel = stringResource(R.string.calibration_save_config)
+    val onBabystepSave: () -> Unit = {
+        pending = ProbeConfirm(
+            title = babystepSaveTitle,
+            message = babystepSaveMessage,
+            confirmLabel = babystepSaveLabel,
+            warn = true,
+            onConfirm = {
+                if (applyBabystepVm.applyCommand == PrinterCommands.Z_OFFSET_APPLY_PROBE) {
+                    dispatcher?.dispatch(CommandRegistry.zOffsetApplyProbe, Unit)
+                } else {
+                    dispatcher?.dispatch(CommandRegistry.zOffsetApplyEndstop, Unit)
+                }
+                pending = ProbeConfirm(
+                    title = saveTitle, message = saveMessage, confirmLabel = saveTitle, warn = true,
+                    onConfirm = { dispatcher?.dispatch(CommandRegistry.saveConfig, Unit) },
+                )
+            },
+        )
+    }
+
     // R5: Eddy run body resources — loaded here so they're available in composable context when
     // building EddyRunBody lambdas. String resources MUST be read in composable context, not lambdas.
     val eddyBuildBlindNote = stringResource(R.string.calibration_run_build_blind_note)
@@ -608,9 +645,12 @@ internal fun ProbeContent(
                         )
                         ProbeTool.APPLY_BABYSTEP -> ApplyBabystepBody(
                             vm = applyBabystepVm,
-                            dispatcher = dispatcher,
-                            uDp = grid.uDp,
-                            onRequestConfirm = { pending = it },
+                            active = babystepActive,
+                            isPrinting = isPrinting,
+                            step = babystepStep,
+                            onAdjust = { babystepActive = true },
+                            onClear = { dispatcher?.dispatch(CommandRegistry.babystepClear, Unit) },
+                            onSave = onBabystepSave,
                             modifier = Modifier.fillMaxSize(),
                         )
                         ProbeTool.PROBE_TEST -> ProbeTestBody(
@@ -719,7 +759,17 @@ internal fun ProbeContent(
                         onStepDown = onStepDown,
                         modifier = Modifier.weight(1f),
                     )
-                    ProbeFieldMode.BABYSTEP_CONTROL_ROWS -> {} // TODO Task 4: wire real babystep rows
+                    ProbeFieldMode.BABYSTEP_CONTROL_ROWS -> ProbeControlRows(
+                        step = babystepStep,
+                        steps = PrinterCommands.BABYSTEP_STEPS,
+                        jogEnabled = true, // live z-offset is unrestricted (owner-confirmed)
+                        uDp = grid.uDp,
+                        onTestZUp = { dispatcher?.dispatch(CommandRegistry.babystepZ, BabystepArgs(babystepStep)) },
+                        onTestZDown = { dispatcher?.dispatch(CommandRegistry.babystepZ, BabystepArgs(-babystepStep)) },
+                        onStepUp = { if (incrementUpEnabled(babystepStep, PrinterCommands.BABYSTEP_STEPS)) babystepStepIdx++ },
+                        onStepDown = { if (incrementDownEnabled(babystepStep, PrinterCommands.BABYSTEP_STEPS)) babystepStepIdx-- },
+                        modifier = Modifier.weight(1f),
+                    )
                     ProbeFieldMode.TOOL_LIST -> ListBlock(modifier = Modifier.weight(1f)) {
                         items(tools, key = { it.tool.name }) { entry ->
                             // Session lock (D-09): while ANY probe session is active-or-starting
@@ -797,7 +847,7 @@ internal fun ProbeContent(
                         ProbeFootMode.BACK -> listOf(
                             FootAction(
                                 label = stringResource(R.string.common_back),
-                                onClick = onBack,
+                                onClick = { if (babystepActive) babystepActive = false else onBack() },
                                 intent = Intent.Accent,
                                 icon = JiibIcons.Back,
                                 contentDescription = stringResource(R.string.cd_back),
@@ -1184,68 +1234,52 @@ internal fun EddyCalibrateBody(
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Focus body for the Apply Babystepping tool (Task R2). Renders the three-row offset readout
- * and the Apply + Save amber action buttons, then delegates the TWO-PHASE guard flow to the
- * shared [ProbeContent]-level guard host via [onRequestConfirm].
+ * Focus body for Apply Babystepping (live z-offset), Field-morph grammar (owner UAT 2026-06-28).
+ *  - Readout (both states): Saved z_offset + New z_offset secondary rows; (Active) Step Size row;
+ *    divider; **Live Babystep hero** ([ZHero], accent2 — the item of concern, owner "swap").
+ *  - Idle (`active == false`): a single bottom **Adjust** button ([JiibIcons.LineWeight], Go).
+ *  - Active (`active == true`): bottom **Clear** ([JiibIcons.SpoolClear], Accent — zeroes the offset)
+ *    + **Save** ([JiibIcons.Save], Warn — bakes + SAVE_CONFIG via the shared guard). Enable predicates
+ *    are [babystepClearEnabled] / [babystepSaveEnabled].
  *
- *  Phase 1 — Apply: [Apply] button → calls [onRequestConfirm] with the apply-confirm payload.
- *    On confirm: dispatches `vm.applyCommand` (`Z_OFFSET_APPLY_PROBE` when probe-present, else
- *    `Z_OFFSET_APPLY_ENDSTOP`), then immediately calls [onRequestConfirm] again with the
- *    SAVE_CONFIG payload (two-phase chaining through the shared host).
- *  Phase 2 — Save: [Save] button → calls [onRequestConfirm] with the SAVE_CONFIG payload directly.
- *    On confirm: dispatches `saveConfig`.
- *
- * [ProbeContent] renders the resulting [ConfirmGuard] as a FULL-SCREEN overlay over the entire
- * scaffold (Focus + Field) — the guard cannot be escaped via the Back foot button or a Field row
- * tap. This matches the BedMesh / ScrewsTilt hosting pattern.
- *
- * [vm], [dispatcher], and [uDp] match the [ApplyBabystepScreen] parameter contract so the
- * rendering logic is directly portable (no logic re-invented here).
+ * Padding law: Column has NO horizontal padding; buttons fill edge-to-edge; readout rows own their
+ * inner padding ([BabystepOffsetRow] = 82% width, centered). Buttons bottom-anchored via weight spacer.
+ * No ConfirmGuard here — Save raises it through `onSave` → ProbeContent's shared `ProbeConfirm` host.
  */
 @Composable
 internal fun ApplyBabystepBody(
     vm: ApplyBabystepVm,
-    dispatcher: CommandDispatcher?,
-    uDp: Dp,
-    onRequestConfirm: (ProbeConfirm) -> Unit,
+    active: Boolean,
+    isPrinting: Boolean,
+    step: Double,
+    onAdjust: () -> Unit,
+    onClear: () -> Unit,
+    onSave: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
-
-    // Pre-read string resources so they can be safely captured in onClick lambdas.
-    val applyTitle = stringResource(R.string.probe_apply_babystep_confirm_title)
-    val applyMessage = stringResource(R.string.probe_apply_babystep_confirm_message)
-    val applyLabel = stringResource(R.string.probe_apply_babystep_action)
-    val saveTitle = stringResource(R.string.calibration_save_config)
-    val saveMessage = stringResource(R.string.calibration_save_config_confirm)
-
-    // SAVE_CONFIG confirm payload — shared between the Apply chain and the standalone Save button.
-    val saveConfirm = ProbeConfirm(
-        title = saveTitle,
-        message = saveMessage,
-        confirmLabel = saveTitle,
-        warn = true,
-        onConfirm = { dispatcher?.dispatch(CommandRegistry.saveConfig, Unit) },
-    )
-
     Box(modifier) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 12.dp),
+            modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
         ) {
-            // Row1a: Saved z_offset
+            Spacer(Modifier.weight(1f))
+
+            // Secondary rows
             BabystepOffsetRow(
                 label = stringResource(R.string.probe_apply_babystep_saved_label),
                 value = vm.savedOffset?.let { babystepFmt(it) } ?: "—",
             )
-            // Row1b: Live babystep
             BabystepOffsetRow(
-                label = stringResource(R.string.probe_apply_babystep_live_label),
-                value = vm.liveBabystep?.let { babystepFmt(it) } ?: "—",
+                label = stringResource(R.string.probe_apply_babystep_new_label),
+                value = vm.newOffset?.let { babystepFmt(it) } ?: "—",
             )
+            if (active) {
+                BabystepOffsetRow(
+                    label = stringResource(R.string.calibration_increment), // "Step Size"
+                    value = babystepFmt(step),
+                )
+            }
 
             HorizontalDivider(
                 modifier = Modifier
@@ -1254,72 +1288,51 @@ internal fun ApplyBabystepBody(
                 color = t.outline,
             )
 
-            // Row2: New z_offset — the focal hero value (largest, accent colour).
+            // Hero — Live Babystep (the swapped, prominent value)
             Text(
-                text = stringResource(R.string.probe_apply_babystep_new_label),
+                text = stringResource(R.string.probe_apply_babystep_live_label),
                 color = t.text2,
                 style = JiibType.body.toTextStyle(t),
             )
-            Text(
-                text = vm.newOffset?.let { babystepFmt(it) } ?: "—",
-                color = t.accent2,
-                style = JiibType.focusHero.toTextStyle(t),
-                modifier = Modifier.padding(top = 4.dp),
-            )
-            Text(
-                text = "mm",
-                color = t.text3,
-                style = JiibType.caption.toTextStyle(t),
-            )
+            ZHero(text = vm.liveBabystep?.let { babystepFmt(it) } ?: "—")
 
-            Spacer(Modifier.height(fsSp(16f, t.fs).dp))
+            Spacer(Modifier.weight(1f))
 
-            // Row3: Apply + Save action buttons (both warn/amber, R5).
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                // Apply: disabled until canApply (live babystep non-null, non-zero, saved non-null).
-                // Raises Phase 1 guard via the shared ProbeContent host; on confirm immediately
-                // raises Phase 2 (SAVE_CONFIG) by calling onRequestConfirm a second time.
+            // Bottom action zone — edge-to-edge, bottom-anchored.
+            if (!active) {
                 OutlinedControl(
-                    label = applyLabel,
-                    icon = JiibIcons.CheckCircle,
-                    onClick = {
-                        onRequestConfirm(
-                            ProbeConfirm(
-                                title = applyTitle,
-                                message = applyMessage,
-                                confirmLabel = applyLabel,
-                                warn = true,
-                                onConfirm = {
-                                    // Probe-first branch: Z_OFFSET_APPLY_PROBE when probe-present.
-                                    if (vm.applyCommand == PrinterCommands.Z_OFFSET_APPLY_PROBE) {
-                                        dispatcher?.dispatch(CommandRegistry.zOffsetApplyProbe, Unit)
-                                    } else {
-                                        dispatcher?.dispatch(CommandRegistry.zOffsetApplyEndstop, Unit)
-                                    }
-                                    // Immediately chain to Phase 2 — SAVE_CONFIG.
-                                    onRequestConfirm(saveConfirm)
-                                },
-                            )
-                        )
-                    },
-                    intent = Intent.Warn,
-                    enabled = vm.canApply,
-                    modifier = Modifier.weight(1f),
+                    label = stringResource(R.string.probe_apply_babystep_adjust),
+                    icon = JiibIcons.LineWeight,
+                    onClick = onAdjust,
+                    intent = Intent.Go,
+                    modifier = Modifier.fillMaxWidth(),
                 )
-                // Save: always visible — re-opens the SAVE_CONFIG guard for a prior apply.
-                OutlinedControl(
-                    label = saveTitle,
-                    icon = JiibIcons.Save,
-                    onClick = { onRequestConfirm(saveConfirm) },
-                    intent = Intent.Warn,
-                    modifier = Modifier.weight(1f),
-                )
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    OutlinedControl(
+                        label = stringResource(R.string.probe_apply_babystep_clear),
+                        icon = JiibIcons.SpoolClear,
+                        onClick = onClear,
+                        intent = Intent.Accent,
+                        enabled = babystepClearEnabled(vm.liveBabystep),
+                        contentDescription = stringResource(R.string.cd_probe_apply_babystep_clear),
+                        modifier = Modifier.weight(1f),
+                    )
+                    OutlinedControl(
+                        label = stringResource(R.string.common_save), // = "Save" (the guard dialog warns about the restart)
+                        icon = JiibIcons.Save,
+                        onClick = onSave,
+                        intent = Intent.Warn,
+                        enabled = babystepSaveEnabled(vm, isPrinting),
+                        contentDescription = stringResource(R.string.cd_probe_apply_babystep_save),
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
         }
-        // No ConfirmGuard rendered here — guards are hosted full-screen in ProbeContent.
     }
 }
 
@@ -1759,7 +1772,7 @@ private fun ProbeTestSamplesDisplay(samples: Int, modifier: Modifier = Modifier)
 internal fun probeToolIconToken(tool: ProbeTool) = when (tool) {
     ProbeTool.Z_OFFSET           -> JiibIcons.RoutineProbeCalibrate
     ProbeTool.PROBE_TEST         -> JiibIcons.ProbeTestTool
-    ProbeTool.APPLY_BABYSTEP     -> JiibIcons.Babystep
+    ProbeTool.APPLY_BABYSTEP     -> JiibIcons.LineWeight
     ProbeTool.EDDY_CALIBRATE     -> JiibIcons.EddyCalibrate
     ProbeTool.EDDY_TAP           -> JiibIcons.EddyTap
     ProbeTool.EDDY_DRIVE_CURRENT -> JiibIcons.EddyDriveCurrent

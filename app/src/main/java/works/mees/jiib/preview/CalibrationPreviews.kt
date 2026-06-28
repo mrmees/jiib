@@ -1127,9 +1127,10 @@ private fun ProbeScreenApplyBabystepNoData() = PreviewBox(colorfulDark) {
 private fun ApplyBabystepBodyCanApplyDark() = PreviewBox(colorfulDark) {
     ApplyBabystepBody(
         vm = SampleFixtures.applyBabystepCanApply,
-        dispatcher = null,
-        uDp = 56.dp,
-        onRequestConfirm = {},
+        active = false,
+        isPrinting = false,
+        step = 0.05,
+        onAdjust = {}, onClear = {}, onSave = {},
         modifier = androidx.compose.ui.Modifier.fillMaxSize(),
     )
 }
@@ -1143,9 +1144,10 @@ private fun ApplyBabystepBodyCanApplyDark() = PreviewBox(colorfulDark) {
 private fun ApplyBabystepBodyCanApplyLight() = PreviewBox(colorfulLight) {
     ApplyBabystepBody(
         vm = SampleFixtures.applyBabystepCanApply,
-        dispatcher = null,
-        uDp = 56.dp,
-        onRequestConfirm = {},
+        active = false,
+        isPrinting = false,
+        step = 0.05,
+        onAdjust = {}, onClear = {}, onSave = {},
         modifier = androidx.compose.ui.Modifier.fillMaxSize(),
     )
 }
@@ -1159,9 +1161,10 @@ private fun ApplyBabystepBodyCanApplyLight() = PreviewBox(colorfulLight) {
 private fun ApplyBabystepBodyNoData() = PreviewBox(colorfulDark) {
     ApplyBabystepBody(
         vm = SampleFixtures.applyBabystepNoData,
-        dispatcher = null,
-        uDp = 56.dp,
-        onRequestConfirm = {},
+        active = true,
+        isPrinting = false,
+        step = 0.05,
+        onAdjust = {}, onClear = {}, onSave = {},
         modifier = androidx.compose.ui.Modifier.fillMaxSize(),
     )
 }
@@ -1175,9 +1178,34 @@ private fun ApplyBabystepBodyNoData() = PreviewBox(colorfulDark) {
 private fun ApplyBabystepBodyFsLarge() = PreviewBox(fsLargeSeed) {
     ApplyBabystepBody(
         vm = SampleFixtures.applyBabystepCanApply,
-        dispatcher = null,
-        uDp = 56.dp,
-        onRequestConfirm = {},
+        active = false,
+        isPrinting = false,
+        step = 0.05,
+        onAdjust = {}, onClear = {}, onSave = {},
+        modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+    )
+}
+
+@Preview(name = "ApplyBabystepBody: ACTIVE non-zero dark (Nexus7 portrait)", device = NEXUS7_PORTRAIT, showBackground = true)
+@Composable
+private fun ApplyBabystepBodyActiveDark() = PreviewBox(colorfulDark) {
+    ApplyBabystepBody(
+        vm = SampleFixtures.applyBabystepCanApply,
+        active = true,
+        isPrinting = false,
+        step = 0.05,
+        onAdjust = {}, onClear = {}, onSave = {},
+        modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+    )
+}
+
+@Preview(name = "ApplyBabystepBody: ACTIVE zero (disabled Clear/Save) dark", device = NEXUS7_PORTRAIT, showBackground = true)
+@Composable
+private fun ApplyBabystepBodyActiveZero() = PreviewBox(colorfulDark) {
+    ApplyBabystepBody(
+        vm = SampleFixtures.applyBabystepZero,
+        active = true, isPrinting = false, step = 0.05,
+        onAdjust = {}, onClear = {}, onSave = {},
         modifier = androidx.compose.ui.Modifier.fillMaxSize(),
     )
 }
