@@ -1224,8 +1224,6 @@ private fun ProbeScreenProbeTestTriggered() = PreviewBox(colorfulDark) {
         tools = SampleFixtures.probeToolList,
         selected = ProbeTool.PROBE_TEST,
         probeTestVm = SampleFixtures.probeTestTriggered,
-        probeIsZEndstop = true,
-        liveTriggered = true,
         onSelect = {},
         onBack = {},
     )
@@ -1242,8 +1240,6 @@ private fun ProbeScreenProbeTestWithAccuracy() = PreviewBox(colorfulDark) {
         tools = SampleFixtures.probeToolList,
         selected = ProbeTool.PROBE_TEST,
         probeTestVm = SampleFixtures.probeTestWithAccuracy,
-        probeIsZEndstop = true,
-        liveTriggered = false,
         onSelect = {},
         onBack = {},
     )
@@ -1278,8 +1274,6 @@ private fun ProbeTestBodyNoData() = PreviewBox(colorfulDark) {
 private fun ProbeTestBodyTriggeredDark() = PreviewBox(colorfulDark) {
     ProbeTestBody(
         vm = SampleFixtures.probeTestTriggered,
-        probeIsZEndstop = true,
-        liveTriggered = true,
         samplesIdx = 4,
         dispatcher = null,
         uDp = 56.dp,
@@ -1298,8 +1292,6 @@ private fun ProbeTestBodyTriggeredDark() = PreviewBox(colorfulDark) {
 private fun ProbeTestBodyTriggeredLight() = PreviewBox(colorfulLight) {
     ProbeTestBody(
         vm = SampleFixtures.probeTestTriggered,
-        probeIsZEndstop = true,
-        liveTriggered = true,
         samplesIdx = 4,
         dispatcher = null,
         uDp = 56.dp,
@@ -1318,8 +1310,6 @@ private fun ProbeTestBodyTriggeredLight() = PreviewBox(colorfulLight) {
 private fun ProbeTestBodyWithAccuracy() = PreviewBox(colorfulDark) {
     ProbeTestBody(
         vm = SampleFixtures.probeTestWithAccuracy,
-        probeIsZEndstop = true,
-        liveTriggered = false,
         samplesIdx = 4,
         dispatcher = null,
         uDp = 56.dp,
@@ -1340,8 +1330,6 @@ private fun ProbeTestBodyWithAccuracy() = PreviewBox(colorfulDark) {
 private fun ProbeTestBodyFsLargeAccuracyPortrait() = PreviewBox(fsLargeSeed) {
     ProbeTestBody(
         vm = SampleFixtures.probeTestWithAccuracy,
-        probeIsZEndstop = true,
-        liveTriggered = false,
         samplesIdx = 4,
         dispatcher = null,
         uDp = 56.dp,
@@ -1360,8 +1348,6 @@ private fun ProbeTestBodyFsLargeAccuracyPortrait() = PreviewBox(fsLargeSeed) {
 private fun ProbeTestBodyFsLargeAccuracyLandscape() = PreviewBox(fsLargeSeed) {
     ProbeTestBody(
         vm = SampleFixtures.probeTestWithAccuracy,
-        probeIsZEndstop = true,
-        liveTriggered = false,
         samplesIdx = 4,
         dispatcher = null,
         uDp = 56.dp,

@@ -505,6 +505,27 @@ internal fun ProbeContent(
     // Falls back to Z_OFFSET if the owner wasn't tracked (externally-started session edge case).
     val effectiveSelected = if (sessionActive) (activeSessionTool ?: ProbeTool.Z_OFFSET) else selected
 
+    // Probe Test live switch status → Focus-header trailing DOT (moved out of the body per owner
+    // UAT 2026-06-28). Mirrors the old in-body dot: triggered=stop, open=accent, unknown=text3
+    // (probe isn't the Z endstop, or the poll is suspended). Only present while Probe Test owns Focus.
+    // Suppress the header dot whenever a gating card (homing / unknown) replaces the Probe Test body
+    // — matches the old in-body dot, which vanished with the body it lived in (Codex review 2026-06-28).
+    val isProbeTest = effectiveSelected == ProbeTool.PROBE_TEST && !unknownOwned && !isHoming
+    val probeTestShown: Boolean? = if (isProbeTest && probeIsZEndstop) liveTriggered else null
+    val probeTestDotColor: Color? = if (isProbeTest) {
+        when (probeTestShown) {
+            true  -> t.stop
+            false -> t.accent
+            null  -> t.text3
+        }
+    } else null
+    val probeTestDotCd: String? = when {
+        !isProbeTest -> null
+        probeTestShown == true  -> stringResource(R.string.probe_test_status_triggered)
+        probeTestShown == false -> stringResource(R.string.probe_test_status_open)
+        else -> null
+    }
+
     // onSaveConfig: raises the full-screen ProbeConfirm guard for SAVE_CONFIG (same pattern as
     // ApplyBabystepBody's save path — built here so string resources are read in composable context).
     val onSaveConfig: () -> Unit = {
@@ -548,6 +569,8 @@ internal fun ProbeContent(
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
                     contentInset = FocusInset / 2,
+                    trailingStatusDotColor = probeTestDotColor,
+                    trailingStatusContentDescription = probeTestDotCd,
                 ) {
                     // FIX-2: home_* HardLock Focus morph (ported from old ProbeCalibrateScreen +
                     // BedMeshScreen). Precedence: Unknown > Locked > normal body.
@@ -595,8 +618,6 @@ internal fun ProbeContent(
                             samplesIdx = samplesIdx,
                             dispatcher = dispatcher,
                             uDp = grid.uDp,
-                            liveTriggered = liveTriggered,
-                            probeIsZEndstop = probeIsZEndstop,
                             onSamplesUp = onSamplesUp,
                             onSamplesDown = onSamplesDown,
                             modifier = Modifier.fillMaxSize(),
@@ -1306,21 +1327,21 @@ internal fun ApplyBabystepBody(
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Focus body for the Probe Test tool. Renders four rows of content:
- *  Row1 — color-coded LIVE status dot (t.stop = TRIGGERED, t.accent = OPEN, t.text3 = "—") + status
- *    text + last-Z. The status is driven by [liveTriggered] (the query_endstops poll) when
- *    [probeIsZEndstop]; otherwise "—" (no live read on a separate physical Z endstop).
- *  Row2 — six-stat accuracy grid (range / σ / avg / median / min / max), single-line autosize so it
- *    shrinks to width; a single "—" placeholder when [ProbeTestVm.accuracy] is null.
- *  Row3 — samples stepper `[−] n [+]` (endpoints disable at 0 / lastIndex).
- *  Row4 — `[Single Probe]` + `[Probe Accuracy]` buttons (both [Intent.Go]).
+ * Focus body for the Probe Test tool. Layout (top → bottom):
+ *  Top  — last-Z readout row: label at line start, value (+ "mm") at line end (owner UAT 2026-06-28).
+ *  Mid  — six-stat accuracy grid (range / σ / avg / median / min / max), single-line autosize so it
+ *    shrinks to width; a single "—" placeholder when [ProbeTestVm.accuracy] is null. Vertically
+ *    CENTERED in the free space between the last-Z row and the bottom control zone (weight spacers).
+ *  Bottom — samples stepper `[−] n [+]` ([Intent.Accent], endpoints disable at 0 / lastIndex), then
+ *    the `[Probe]` + `[Accuracy]` action buttons (both [Intent.Go]).
+ *
+ * The LIVE probe-switch status (open/triggered) is no longer rendered here — it moved to the Focus
+ * HEADER trailing dot (owner UAT 2026-06-28); see [ProbeContent]'s `probeTestDotColor`.
  *
  * No [ConfirmGuard] is needed here (no SAVE_CONFIG path). No foot-bar actions — the foot bar
  * stays Back-only from [ProbeContent]'s field. The `dispatcher` is called directly from the
- * buttons, matching the [ApplyBabystepBody] pattern.
- *
- * The live `query_endstops` poll lives in the STATEFUL [ProbeScreen] (gated on PROBE_TEST selected +
- * [probeIsZEndstop] + not-printing), feeding [liveTriggered] here.
+ * buttons, matching the [ApplyBabystepBody] pattern. Side padding matches Probe Calibrate: buttons
+ * fill edge-to-edge of the Focus inset; only the readout row carries inner horizontal padding.
  */
 @Composable
 internal fun ProbeTestBody(
@@ -1328,8 +1349,6 @@ internal fun ProbeTestBody(
     samplesIdx: Int,
     dispatcher: CommandDispatcher?,
     uDp: Dp,
-    liveTriggered: Boolean? = null,
-    probeIsZEndstop: Boolean = false,
     onSamplesUp: () -> Unit,
     onSamplesDown: () -> Unit,
     modifier: Modifier = Modifier,
@@ -1337,73 +1356,43 @@ internal fun ProbeTestBody(
     val t = LocalTokens.current
     Box(modifier) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 12.dp),
+            modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            // ── Row1: Status dot + OPEN/TRIGGERED text + last Z ───────────────
+            // Last Z + accuracy form one block, vertically centered in the free space above the
+            // control zone (owner UAT 2026-06-28): weight spacer above the pair, another below.
+            Spacer(Modifier.weight(1f))
+
+            // ── Last Z readout: label start, value end (mirrors the Calibrate ReadoutRow grammar) ──
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = fsSp(12f, t.fs).dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                // Live probe switch status — polled via query_endstops (stepper_z) ONLY when the probe
-                // is the Z endstop; otherwise no live indicator ("—"). Driven by liveTriggered (Task 4
-                // poll), NOT vm.triggered.
-                val shown: Boolean? = if (probeIsZEndstop) liveTriggered else null
-                val dotColor = when (shown) {
-                    true  -> t.stop
-                    false -> t.accent
-                    null  -> t.text3
-                }
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Box(
-                        Modifier
-                            .size(14.dp)
-                            .clip(CircleShape)
-                            .background(dotColor),
-                    )
-                    val statusText = when (shown) {
-                        true  -> stringResource(R.string.probe_test_status_triggered)
-                        false -> stringResource(R.string.probe_test_status_open)
-                        null  -> "—"
-                    }
+                Text(
+                    text = stringResource(R.string.probe_test_last_z_label),
+                    style = JiibType.body.toTextStyle(t),
+                    color = t.text2,
+                )
+                Spacer(Modifier.weight(1f))
+                Text(
+                    text = vm.lastZ?.let { probeTestFmtZ(it) } ?: "—",
+                    style = JiibType.statValue.toTextStyle(t),
+                    color = t.text,
+                )
+                if (vm.lastZ != null) {
+                    Spacer(Modifier.width(4.dp))
                     Text(
-                        text = statusText,
-                        style = JiibType.body.toTextStyle(t),
-                        color = dotColor,
-                    )
-                }
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Text(
-                        text = stringResource(R.string.probe_test_last_z_label),
+                        text = "mm",
                         style = JiibType.caption.toTextStyle(t),
-                        color = t.text2,
+                        color = t.text3,
                     )
-                    Text(
-                        text = vm.lastZ?.let { probeTestFmtZ(it) } ?: "—",
-                        style = JiibType.statValue.toTextStyle(t),
-                        color = t.text,
-                    )
-                    if (vm.lastZ != null) {
-                        Text(
-                            text = "mm",
-                            style = JiibType.caption.toTextStyle(t),
-                            color = t.text3,
-                        )
-                    }
                 }
             }
 
-            // ── Row2: Accuracy stat block (or "—" when no run yet) ────────────
+            // ── Accuracy stat block (or "—" when no run yet), directly below the Last Z row ──
             val acc = vm.accuracy
             if (acc != null) {
                 ProbeTestAccuracyBlock(acc)
@@ -1414,11 +1403,9 @@ internal fun ProbeTestBody(
                     color = t.text3,
                 )
             }
-
-            // Pin the control zone (samples + action buttons) to the BOTTOM of the Focus.
             Spacer(Modifier.weight(1f))
 
-            // ── Samples stepper [−] n [+] ─────────────────────────────────────
+            // ── Samples stepper [−] n [+] (theme-accent intent per owner UAT) ──
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1433,7 +1420,7 @@ internal fun ProbeTestBody(
                             if (samplesIdx > 0) Modifier
                             else Modifier.alpha(0.38f).semantics { disabled() },
                         ),
-                    intent = Intent.Neutral,
+                    intent = Intent.Accent,
                     icon = JiibIcons.Decrease,
                     contentDescription = stringResource(R.string.probe_test_cd_samples_decrease),
                     enabled = samplesIdx > 0,
@@ -1451,14 +1438,14 @@ internal fun ProbeTestBody(
                             if (samplesIdx < SAMPLES_STEPS.lastIndex) Modifier
                             else Modifier.alpha(0.38f).semantics { disabled() },
                         ),
-                    intent = Intent.Neutral,
+                    intent = Intent.Accent,
                     icon = JiibIcons.Increase,
                     contentDescription = stringResource(R.string.probe_test_cd_samples_increase),
                     enabled = samplesIdx < SAMPLES_STEPS.lastIndex,
                 )
             }
 
-            // ── Row4: Single Probe + Probe Accuracy (all Go intent) ───────────
+            // ── Probe + Accuracy action buttons (all Go intent) ──
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
