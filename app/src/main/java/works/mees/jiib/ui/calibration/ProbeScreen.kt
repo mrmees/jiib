@@ -254,8 +254,11 @@ fun ProbeScreen(
     val probeIsZEndstop = capabilities.probeIsZEndstop
     val pollDispatcher by rememberUpdatedState(dispatcher)
     val probeLifecycleOwner = LocalLifecycleOwner.current
-    LaunchedEffect(selected, probeIsZEndstop, probeLifecycleOwner) {
-        if (selected != ProbeTool.PROBE_TEST || !probeIsZEndstop) {
+    // Suspend the poll while a print is active: query_endstops flushes Klipper's motion lookahead +
+    // takes the gcode mutex, so hammering it mid-print can stutter motion (the reason QUERY_ENDSTOPS
+    // isn't run during prints). Show "—" while printing.
+    LaunchedEffect(selected, probeIsZEndstop, isPrinting, probeLifecycleOwner) {
+        if (selected != ProbeTool.PROBE_TEST || !probeIsZEndstop || isPrinting) {
             probeLiveTriggered = null
             return@LaunchedEffect
         }
@@ -1303,18 +1306,21 @@ internal fun ApplyBabystepBody(
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Focus body for the Probe Test tool (Task R3). Renders four rows of content:
- *  Row1 — color-coded status dot (t.stop = TRIGGERED, t.accent = OPEN) + status text + last-Z.
- *  Row2 — six-stat accuracy grid (range / σ / avg / median / min / max) when [ProbeTestVm.accuracy]
- *    is non-null; a single "—" placeholder otherwise.
+ * Focus body for the Probe Test tool. Renders four rows of content:
+ *  Row1 — color-coded LIVE status dot (t.stop = TRIGGERED, t.accent = OPEN, t.text3 = "—") + status
+ *    text + last-Z. The status is driven by [liveTriggered] (the query_endstops poll) when
+ *    [probeIsZEndstop]; otherwise "—" (no live read on a separate physical Z endstop).
+ *  Row2 — six-stat accuracy grid (range / σ / avg / median / min / max), single-line autosize so it
+ *    shrinks to width; a single "—" placeholder when [ProbeTestVm.accuracy] is null.
  *  Row3 — samples stepper `[−] n [+]` (endpoints disable at 0 / lastIndex).
- *  Row4 — `[Query]` + `[Probe Once]` + `[Run Accuracy]` buttons (all [Intent.Go]).
+ *  Row4 — `[Single Probe]` + `[Probe Accuracy]` buttons (both [Intent.Go]).
  *
  * No [ConfirmGuard] is needed here (no SAVE_CONFIG path). No foot-bar actions — the foot bar
  * stays Back-only from [ProbeContent]'s field. The `dispatcher` is called directly from the
  * buttons, matching the [ApplyBabystepBody] pattern.
  *
- * The auto-queryProbe [LaunchedEffect] lives in the STATEFUL [ProbeScreen], not here.
+ * The live `query_endstops` poll lives in the STATEFUL [ProbeScreen] (gated on PROBE_TEST selected +
+ * [probeIsZEndstop] + not-printing), feeding [liveTriggered] here.
  */
 @Composable
 internal fun ProbeTestBody(
