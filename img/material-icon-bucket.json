@@ -1567,6 +1567,114 @@
       "updatedAt": 1780767669329,
       "key": "Material Symbols Outlined::instant_mix",
       "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Ainstant_mix%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4048&icon.size=48&icon.color=%23e3e3e3"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "lab_research",
+      "label": "Lab Research",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#e3e3e3",
+      "size": "24",
+      "notes": "Probe Section: Probe Test screen header + hub tile (owner-assigned 2026-06-27, probe-section Task 0)",
+      "createdAt": 1782000000000,
+      "updatedAt": 1782000000000,
+      "key": "Material Symbols Outlined::lab_research",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Alab_research%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%23e3e3e3"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "indeterminate_question_box",
+      "label": "Indeterminate Question Box",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#e3e3e3",
+      "size": "24",
+      "notes": "Probe Section: Probe Test \u2014 Query probe status action glyph (owner-assigned 2026-06-27, probe-section Task 0)",
+      "createdAt": 1782000000001,
+      "updatedAt": 1782000000001,
+      "key": "Material Symbols Outlined::indeterminate_question_box",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Aindeterminate_question_box%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%23e3e3e3"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "labs",
+      "label": "Labs",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#e3e3e3",
+      "size": "24",
+      "notes": "Probe Section: Probe Test \u2014 Probe Once action glyph (owner-assigned 2026-06-27, probe-section Task 0)",
+      "createdAt": 1782000000002,
+      "updatedAt": 1782000000002,
+      "key": "Material Symbols Outlined::labs",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Alabs%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%23e3e3e3"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "detector_status",
+      "label": "Detector Status",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#e3e3e3",
+      "size": "24",
+      "notes": "Probe Section: Eddy Current sensor Calibrate screen header + hub row (owner-assigned 2026-06-27, probe-section Task 0)",
+      "createdAt": 1782000000003,
+      "updatedAt": 1782000000003,
+      "key": "Material Symbols Outlined::detector_status",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Adetector_status%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%23e3e3e3"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "detector_offline",
+      "label": "Detector Offline",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#e3e3e3",
+      "size": "24",
+      "notes": "Probe Section: Eddy Current sensor Tap Threshold screen header + hub row (owner-assigned 2026-06-27, probe-section Task 0)",
+      "createdAt": 1782000000004,
+      "updatedAt": 1782000000004,
+      "key": "Material Symbols Outlined::detector_offline",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Adetector_offline%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%23e3e3e3"
+    },
+    {
+      "family": "Material Symbols Outlined",
+      "iconName": "detector_smoke",
+      "label": "Detector Smoke",
+      "axes": {
+        "FILL": "0",
+        "wght": "400",
+        "GRAD": "0",
+        "opsz": "24"
+      },
+      "color": "#e3e3e3",
+      "size": "24",
+      "notes": "Probe Section: Eddy Current sensor Drive Current screen header + hub row (owner-assigned 2026-06-27, probe-section Task 0)",
+      "createdAt": 1782000000005,
+      "updatedAt": 1782000000005,
+      "key": "Material Symbols Outlined::detector_smoke",
+      "url": "https://fonts.google.com/icons?selected=Material+Symbols+Outlined%3Adetector_smoke%3AFILL%400%3Bwght%40400%3BGRAD%400%3Bopsz%4024&icon.size=24&icon.color=%23e3e3e3"
     }
   ]
 }

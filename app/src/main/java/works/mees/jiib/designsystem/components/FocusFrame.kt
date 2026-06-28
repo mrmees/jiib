@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,6 +26,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
@@ -241,6 +244,7 @@ fun FocusFrame(
     title: String,
     icon: JiibIcon,
     iconTint: Color? = null,
+    titleColor: Color? = null,
     uDp: Dp,
     modifier: Modifier = Modifier,
     edge: FocusEdge = FocusEdge.Neutral,
@@ -255,6 +259,7 @@ fun FocusFrame(
     trailingStatusIcon: JiibIcon? = null,
     trailingStatusTint: Color? = null,
     trailingStatusContentDescription: String? = null,
+    trailingStatusDotColor: Color? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val t = LocalTokens.current
@@ -284,6 +289,7 @@ fun FocusFrame(
             title = title,
             icon = icon,
             iconTint = iconTint,
+            titleColor = titleColor,
             uDp = uDp,
             isPrinting = isPrinting,
             safetyActive = safetyActive,
@@ -295,6 +301,7 @@ fun FocusFrame(
             trailingStatusIcon = trailingStatusIcon,
             trailingStatusTint = trailingStatusTint,
             trailingStatusContentDescription = trailingStatusContentDescription,
+            trailingStatusDotColor = trailingStatusDotColor,
         )
         // Header/content divider (owner UAT 2026-06-15): a full-width hairline landmark under the
         // title so centered content reads against a clear top boundary instead of floating in the
@@ -331,6 +338,7 @@ private fun FocusHeader(
     title: String,
     icon: JiibIcon,
     iconTint: Color? = null,
+    titleColor: Color? = null,
     uDp: Dp,
     isPrinting: Boolean,
     safetyActive: Boolean,
@@ -342,6 +350,7 @@ private fun FocusHeader(
     trailingStatusIcon: JiibIcon? = null,
     trailingStatusTint: Color? = null,
     trailingStatusContentDescription: String? = null,
+    trailingStatusDotColor: Color? = null,
 ) {
     val t = LocalTokens.current
     var showGuard by remember { mutableStateOf(false) }
@@ -369,13 +378,14 @@ private fun FocusHeader(
             ).size.width.toFloat()
         }
         val endSlotOccupied =
-            (trailingActionIcon != null && onTrailingAction != null) || trailingStatusIcon != null
+            (trailingActionIcon != null && onTrailingAction != null) ||
+                trailingStatusIcon != null || trailingStatusDotColor != null
         val layout = resolveHeaderTitleLayout(availPx, titleWidthPx, slotPx, endSlotOccupied)
         // Centered title: symmetric padding when it fits (true center); reclaim the trailing slot only
         // when it overflows AND no end glyph occupies it; marquee only on the overflow path.
         Text(
             text = title,
-            color = t.text,
+            color = titleColor ?: t.text,
             style = titleStyle,
             maxLines = 1,
             textAlign = TextAlign.Center,
@@ -458,6 +468,33 @@ private fun FocusHeader(
                     tint = trailingStatusTint ?: t.text2,
                     sizeDp = slot * IDENTITY_ICON_RATIO,
                     contentDescription = trailingStatusContentDescription,
+                )
+            }
+        }
+        // End slot, status DOT variant: a NON-interactive colored circle (a shape, not a glyph —
+        // icon-law safe). Used by Probe Test for the live probe-switch status (open/triggered).
+        // Lowest priority — yields the slot to the tappable action and the status glyph.
+        val dotColor = trailingStatusDotColor
+        if (dotColor != null &&
+            trailingStatusIcon == null &&
+            !(trailingActionIcon != null && onTrailingAction != null)
+        ) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .size(slot),
+                contentAlignment = Alignment.Center,
+            ) {
+                Box(
+                    Modifier
+                        .size(slot * 0.24f)
+                        .clip(CircleShape)
+                        .background(dotColor)
+                        .then(
+                            trailingStatusContentDescription?.let { cd ->
+                                Modifier.semantics { contentDescription = cd }
+                            } ?: Modifier,
+                        ),
                 )
             }
         }

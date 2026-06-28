@@ -37,11 +37,10 @@ class NavDestRoundTripTest {
     @Test fun theme_roundTrips()         { assertRoundTrip(NavDest.Theme) }
 
     // ---------------------------------------------------------------------------
-    // Six calibration sub-routes (Phase 27, D-07) — explicit coverage
+    // Calibration sub-routes (Phase 27, D-07; CalibrationProbe retired R1)
     // ---------------------------------------------------------------------------
 
     @Test fun calibrationHub_roundTrips()         { assertRoundTrip(NavDest.CalibrationHub) }
-    @Test fun calibrationProbe_roundTrips()       { assertRoundTrip(NavDest.CalibrationProbe) }
     @Test fun calibrationBedMesh_roundTrips()     { assertRoundTrip(NavDest.CalibrationBedMesh) }
     @Test fun calibrationScrewsTilt_roundTrips()  { assertRoundTrip(NavDest.CalibrationScrewsTilt) }
     @Test fun calibrationZTilt_roundTrips()       { assertRoundTrip(NavDest.CalibrationZTilt) }
@@ -88,6 +87,17 @@ class NavDestRoundTripTest {
     }
 
     // ---------------------------------------------------------------------------
+    // R1: single Probe screen (replaces ProbeHub + 5 probe tool routes)
+    // ---------------------------------------------------------------------------
+
+    @Test fun probe_roundTrips() { assertRoundTrip(NavDest.Probe) }
+
+    @Test
+    fun probe_isInKnownNavDests() {
+        assertTrue("NavDest.Probe must be in knownNavDests", NavDest.Probe in knownNavDests)
+    }
+
+    // ---------------------------------------------------------------------------
     // D-07 CalibrationRoutine → NavDest mapping helper
     // ---------------------------------------------------------------------------
 
@@ -100,7 +110,8 @@ class NavDestRoundTripTest {
 
     @Test
     fun calibrationRoutineToNavDest_probe_mapsToProbeRoute() {
-        assertEquals(NavDest.CalibrationProbe,
+        // R1: PROBE_CALIBRATE now maps to NavDest.Probe (single probe screen), not CalibrationProbe.
+        assertEquals(NavDest.Probe,
             works.mees.jiib.calibration.CalibrationRoutine.PROBE_CALIBRATE.toNavDest())
     }
 

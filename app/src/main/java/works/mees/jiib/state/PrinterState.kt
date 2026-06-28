@@ -156,6 +156,24 @@ data class PrinterState(
     /** `manual_probe` (CALIB-05 / D-01): the interactive Z-calibrate session state. Null when never opened. */
     val manualProbe: ManualProbeObject? = null,
 
+    /**
+     * `probe.last_query` (Task 6) — true if the last probe query reported the probe as triggered
+     * (i.e. the probe sensed contact). The wire value is an INTEGER (0 or 1), not a JSON boolean
+     * (hardware-verified on E5+ and E3); the reducer maps non-zero to true. Null until first
+     * reported in a diff/snapshot, or when the `probe` object is absent from the subscription
+     * (printer has no deployable probe). Retain-on-absent merge (a diff without `probe` keeps
+     * the prior value).
+     */
+    val probeLastQuery: Boolean? = null,
+
+    /**
+     * `probe.last_z_result` (Task 6) — the Z height (mm) at which the last probe touch was
+     * detected. A FLOAT on the wire (hardware-verified). Null until first reported. Retain-on-absent
+     * merge. Distinct from `last_probe_position[2]` (the full XYZ tuple); `last_z_result` is the
+     * confirmed, simpler source for a scalar Z readout.
+     */
+    val probeLastZ: Double? = null,
+
     // --- Phase-17 Fine-Tune live readback fields (TUNE-02/03) ------------------------------------
     // All NULLABLE (null = the printer has never reported the value in a diff/snapshot — D-20 readout
     // honesty: never fabricate a 0). Surfaced VERBATIM/RAW from `notify_status_update` — the reducer

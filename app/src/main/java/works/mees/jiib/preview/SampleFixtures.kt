@@ -1,11 +1,14 @@
 package works.mees.jiib.preview
 
+import works.mees.jiib.calibration.ApplyBabystepVm
 import works.mees.jiib.calibration.BedMeshModel
 import works.mees.jiib.calibration.BedMeshVm
 import works.mees.jiib.calibration.CalibrationRoutine
 import works.mees.jiib.calibration.GuidedLoopState
+import works.mees.jiib.calibration.ProbeAccuracyResult
 import works.mees.jiib.calibration.ProbeCalibrateVm
 import works.mees.jiib.calibration.ProbePageState
+import works.mees.jiib.calibration.ProbeTestVm
 import works.mees.jiib.calibration.RoutineEntry
 import works.mees.jiib.calibration.ScrewPoint
 import works.mees.jiib.calibration.ScrewTurn
@@ -246,6 +249,25 @@ object SampleFixtures {
         RoutineEntry(CalibrationRoutine.QUAD_GANTRY_LEVEL, isSupported = false),
     )
 
+    /**
+     * Probe tool hub list fixture (Task 14 — ProbeHubContent previews).
+     *
+     * E3/E5 test printer profile: Z_OFFSET (manual_probe), PROBE_TEST (probe), and
+     * APPLY_BABYSTEP (gcode_move) are supported; the three EDDY_* tools are unsupported
+     * (no eddy probe on these printers). Supported tools sort first (D-06 convention).
+     *
+     * The [showUnsupportedTools] flag is true in preview so all six rows render — unsupported
+     * entries are visible but dimmed, exercising the D-06 greyed-but-listed path.
+     */
+    val probeToolList: List<works.mees.jiib.calibration.ProbeToolEntry> = listOf(
+        works.mees.jiib.calibration.ProbeToolEntry(works.mees.jiib.calibration.ProbeTool.Z_OFFSET, isSupported = true),
+        works.mees.jiib.calibration.ProbeToolEntry(works.mees.jiib.calibration.ProbeTool.PROBE_TEST, isSupported = true),
+        works.mees.jiib.calibration.ProbeToolEntry(works.mees.jiib.calibration.ProbeTool.APPLY_BABYSTEP, isSupported = true),
+        works.mees.jiib.calibration.ProbeToolEntry(works.mees.jiib.calibration.ProbeTool.EDDY_CALIBRATE, isSupported = false),
+        works.mees.jiib.calibration.ProbeToolEntry(works.mees.jiib.calibration.ProbeTool.EDDY_TAP, isSupported = false),
+        works.mees.jiib.calibration.ProbeToolEntry(works.mees.jiib.calibration.ProbeTool.EDDY_DRIVE_CURRENT, isSupported = false),
+    )
+
     // ---------------------------------------------------------------------------------------------
     // ProbeCalibrateContent fixtures (per-state stub snapshots — no live VM — 27-04)
     // ---------------------------------------------------------------------------------------------
@@ -331,6 +353,40 @@ object SampleFixtures {
             homedGate = true,
         )
     }
+
+    // ---------------------------------------------------------------------------------------------
+    // ProbeTestContent fixtures (Task 17)
+    // ---------------------------------------------------------------------------------------------
+
+    /**
+     * A [ProbeTestVm] with triggered status and last-Z result — the "just queried" state.
+     * The probe fired on the last query (`triggered = true`) and the last probed Z is 2.0125.
+     */
+    val probeTestTriggered: ProbeTestVm = ProbeTestVm(
+        triggered = true,
+        lastZ = 2.0125,
+        accuracy = null,
+    )
+
+    /**
+     * A [ProbeTestVm] with OPEN status and a completed PROBE_ACCURACY result. Exercises the full
+     * Focus body (dot + status + last-Z + 6-stat accuracy block).
+     */
+    val probeTestWithAccuracy: ProbeTestVm = ProbeTestVm(
+        triggered = false,
+        lastZ = 2.0050,
+        accuracy = ProbeAccuracyResult(
+            maximum  = 2.0125,
+            minimum  = 2.0000,
+            range    = 0.0125,
+            average  = 2.0050,
+            median   = 2.0050,
+            stdDev   = 0.0035,
+        ),
+    )
+
+    /** A [ProbeTestVm] with no data yet — all fields null; the "just opened the screen" state. */
+    val probeTestNoData: ProbeTestVm = ProbeTestVm()
 
     // ---------------------------------------------------------------------------------------------
     // ScrewsTiltContent fixtures (idle + result snapshots — 27-06)
@@ -459,5 +515,36 @@ object SampleFixtures {
             host = "192.168.1.121",
             port = 7125,
         ),
+    )
+
+    // ---------------------------------------------------------------------------------------------
+    // ApplyBabystepContent fixtures (Task 18)
+    // Two variants: canApply=true with realistic values; canApply=false with null values.
+    // ---------------------------------------------------------------------------------------------
+
+    /**
+     * [ApplyBabystepVm] with a realistic live babystep — saved = 2.040 mm, babystep = −0.060 mm,
+     * new offset = 2.040 − (−0.060) = 2.100 mm. [canApply] = true (both values present, babystep ≠ 0).
+     */
+    val applyBabystepCanApply: ApplyBabystepVm = ApplyBabystepVm(
+        savedOffset = 2.040,
+        liveBabystep = -0.060,
+        newOffset = 2.100,
+        applyCommand = "Z_OFFSET_APPLY_PROBE",
+        canApply = true,
+    )
+
+    /**
+     * [ApplyBabystepVm] with no data yet — all values null, canApply = false.
+     * Represents the screen opened before Klipper has reported any offset data.
+     */
+    val applyBabystepNoData: ApplyBabystepVm = ApplyBabystepVm()
+
+    /** Active with a saved offset but ZERO live babystep → Clear/Save both disabled. */
+    val applyBabystepZero: ApplyBabystepVm = ApplyBabystepVm(
+        savedOffset = 2.040,
+        liveBabystep = 0.0,
+        newOffset = 2.040,
+        canApply = false,
     )
 }

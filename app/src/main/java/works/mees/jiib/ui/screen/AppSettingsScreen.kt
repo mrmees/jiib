@@ -58,7 +58,7 @@ import works.mees.jiib.theme.compose.toTextStyle
 import works.mees.jiib.ui.settings.TextSizeSelector
 
 /** Which App Settings row is selected; null = no selection (Focus shows the overview placeholder). */
-enum class AppSetting { TextSize, KeepAwake, Webcam, Babystep, Battery, DevWidgets }
+enum class AppSetting { TextSize, KeepAwake, Webcam, Babystep, Battery, DevWidgets, ShowUnsupportedTools }
 
 /**
  * The **App Settings** screen (APP-SETTINGS-01) — app-global preferences that apply
@@ -102,6 +102,9 @@ fun AppSettingsScreen(
     // App-global webcam toggle (moved from per-printer, 2026-06-15) — process-scoped, durable.
     val webcamEnabled by container.webcamEnabled.collectAsStateWithLifecycle(true)
 
+    // Show unsupported tools toggle (probe-section Task 1) — process-scoped, durable.
+    val showUnsupportedTools by container.showUnsupportedTools.collectAsStateWithLifecycle(false)
+
     // Theme dev-widget cyclers (moved here from the retired About screen, 2026-06-19) — process-scoped,
     // durable writeScope intent (never a composition scope, T-28-07-02).
     val devEnabled by container.devCyclerEnabled.collectAsStateWithLifecycle(initialValue = false)
@@ -130,6 +133,8 @@ fun AppSettingsScreen(
         onKeepScreenOnToggle = { container.setKeepScreenOn(it) },
         webcamEnabled = webcamEnabled,
         onWebcamToggle = { container.setWebcamEnabled(it) },
+        showUnsupportedTools = showUnsupportedTools,
+        onShowUnsupportedToolsToggle = { container.setShowUnsupportedTools(it) },
         devEnabled = devEnabled,
         onDevToggle = { container.setDevCyclerEnabled(it) },
         babystepOn = babystepOn,
@@ -171,6 +176,8 @@ fun AppSettingsContent(
     onKeepScreenOnToggle: (Boolean) -> Unit,
     webcamEnabled: Boolean,
     onWebcamToggle: (Boolean) -> Unit,
+    showUnsupportedTools: Boolean,
+    onShowUnsupportedToolsToggle: (Boolean) -> Unit,
     devEnabled: Boolean,
     onDevToggle: (Boolean) -> Unit,
     babystepOn: Boolean,
@@ -201,6 +208,8 @@ fun AppSettingsContent(
                     onKeepScreenOnToggle = onKeepScreenOnToggle,
                     webcamEnabled = webcamEnabled,
                     onWebcamToggle = onWebcamToggle,
+                    showUnsupportedTools = showUnsupportedTools,
+                    onShowUnsupportedToolsToggle = onShowUnsupportedToolsToggle,
                     devEnabled = devEnabled,
                     onDevToggle = onDevToggle,
                     babystepOn = babystepOn,
@@ -244,6 +253,16 @@ fun AppSettingsContent(
                             icon = JiibIcons.LauncherWebcam,
                             label = stringResource(R.string.settings_webcam),
                             indicator = stringResource(onOffRes(webcamEnabled)),
+                            uDp = grid.uDp,
+                        )
+                    }
+                    item {
+                        AppSettingRow(
+                            selected = selected == AppSetting.ShowUnsupportedTools,
+                            onClick = { selected = if (selected == AppSetting.ShowUnsupportedTools) null else AppSetting.ShowUnsupportedTools },
+                            icon = JiibIcons.Visibility,
+                            label = stringResource(R.string.settings_show_unsupported_tools),
+                            indicator = stringResource(onOffRes(showUnsupportedTools)),
                             uDp = grid.uDp,
                         )
                     }
@@ -358,6 +377,8 @@ private fun AppSettingsFocus(
     onKeepScreenOnToggle: (Boolean) -> Unit,
     webcamEnabled: Boolean,
     onWebcamToggle: (Boolean) -> Unit,
+    showUnsupportedTools: Boolean,
+    onShowUnsupportedToolsToggle: (Boolean) -> Unit,
     devEnabled: Boolean,
     onDevToggle: (Boolean) -> Unit,
     babystepOn: Boolean,
@@ -441,6 +462,18 @@ private fun AppSettingsFocus(
                 label = stringResource(R.string.settings_webcam),
                 checked = webcamEnabled,
                 onToggle = onWebcamToggle,
+                uDp = uDp,
+            )
+        }
+        AppSetting.ShowUnsupportedTools -> frame(
+            stringResource(R.string.settings_show_unsupported_tools),
+            JiibIcons.Visibility,
+            stringResource(R.string.settings_show_unsupported_tools_focus),
+        ) {
+            ToggleRow(
+                label = stringResource(R.string.settings_show_unsupported_tools),
+                checked = showUnsupportedTools,
+                onToggle = onShowUnsupportedToolsToggle,
                 uDp = uDp,
             )
         }

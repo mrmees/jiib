@@ -16,20 +16,25 @@ import org.junit.Test
  */
 class FootGunDestsTest {
 
+    // R1: FOOT_GUN_DESTS shrunk from 14 → 8 (CalibrationProbe + ProbeHub + 5 probe tool routes
+    // replaced by single NavDest.Probe).
     @Test
     fun footGunDests_containsExactlyEightMembers() {
-        assertEquals("FOOT_GUN_DESTS must have exactly 8 members (Move + Extrude + 6 CalibrationXxx)",
+        assertEquals(
+            "FOOT_GUN_DESTS must have exactly 8 members " +
+                "(Move + Extrude + CalibrationHub + 4 CalibrationXxx routines + Probe)",
             8, FOOT_GUN_DESTS.size)
     }
 
-    @Test fun move_isInFootGunDests()                { assertTrue(NavDest.Move in FOOT_GUN_DESTS) }
-    @Test fun extrude_isInFootGunDests()             { assertTrue(NavDest.Extrude in FOOT_GUN_DESTS) }
-    @Test fun calibrationHub_isInFootGunDests()      { assertTrue(NavDest.CalibrationHub in FOOT_GUN_DESTS) }
-    @Test fun calibrationProbe_isInFootGunDests()    { assertTrue(NavDest.CalibrationProbe in FOOT_GUN_DESTS) }
-    @Test fun calibrationBedMesh_isInFootGunDests()  { assertTrue(NavDest.CalibrationBedMesh in FOOT_GUN_DESTS) }
+    @Test fun move_isInFootGunDests()                  { assertTrue(NavDest.Move in FOOT_GUN_DESTS) }
+    @Test fun extrude_isInFootGunDests()               { assertTrue(NavDest.Extrude in FOOT_GUN_DESTS) }
+    @Test fun calibrationHub_isInFootGunDests()        { assertTrue(NavDest.CalibrationHub in FOOT_GUN_DESTS) }
+    @Test fun calibrationBedMesh_isInFootGunDests()    { assertTrue(NavDest.CalibrationBedMesh in FOOT_GUN_DESTS) }
     @Test fun calibrationScrewsTilt_isInFootGunDests() { assertTrue(NavDest.CalibrationScrewsTilt in FOOT_GUN_DESTS) }
-    @Test fun calibrationZTilt_isInFootGunDests()    { assertTrue(NavDest.CalibrationZTilt in FOOT_GUN_DESTS) }
-    @Test fun calibrationQgl_isInFootGunDests()      { assertTrue(NavDest.CalibrationQgl in FOOT_GUN_DESTS) }
+    @Test fun calibrationZTilt_isInFootGunDests()      { assertTrue(NavDest.CalibrationZTilt in FOOT_GUN_DESTS) }
+    @Test fun calibrationQgl_isInFootGunDests()        { assertTrue(NavDest.CalibrationQgl in FOOT_GUN_DESTS) }
+    // R1: single Probe screen is foot-gun (calibration-class, hazardous mid-print)
+    @Test fun probe_isInFootGunDests()                 { assertTrue(NavDest.Probe in FOOT_GUN_DESTS) }
 
     /** Valid mid-print destinations must NOT be in FOOT_GUN_DESTS. */
     @Test

@@ -443,6 +443,30 @@ object JiibIcons {
     /** Mesh Config → View Type selector: Probe Points option glyph. */
     val MeshViewProbe = JiibIcon(IconRef.Ligature("transition_dissolve"), alternate = "transition_dissolve")
 
+    // --- Probe Section glyphs (probe-section Task 0, OWNER-ASSIGNED 2026-06-27 — FINAL.
+    // Never substitute; hard owner law [[dinghy-never-pick-icons-ask]].
+    // All six ligatures registered in img/material-icon-bucket.json and verified by
+    // tools/verify_ligatures.py (Task-0 gate).
+    // REUSE (no new tokens): RoutineProbeCalibrate=detector (Z-Offset Calibrate header + Probe hub
+    // row + Calibration hub row), Babystep=stacks (Apply Babystepping row/header),
+    // CalibrationRun=play_circle (Run Accuracy action). )
+    /** Probe Section hub tile + Probe Test screen header/row (lab_research). */
+    val ProbeTestTool    = JiibIcon(IconRef.Ligature("lab_research"),              alternate = "probe_test_tool")
+    /** Probe Test — Query the probe status action glyph (indeterminate_question_box). */
+    val ProbeQuery       = JiibIcon(IconRef.Ligature("indeterminate_question_box"), alternate = "probe_query")
+    /** Probe Test — Probe Once action glyph (labs). */
+    val ProbeOnce        = JiibIcon(IconRef.Ligature("labs"),                      alternate = "probe_once")
+    /** Single Probe (one PROBE) — owner-picked glyph. */
+    val ProbeSingle      = JiibIcon(IconRef.Ligature("1x_mobiledata"),             alternate = "probe_single")
+    /** Probe Accuracy (PROBE_ACCURACY stats) — owner-picked glyph. */
+    val ProbeAccuracy    = JiibIcon(IconRef.Ligature("bar_chart_4_bars"),          alternate = "probe_accuracy")
+    /** Eddy Current sensor: Calibrate screen header + hub row glyph (detector_status). */
+    val EddyCalibrate    = JiibIcon(IconRef.Ligature("detector_status"),           alternate = "eddy_calibrate")
+    /** Eddy Current sensor: Tap Threshold screen header + hub row glyph (detector_offline). */
+    val EddyTap          = JiibIcon(IconRef.Ligature("detector_offline"),          alternate = "eddy_tap")
+    /** Eddy Current sensor: Drive Current screen header + hub row glyph (detector_smoke). */
+    val EddyDriveCurrent = JiibIcon(IconRef.Ligature("detector_smoke"),            alternate = "eddy_drive_current")
+
     /**
      * Hand-rolled list of every entry above — the Phase-22-readiness handle (the registry-iteration
      * source for `tools/subset-symbols` and the uniqueness test). Add new entries here when you add a
@@ -489,5 +513,6 @@ object JiibIcons {
         Babystep,
         Contrast, InvertColors, Colors, Star, Shuffle, HumidityHigh, WaterDrop,
         BlurCircular, HdrStrong, HdrWeak, Preview, MeshView2D, MeshViewIso, MeshViewProbe,
+        ProbeTestTool, ProbeQuery, ProbeOnce, ProbeSingle, ProbeAccuracy, EddyCalibrate, EddyTap, EddyDriveCurrent,
     )
 }

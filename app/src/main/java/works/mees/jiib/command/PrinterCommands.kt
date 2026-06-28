@@ -235,6 +235,56 @@ object PrinterCommands {
     /** `SAVE_CONFIG` — persist config + restart the host (D-12; reuses the G2 re-handshake). */
     const val SAVE_CONFIG = "SAVE_CONFIG"
 
+    // --- Probe / Eddy gcode (Phase 30 — probe section) -------------------------------------------
+
+    /** `QUERY_PROBE` — report the current probe state (triggered / not-triggered). */
+    const val QUERY_PROBE = "QUERY_PROBE"
+
+    /** `PROBE` — run a single probe cycle and report the Z height. */
+    const val PROBE = "PROBE"
+
+    /** `SET_GCODE_OFFSET Z=0 MOVE=1` — clear the live gcode Z offset (babystep) back to zero. MOVE=1
+     *  applies it immediately, mirroring the live-adjust nudge. Used by the Apply Babystepping "Clear". */
+    const val SET_GCODE_OFFSET_CLEAR = "SET_GCODE_OFFSET Z=0 MOVE=1"
+
+    /** `Z_OFFSET_APPLY_PROBE` — persist the probe's live Z-offset to the config file. */
+    const val Z_OFFSET_APPLY_PROBE = "Z_OFFSET_APPLY_PROBE"
+
+    /** `Z_OFFSET_APPLY_ENDSTOP` — persist the endstop's live Z-offset to the config file. */
+    const val Z_OFFSET_APPLY_ENDSTOP = "Z_OFFSET_APPLY_ENDSTOP"
+
+    /**
+     * `PROBE_ACCURACY SAMPLES=<n>` — run [samples] probe cycles and report statistics.
+     * [samples] is coerced to a minimum of 1 (ASVS V5: clamp before format).
+     */
+    fun probeAccuracy(samples: Int): String =
+        "PROBE_ACCURACY SAMPLES=${samples.coerceAtLeast(1)}"
+
+    /**
+     * `PROBE_EDDY_CURRENT_CALIBRATE [CHIP=<chip>]` — calibrate the Eddy-current probe.
+     * When [chip] is blank/whitespace the `CHIP=` argument is omitted entirely (bare command).
+     */
+    fun eddyCalibrate(chip: String): String {
+        val chipArg = chip.trim().takeIf { it.isNotEmpty() }?.let { " CHIP=$it" } ?: ""
+        return "PROBE_EDDY_CURRENT_CALIBRATE$chipArg"
+    }
+
+    /**
+     * `PROBE_EDDY_CURRENT_TAP_CALIBRATE TAP=<stage>` — run a tap-calibrate pass at [stage]
+     * (e.g. `"guess"`, `"automatic"`).
+     */
+    fun eddyTapCalibrate(stage: String): String =
+        "PROBE_EDDY_CURRENT_TAP_CALIBRATE TAP=$stage"
+
+    /**
+     * `LDC_CALIBRATE_DRIVE_CURRENT [CHIP=<chip>]` — calibrate the LDC drive current.
+     * When [chip] is blank/whitespace the `CHIP=` argument is omitted entirely (bare command).
+     */
+    fun ldcDriveCurrent(chip: String): String {
+        val chipArg = chip.trim().takeIf { it.isNotEmpty() }?.let { " CHIP=$it" } ?: ""
+        return "LDC_CALIBRATE_DRIVE_CURRENT$chipArg"
+    }
+
     /**
      * `SDCARD_RESET_FILE` — clear the loaded virtual_sdcard file after a Terminal print (D-05). Fixed
      * const gcode, zero interpolation (ASVS V5, T-16-03-02): the Print-Status Terminal-Dismiss gutter
@@ -435,6 +485,15 @@ object PrinterCommands {
         val canonical = sign(sign) * snapped
         return "SET_GCODE_OFFSET Z_ADJUST=${formatZ(canonical)} MOVE=1"
     }
+
+    /**
+     * `<applyCommand>\nSAVE_CONFIG` — bake the live Z-offset into config THEN persist+restart, as ONE
+     * ordered gcode block. [applyCommand] MUST be [Z_OFFSET_APPLY_PROBE] or [Z_OFFSET_APPLY_ENDSTOP].
+     * Sent as a single `gcode.script` so Klipper runs apply-then-save in order — they must NOT be two
+     * separate async dispatches (the Dispatchers.Default command scope can reorder the sends, which
+     * would SAVE_CONFIG the stale offset and restart before the apply landed).
+     */
+    fun applyZOffsetAndSave(applyCommand: String): String = "$applyCommand\n$SAVE_CONFIG"
 
     // --- Phase-17 Fine-Tune live-adjust builders (D-03..D-12) -------------------------------------
 

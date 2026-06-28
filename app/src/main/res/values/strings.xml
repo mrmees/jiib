@@ -511,14 +511,14 @@
     <string name="calibration_hub_title">Calibration</string>
 
     <!-- Routine titles -->
-    <string name="calibration_routine_probe_title">Probe Calibrate</string>
+    <string name="calibration_routine_probe_title">Nozzle Distance</string>
     <string name="calibration_routine_mesh_title">Bed Mesh</string>
     <string name="calibration_routine_screws_title">Screws Tilt</string>
     <string name="calibration_routine_ztilt_title">Z Tilt</string>
     <string name="calibration_routine_qgl_title">QGL</string>
 
     <!-- Routine descriptions (author-written, owner reviews at UAT per D-05) -->
-    <string name="calibration_routine_probe_desc">Precisely measures the distance between your probe and the nozzle tip. Tap to nudge the nozzle to paper-drag height, then accept.</string>
+    <string name="calibration_routine_probe_desc">Set the nozzle-to-bed distance — calibrate the probe\'s Z offset, test the probe, and live-adjust Z mid-print. Includes eddy-probe setup on supported hardware.</string>
     <string name="calibration_routine_mesh_desc">Maps the height variation across the print bed. Runs automatically — no interaction during calibration.</string>
     <string name="calibration_routine_screws_desc">Calculates how much to turn each bed-leveling screw. The display shows turns and direction.</string>
     <string name="calibration_routine_ztilt_desc">Adjusts multiple Z-axis motors for a level gantry. Runs automatically, may iterate.</string>
@@ -543,6 +543,20 @@
     <string name="probe_cd_nozzle">Nozzle</string>
     <!-- Quoted to preserve the deliberate double space between label and value. -->
     <string name="probe_saved_ref">"saved  %1$s"</string>
+
+    <!-- Z-Offset Calibrate screen (Field-list redesign) -->
+    <string name="zoffset_idle_blurb">Home all axes, then tap Start to begin Z-offset calibration.</string>
+    <string name="zoffset_move_up">Move Up</string>
+    <string name="zoffset_move_down">Move Down</string>
+    <string name="zoffset_increment_up">Increment Up</string>
+    <string name="zoffset_increment_down">Increment Down</string>
+    <string name="calibration_reboot_to_save">Reboot to Save</string>
+    <string name="calibration_saved_offset">Saved Offset</string>
+    <string name="calibration_increment">Step Size</string>
+    <string name="calibration_current_offset">Current Offset</string>
+    <string name="calibration_difference">Difference</string>
+    <string name="probe_calibrate_remove_probe_title">REMOVE/STOW PROBE!</string>
+    <string name="probe_calibrate_inverted_note">jiib displays inverted values during calibration for logical consistency.</string>
 
     <!-- Bed Mesh screen (Phase 27-05) -->
     <string name="mesh_calibrate">Calibrate</string>
@@ -596,7 +610,7 @@
 
     <!-- ============== settings — 28-07 dense restyle feature toggles ============== -->
     <string name="settings_webcam">Webcam</string>
-    <string name="settings_babystep">Z-Babystep adjust</string>
+    <string name="settings_babystep">Live Z Adjust</string>
     <string name="settings_babystep_layers">First-layer window</string>
     <string name="settings_babystep_layers_hint">Layers</string>
 
@@ -775,7 +789,7 @@
     <string name="increment_values_title">Increment Values</string>
     <string name="increment_values_finetune">Fine-Tune</string>
     <string name="increment_values_microstep">Microstep</string>
-    <string name="increment_values_babystep">Babystep</string>
+    <string name="increment_values_babystep">Live Z Adjust</string>
     <string name="increment_values_probe_testz">Probe Z Test</string>
     <string name="increment_values_select_hint">Select a control to edit its increment steps.</string>
     <string name="increment_values_input_hint">Comma-separated values</string>
@@ -805,6 +819,74 @@
     <string name="conn_fail_unknown">Could not connect</string>
     <string name="conn_save_anyway">Save anyway</string>
     <string name="conn_scan">Scan</string>
+
+    <!-- ============== probe section (probe-section Task 0) ============== -->
+    <!-- Hub title / launcher row label -->
+    <string name="probe_hub_title">Probe</string>
+
+    <!-- Tool titles (visible in hub Field list + each tool\'s Focus header) -->
+    <string name="probe_tool_z_offset_calibrate_title">Probe Calibrate</string>
+    <string name="probe_tool_test_title">Probe Test</string>
+    <string name="probe_tool_babystep_title">Live Z-Offset</string>
+    <string name="probe_tool_eddy_calibrate_title">Eddy: Calibrate</string>
+    <string name="probe_tool_eddy_tap_title">Eddy: Tap Threshold</string>
+    <string name="probe_tool_eddy_drive_current_title">Eddy: Drive Current</string>
+
+    <!-- Tool descriptions (one-liner shown in the hub Focus when a tool row is selected;
+         author-written, owner reviews at UAT) -->
+    <string name="probe_tool_z_offset_calibrate_desc">Measure the distance from your probe trigger point to the nozzle tip; sets the Z offset.</string>
+    <string name="probe_tool_test_desc">Query the probe, run a single probe, or measure probe accuracy.</string>
+    <string name="probe_tool_babystep_desc">Apply or clear the live Z babystepping offset without saving to config.</string>
+    <string name="probe_tool_eddy_calibrate_desc">Drive the Eddy current coil through its calibration sequence to set the distance model.</string>
+    <string name="probe_tool_eddy_tap_desc">Set the Eddy current tap threshold used to detect bed contact.</string>
+    <string name="probe_tool_eddy_drive_current_desc">Adjust the Eddy current coil drive current for optimal signal amplitude.</string>
+
+    <!-- App setting: show unsupported tools -->
+    <string name="settings_show_unsupported_tools">Show unsupported tools</string>
+    <string name="settings_show_unsupported_tools_focus">Reveal tools your printer doesn\'t support, greyed out.</string>
+
+    <!-- contentDescriptions for the six new probe-section icon tokens (cd_*; TalkBack only) -->
+    <string name="cd_probe_test_tool">Probe Test</string>
+    <string name="cd_probe_once">Probe once</string>
+    <string name="cd_eddy_calibrate">Eddy calibrate</string>
+    <string name="cd_eddy_tap">Eddy tap threshold</string>
+    <string name="cd_eddy_drive_current">Eddy drive current</string>
+
+    <!-- ProbeTestScreen (Task 17) -->
+    <string name="probe_test_title">Probe Test</string>
+    <string name="probe_test_probe_once">Probe</string>
+    <string name="probe_test_run_accuracy">Accuracy</string>
+    <string name="probe_test_samples_label">Samples</string>
+    <string name="probe_test_status_open">OPEN</string>
+    <string name="probe_test_status_triggered">TRIGGERED</string>
+    <string name="probe_test_last_z_label">Last Z</string>
+    <string name="probe_test_accuracy_range">Range</string>
+    <string name="probe_test_accuracy_std_dev">Std Dev</string>
+    <string name="probe_test_accuracy_average">Average</string>
+    <string name="probe_test_accuracy_median">Median</string>
+    <string name="probe_test_accuracy_min">Min</string>
+    <string name="probe_test_accuracy_max">Max</string>
+    <string name="probe_test_cd_run_accuracy">Run probe accuracy test</string>
+    <string name="probe_test_cd_samples_increase">More samples</string>
+    <string name="probe_test_cd_samples_decrease">Fewer samples</string>
+
+    <!-- CalibrationRunScreen (Task 19) — reusable run-and-watch screen (eddy Drive Current + Tap) -->
+    <string name="calibration_run_build_blind_note">⚠ Requires eddy current hardware — not validated on device (build-blind).</string>
+    <string name="calibration_run_tap_stage_guess">Guess</string>
+    <string name="calibration_run_tap_stage_refine">Refine</string>
+    <string name="calibration_run_tap_stage_verify">Verify</string>
+
+    <!-- EddyCalibrateScreen (Task 20) — hybrid manual-probe → resonance-sweep screen -->
+    <string name="eddy_calibrate_sweep_running">Resonance sweep in progress — this may take several minutes. Watch the console for completion.</string>
+
+    <!-- ApplyBabystepScreen (Task 18) -->
+    <string name="probe_apply_babystep_saved_label">Saved z_offset</string>
+    <string name="probe_apply_babystep_live_label">Live Z Adjust</string>
+    <string name="probe_apply_babystep_new_label">New z_offset</string>
+    <string name="probe_apply_babystep_adjust">Adjust</string>
+    <string name="probe_apply_babystep_clear">Clear</string>
+    <string name="cd_probe_apply_babystep_clear">Clear the live babystep offset</string>
+    <string name="cd_probe_apply_babystep_save">Bake the babystep into z_offset and save</string>
 
     <!-- Gating / ready-for-action UI (B1 + later B tasks) -->
     <string name="gating_moving">Moving…</string>

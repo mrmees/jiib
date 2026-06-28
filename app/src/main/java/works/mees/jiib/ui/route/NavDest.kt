@@ -38,9 +38,9 @@ sealed interface NavDest {
     @Serializable data object Files                  : NavDest
     @Serializable data object Macros                 : NavDest
     @Serializable data object Console                : NavDest
-    // Calibration sub-routes (D-07, Phase 27): Calibration → CalibrationHub + 5 routine dests
+    // Calibration sub-routes (D-07, Phase 27): Calibration → CalibrationHub + 4 routine dests
+    // CalibrationProbe removed (R1): the probe sub-tree is now a single NavDest.Probe screen.
     @Serializable data object CalibrationHub         : NavDest
-    @Serializable data object CalibrationProbe       : NavDest
     @Serializable data object CalibrationBedMesh     : NavDest
     @Serializable data object CalibrationScrewsTilt  : NavDest
     @Serializable data object CalibrationZTilt       : NavDest
@@ -59,13 +59,16 @@ sealed interface NavDest {
     @Serializable data object ManagePrinters         : NavDest
     @Serializable data object HeatPresets            : NavDest
     @Serializable data object IncrementValues        : NavDest
+    // Single Probe screen (R1): replaces the old ProbeHub + 5 tool-route sub-tree.
+    @Serializable data object Probe                  : NavDest
 }
 
 /**
- * All 25 [NavDest] members in declaration order (17 original + 5 new calibration sub-routes D-07
- * + 1 System page hub D-01/Phase 28 + 3 settings-split routes AppSettings/PrinterSettings/ManagePrinters
+ * All 26 [NavDest] members in declaration order (17 original + 4 new calibration sub-routes D-07
+ * [CalibrationProbe retired in R1] + 1 System page hub D-01/Phase 28
+ * + 3 settings-split routes AppSettings/PrinterSettings/ManagePrinters
  * − 2 retired routes Settings/Devices removed in task 7.1 − About retired 2026-06-19
- * + HeatPresets + IncrementValues + Power).
+ * + HeatPresets + IncrementValues + Power + Probe [R1: single probe screen]).
  *
  * Sealed interfaces have no `.entries` — use this list for round-trip testing ([parseStartDest]),
  * verification coverage, and any place that previously iterated [Dest.entries].
@@ -79,7 +82,6 @@ val knownNavDests: List<NavDest> = listOf(
     NavDest.Macros,
     NavDest.Console,
     NavDest.CalibrationHub,
-    NavDest.CalibrationProbe,
     NavDest.CalibrationBedMesh,
     NavDest.CalibrationScrewsTilt,
     NavDest.CalibrationZTilt,
@@ -92,12 +94,14 @@ val knownNavDests: List<NavDest> = listOf(
     NavDest.Power,
     NavDest.Theme,
     NavDest.System,           // Phase 28 D-01: System page hub
-    // Settings split (task 2.1); count = 25 (Settings + Devices + About retired)
+    // Settings split (task 2.1)
     NavDest.AppSettings,
     NavDest.PrinterSettings,
     NavDest.ManagePrinters,
     NavDest.HeatPresets,
     NavDest.IncrementValues,
+    // R1: single Focus-centric Probe screen (replaces ProbeHub + 5 tool routes)
+    NavDest.Probe,
 )
 
 // ---------------------------------------------------------------------------
@@ -109,9 +113,14 @@ val knownNavDests: List<NavDest> = listOf(
  *
  * Used by AppShell's CalibrationHub composable `onOpen` lambda to navigate to the selected routine
  * via [navController.navigate(routine.toNavDest())].
+ *
+ * R1: [CalibrationRoutine.PROBE_CALIBRATE] now maps to [NavDest.Probe] (the single probe screen)
+ * instead of the retired [NavDest.CalibrationProbe]. AppShell's CalibrationHub `onOpen` still
+ * special-cases PROBE_CALIBRATE via the `if` branch before calling `toNavDest()`, but the mapping
+ * is updated here for correctness (exhaustive `when` must compile with valid targets).
  */
 fun CalibrationRoutine.toNavDest(): NavDest = when (this) {
-    CalibrationRoutine.PROBE_CALIBRATE   -> NavDest.CalibrationProbe
+    CalibrationRoutine.PROBE_CALIBRATE   -> NavDest.Probe
     CalibrationRoutine.BED_MESH          -> NavDest.CalibrationBedMesh
     CalibrationRoutine.SCREWS_TILT       -> NavDest.CalibrationScrewsTilt
     CalibrationRoutine.Z_TILT            -> NavDest.CalibrationZTilt
@@ -127,10 +136,12 @@ fun CalibrationRoutine.toNavDest(): NavDest = when (this) {
  * - **Move** — physically moves print head; wrong during active printing
  * - **Extrude** — extrudes/retracts filament; wrong mid-print
  * - **CalibrationHub** — calibration routine hub; wrong mid-print
- * - **CalibrationProbe / BedMesh / ScrewsTilt / ZTilt / Qgl** — live calibration routines; wrong mid-print
+ * - **CalibrationBedMesh / ScrewsTilt / ZTilt / Qgl** — live calibration routines; wrong mid-print
+ * - **Probe** — the unified probe screen (R1); calibration-class, hazardous mid-print
  *
- * All six CalibrationXxx routes are included so pop-to-root on print start covers the whole
- * calibration sub-tree (D-17). A print starting while the user is in ANY routine will pop to root.
+ * R1: [NavDest.CalibrationProbe] (old Z-offset route) and the six old probe sub-routes
+ * ([NavDest.ProbeHub] + 5 tool dests) are all retired and replaced by [NavDest.Probe].
+ * FOOT_GUN_DESTS now has 8 members (was 14).
  *
  * When a print STARTS (or the state transitions in a way that makes these dangerous), the
  * AppShell's [LaunchedEffect] uses [shouldPopToRoot] to pop the user back to [NavDest.WaterfallHome].
@@ -144,11 +155,12 @@ val FOOT_GUN_DESTS: Set<NavDest> = setOf(
     NavDest.Move,
     NavDest.Extrude,
     NavDest.CalibrationHub,
-    NavDest.CalibrationProbe,
     NavDest.CalibrationBedMesh,
     NavDest.CalibrationScrewsTilt,
     NavDest.CalibrationZTilt,
     NavDest.CalibrationQgl,
+    // R1: single Probe screen replaces old CalibrationProbe + ProbeHub + 5 tool routes
+    NavDest.Probe,
 )
 
 /**

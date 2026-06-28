@@ -1,17 +1,32 @@
 package works.mees.jiib.preview
 
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import works.mees.jiib.designsystem.components.ConsoleTail
 import works.mees.jiib.calibration.CalibrationRoutine
 import works.mees.jiib.calibration.ProbePageState
+import works.mees.jiib.calibration.ProbeTool
 import works.mees.jiib.calibration.TiltState
+import works.mees.jiib.calibration.ApplyBabystepVm
+import works.mees.jiib.calibration.ProbeTestVm
+import works.mees.jiib.calibration.ProbeCalibrateVm
+import works.mees.jiib.ui.calibration.ApplyBabystepBody
+import works.mees.jiib.ui.calibration.EddyCalibrateBody
+import works.mees.jiib.ui.calibration.EddyRunBody
+import works.mees.jiib.ui.calibration.ProbeTestBody
+import works.mees.jiib.ui.calibration.ZOffsetBody
 import works.mees.jiib.ui.calibration.BedMeshContent
 import works.mees.jiib.ui.calibration.CalibrationHubContent
 import works.mees.jiib.ui.calibration.MeshFieldMode
-import works.mees.jiib.ui.calibration.ProbeCalibrateContent
+import works.mees.jiib.ui.calibration.ProbeContent
 import works.mees.jiib.ui.calibration.ScrewsTiltContent
 import works.mees.jiib.ui.calibration.TiltContent
 import works.mees.jiib.ui.calibration.TiltVariant
+import works.mees.jiib.command.GatingState
+import works.mees.jiib.designsystem.icons.JiibIcons
 
 /**
  * @Preview matrix for CalibrationHubScreen + ProbeCalibrateScreen (27-04).
@@ -217,253 +232,181 @@ private fun HubPseudolocaleSpotCheck() = PreviewBox(colorfulDark) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ProbeCalibrateContent previews
+// ZOffsetBody previews (Task R4)
+//
+// Targets the stateless ZOffsetBody seam (WARNING-5 preview-first convention).
+//
+// Axes:
+//  - State matrix: Idle-unhomed / Idle-homed / Idle-starting / Active / Accepted
+//  - 6 theme combos on Active (most complex state — jog enabled, Accept+Abort buttons)
+//  - fs = L overflow check on Active portrait
 // ─────────────────────────────────────────────────────────────────────────────
 
-@Preview(
-    name = "Probe: Idle-unhomed (Nexus7 portrait)",
-    device = NEXUS7_PORTRAIT,
-    showBackground = true,
-)
+private val DEFAULT_TESTZ_STEPS = listOf(0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 5.0, 10.0)
+
+@Preview(name = "ZOffset: Idle-unhomed (portrait)", device = NEXUS7_PORTRAIT, showBackground = true)
 @Composable
-private fun ProbeIdleUnhomed() = PreviewBox(colorfulDark) {
-    val vm = SampleFixtures.probeVm(ProbePageState.Idle, homedGate = false)
-    ProbeCalibrateContent(
-        vm = vm,
-        step = 0.1,
-        starting = false,
-        saveGuard = false,
-        toastError = null,
-        enabled = false,
-        onTestZUp = {}, onTestZDown = {},
-        onStepUp = {}, onStepDown = {},
-        onHomeAll = {}, onStart = {},
-        onAccept = {}, onAbort = {},
-        onSaveGuardShow = {}, onSaveConfirm = {}, onSaveCancel = {},
-        onDismissError = {}, onBack = {},
+private fun ZOffsetIdleUnhomed() = PreviewBox(colorfulDark) {
+    ZOffsetBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Idle, homedGate = false),
+        step = 0.1, starting = false,
+        onStart = {}, onAccept = {}, onSaveConfig = {}, onHomeAll = {},
     )
 }
 
-@Preview(
-    name = "Probe: Idle-homed ready (Nexus7 portrait)",
-    device = NEXUS7_PORTRAIT,
-    showBackground = true,
-)
+@Preview(name = "ZOffset: Idle-homed ready (portrait)", device = NEXUS7_PORTRAIT, showBackground = true)
 @Composable
-private fun ProbeIdleHomed() = PreviewBox(colorfulDark) {
-    val vm = SampleFixtures.probeVm(ProbePageState.Idle, homedGate = true)
-    ProbeCalibrateContent(
-        vm = vm,
-        step = 0.1,
-        starting = false,
-        saveGuard = false,
-        toastError = null,
-        enabled = false,
-        onTestZUp = {}, onTestZDown = {},
-        onStepUp = {}, onStepDown = {},
-        onHomeAll = {}, onStart = {},
-        onAccept = {}, onAbort = {},
-        onSaveGuardShow = {}, onSaveConfirm = {}, onSaveCancel = {},
-        onDismissError = {}, onBack = {},
+private fun ZOffsetIdleHomed() = PreviewBox(colorfulDark) {
+    ZOffsetBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Idle, homedGate = true),
+        step = 0.1, starting = false,
+        onStart = {}, onAccept = {}, onSaveConfig = {}, onHomeAll = {},
     )
 }
 
-@Preview(
-    name = "Probe: Idle-starting disabled (Nexus7 portrait)",
-    device = NEXUS7_PORTRAIT,
-    showBackground = true,
-)
+@Preview(name = "ZOffset: Idle-starting (portrait)", device = NEXUS7_PORTRAIT, showBackground = true)
 @Composable
-private fun ProbeIdleStarting() = PreviewBox(colorfulDark) {
-    val vm = SampleFixtures.probeVm(ProbePageState.Idle, homedGate = true)
-    ProbeCalibrateContent(
-        vm = vm,
-        step = 0.1,
-        starting = true, // command in-flight, not yet Active
-        saveGuard = false,
-        toastError = null,
-        enabled = false,
-        onTestZUp = {}, onTestZDown = {},
-        onStepUp = {}, onStepDown = {},
-        onHomeAll = {}, onStart = {},
-        onAccept = {}, onAbort = {},
-        onSaveGuardShow = {}, onSaveConfirm = {}, onSaveCancel = {},
-        onDismissError = {}, onBack = {},
+private fun ZOffsetIdleStarting() = PreviewBox(colorfulDark) {
+    ZOffsetBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Idle, homedGate = true),
+        step = 0.1, starting = true,
+        onStart = {}, onAccept = {}, onSaveConfig = {}, onHomeAll = {},
     )
 }
 
-@Preview(
-    name = "Probe: Active live-Z (Nexus7 portrait)",
-    device = NEXUS7_PORTRAIT,
-    showBackground = true,
-)
+@Preview(name = "ZOffset: Active live-Z (portrait)", device = NEXUS7_PORTRAIT, showBackground = true)
 @Composable
-private fun ProbeActive() = PreviewBox(colorfulDark) {
-    val vm = SampleFixtures.probeVm(ProbePageState.Active)
-    ProbeCalibrateContent(
-        vm = vm,
-        step = 0.05,
-        starting = false,
-        saveGuard = false,
-        toastError = null,
-        enabled = true, // TESTZ buttons enabled in Active state
-        onTestZUp = {}, onTestZDown = {},
-        onStepUp = {}, onStepDown = {},
-        onHomeAll = {}, onStart = {},
-        onAccept = {}, onAbort = {},
-        onSaveGuardShow = {}, onSaveConfirm = {}, onSaveCancel = {},
-        onDismissError = {}, onBack = {},
+private fun ZOffsetActive() = PreviewBox(colorfulDark) {
+    ZOffsetBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Active),
+        step = 0.05, starting = false,
+        onStart = {}, onAccept = {}, onSaveConfig = {}, onHomeAll = {},
     )
 }
 
-@Preview(
-    name = "Probe: Accepted (Nexus7 portrait)",
-    device = NEXUS7_PORTRAIT,
-    showBackground = true,
-)
+@Preview(name = "ZOffset: Accepted (portrait)", device = NEXUS7_PORTRAIT, showBackground = true)
 @Composable
-private fun ProbeAccepted() = PreviewBox(colorfulDark) {
-    val vm = SampleFixtures.probeVm(ProbePageState.Accepted)
-    ProbeCalibrateContent(
-        vm = vm,
-        step = 0.05,
-        starting = false,
-        saveGuard = false,
-        toastError = null,
-        enabled = false,
-        onTestZUp = {}, onTestZDown = {},
-        onStepUp = {}, onStepDown = {},
-        onHomeAll = {}, onStart = {},
-        onAccept = {}, onAbort = {},
-        onSaveGuardShow = {}, onSaveConfirm = {}, onSaveCancel = {},
-        onDismissError = {}, onBack = {},
+private fun ZOffsetAccepted() = PreviewBox(colorfulDark) {
+    ZOffsetBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Accepted),
+        step = 0.05, starting = false,
+        onStart = {}, onAccept = {}, onSaveConfig = {}, onHomeAll = {},
     )
 }
 
-// ── 6-theme matrix on Active state (most complex) ─────────────────────────────
+// ── 6-theme matrix on Active (most complex) ────────────────────────────────────
 
 @Nexus7Previews
 @Composable
-private fun ProbeThemeColorfulDark() = PreviewBox(colorfulDark) {
-    ProbeCalibrateContent(
+private fun ZOffsetThemeColorfulDark() = PreviewBox(colorfulDark) {
+    ZOffsetBody(
         vm = SampleFixtures.probeVm(ProbePageState.Active),
-        step = 0.05, starting = false, saveGuard = false, toastError = null, enabled = true,
-        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
-        onHomeAll = {}, onStart = {}, onAccept = {}, onAbort = {},
-        onSaveGuardShow = {}, onSaveConfirm = {}, onSaveCancel = {}, onDismissError = {}, onBack = {},
+        step = 0.05, starting = false,
+        onStart = {}, onAccept = {}, onSaveConfig = {}, onHomeAll = {},
     )
 }
 
 @Nexus7Previews
 @Composable
-private fun ProbeThemeColorfulLight() = PreviewBox(colorfulLight) {
-    ProbeCalibrateContent(
+private fun ZOffsetThemeColorfulLight() = PreviewBox(colorfulLight) {
+    ZOffsetBody(
         vm = SampleFixtures.probeVm(ProbePageState.Active),
-        step = 0.05, starting = false, saveGuard = false, toastError = null, enabled = true,
-        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
-        onHomeAll = {}, onStart = {}, onAccept = {}, onAbort = {},
-        onSaveGuardShow = {}, onSaveConfirm = {}, onSaveCancel = {}, onDismissError = {}, onBack = {},
+        step = 0.05, starting = false,
+        onStart = {}, onAccept = {}, onSaveConfig = {}, onHomeAll = {},
     )
 }
 
 @Nexus7Previews
 @Composable
-private fun ProbeThemeSimpleDark() = PreviewBox(simpleDark) {
-    ProbeCalibrateContent(
+private fun ZOffsetThemeSimpleDark() = PreviewBox(simpleDark) {
+    ZOffsetBody(
         vm = SampleFixtures.probeVm(ProbePageState.Active),
-        step = 0.05, starting = false, saveGuard = false, toastError = null, enabled = true,
-        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
-        onHomeAll = {}, onStart = {}, onAccept = {}, onAbort = {},
-        onSaveGuardShow = {}, onSaveConfirm = {}, onSaveCancel = {}, onDismissError = {}, onBack = {},
+        step = 0.05, starting = false,
+        onStart = {}, onAccept = {}, onSaveConfig = {}, onHomeAll = {},
     )
 }
 
 @Nexus7Previews
 @Composable
-private fun ProbeThemeSimpleLight() = PreviewBox(simpleLight) {
-    ProbeCalibrateContent(
+private fun ZOffsetThemeSimpleLight() = PreviewBox(simpleLight) {
+    ZOffsetBody(
         vm = SampleFixtures.probeVm(ProbePageState.Active),
-        step = 0.05, starting = false, saveGuard = false, toastError = null, enabled = true,
-        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
-        onHomeAll = {}, onStart = {}, onAccept = {}, onAbort = {},
-        onSaveGuardShow = {}, onSaveConfirm = {}, onSaveCancel = {}, onDismissError = {}, onBack = {},
+        step = 0.05, starting = false,
+        onStart = {}, onAccept = {}, onSaveConfig = {}, onHomeAll = {},
     )
 }
 
 @Nexus7Previews
 @Composable
-private fun ProbeThemeHighContrastDark() = PreviewBox(highContrastDark) {
-    ProbeCalibrateContent(
+private fun ZOffsetThemeHighContrastDark() = PreviewBox(highContrastDark) {
+    ZOffsetBody(
         vm = SampleFixtures.probeVm(ProbePageState.Active),
-        step = 0.05, starting = false, saveGuard = false, toastError = null, enabled = true,
-        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
-        onHomeAll = {}, onStart = {}, onAccept = {}, onAbort = {},
-        onSaveGuardShow = {}, onSaveConfirm = {}, onSaveCancel = {}, onDismissError = {}, onBack = {},
+        step = 0.05, starting = false,
+        onStart = {}, onAccept = {}, onSaveConfig = {}, onHomeAll = {},
     )
 }
 
 @Nexus7Previews
 @Composable
-private fun ProbeThemeHighContrastLight() = PreviewBox(highContrastLight) {
-    ProbeCalibrateContent(
+private fun ZOffsetThemeHighContrastLight() = PreviewBox(highContrastLight) {
+    ZOffsetBody(
         vm = SampleFixtures.probeVm(ProbePageState.Active),
-        step = 0.05, starting = false, saveGuard = false, toastError = null, enabled = true,
-        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
-        onHomeAll = {}, onStart = {}, onAccept = {}, onAbort = {},
-        onSaveGuardShow = {}, onSaveConfirm = {}, onSaveCancel = {}, onDismissError = {}, onBack = {},
+        step = 0.05, starting = false,
+        onStart = {}, onAccept = {}, onSaveConfig = {}, onHomeAll = {},
     )
 }
 
-// ── fs = L overflow check ─────────────────────────────────────────────────────
+// ── fs=L overflow ────────────────────────────────────────────────────────────
 
-@Preview(
-    name = "Probe fs=L Active portrait overflow check",
-    device = NEXUS7_PORTRAIT,
-    showBackground = true,
-)
+@Preview(name = "ZOffset fs=L Active portrait overflow", device = NEXUS7_PORTRAIT, showBackground = true)
 @Composable
-private fun ProbeFsLargeOverflowPortrait() = PreviewBox(fsLargeSeed) {
-    ProbeCalibrateContent(
+private fun ZOffsetFsLargePortrait() = PreviewBox(fsLargeSeed) {
+    ZOffsetBody(
         vm = SampleFixtures.probeVm(ProbePageState.Active),
-        step = 0.05, starting = false, saveGuard = false, toastError = null, enabled = true,
-        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
-        onHomeAll = {}, onStart = {}, onAccept = {}, onAbort = {},
-        onSaveGuardShow = {}, onSaveConfirm = {}, onSaveCancel = {}, onDismissError = {}, onBack = {},
+        step = 0.05, starting = false,
+        onStart = {}, onAccept = {}, onSaveConfig = {}, onHomeAll = {},
     )
 }
 
-@Preview(
-    name = "Probe fs=L Active landscape overflow check",
-    device = NEXUS7,
-    showBackground = true,
-)
+// ── ProbeContent with Z_OFFSET selected ──────────────────────────────────────
+
+@Preview(name = "ProbeContent Z_OFFSET Idle (portrait)", device = NEXUS7_PORTRAIT, showBackground = true)
 @Composable
-private fun ProbeFsLargeOverflowLandscape() = PreviewBox(fsLargeSeed) {
-    ProbeCalibrateContent(
-        vm = SampleFixtures.probeVm(ProbePageState.Active),
-        step = 0.05, starting = false, saveGuard = false, toastError = null, enabled = true,
-        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
-        onHomeAll = {}, onStart = {}, onAccept = {}, onAbort = {},
-        onSaveGuardShow = {}, onSaveConfirm = {}, onSaveCancel = {}, onDismissError = {}, onBack = {},
+private fun ProbeContentZOffsetIdle() = PreviewBox(colorfulDark) {
+    ProbeContent(
+        tools = SampleFixtures.probeToolList,
+        selected = ProbeTool.Z_OFFSET,
+        probeCalibrateVm = SampleFixtures.probeVm(ProbePageState.Idle, homedGate = true),
+        step = 0.1, steps = DEFAULT_TESTZ_STEPS, starting = false,
+        onSelect = {},
+        onBack = {},
     )
 }
 
-// ── Pseudolocale en-XA ────────────────────────────────────────────────────────
-
-@Preview(
-    name = "Probe pseudolocale en-XA Active",
-    device = NEXUS7_PORTRAIT,
-    locale = "en-XA",
-    showBackground = true,
-)
+@Preview(name = "ProbeContent Z_OFFSET Active (portrait)", device = NEXUS7_PORTRAIT, showBackground = true)
 @Composable
-private fun ProbePseudolocaleSpotCheck() = PreviewBox(colorfulDark) {
-    ProbeCalibrateContent(
-        vm = SampleFixtures.probeVm(ProbePageState.Active),
-        step = 0.05, starting = false, saveGuard = false, toastError = null, enabled = true,
-        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
-        onHomeAll = {}, onStart = {}, onAccept = {}, onAbort = {},
-        onSaveGuardShow = {}, onSaveConfirm = {}, onSaveCancel = {}, onDismissError = {}, onBack = {},
+private fun ProbeContentZOffsetActive() = PreviewBox(colorfulDark) {
+    ProbeContent(
+        tools = SampleFixtures.probeToolList,
+        selected = ProbeTool.Z_OFFSET,
+        probeCalibrateVm = SampleFixtures.probeVm(ProbePageState.Active),
+        activeSessionTool = ProbeTool.Z_OFFSET,
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS, starting = false,
+        onSelect = {},
+        onBack = {},
+    )
+}
+
+@Preview(name = "ProbeContent Z_OFFSET Accepted (portrait)", device = NEXUS7_PORTRAIT, showBackground = true)
+@Composable
+private fun ProbeContentZOffsetAccepted() = PreviewBox(colorfulDark) {
+    ProbeContent(
+        tools = SampleFixtures.probeToolList,
+        selected = ProbeTool.Z_OFFSET,
+        probeCalibrateVm = SampleFixtures.probeVm(ProbePageState.Accepted),
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS, starting = false,
+        onSelect = {},
+        onBack = {},
     )
 }
 
@@ -1027,5 +970,924 @@ private fun TiltPseudolocaleSpotCheck() = PreviewBox(colorfulDark) {
         vm = SampleFixtures.tiltContent(TiltVariant.ZTilt, TiltState.Idle, homedGate = true),
         variant = TiltVariant.ZTilt,
         state = TiltState.Idle,
+    )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ProbeContent previews (R1: single Focus-centric Probe screen)
+//
+// Targets the stateless ProbeContent seam (WARNING-5). No live Moonraker, no holder.
+// Reuses SampleFixtures.probeToolList (6 tools, 3 supported / 3 greyed).
+//
+// Axes:
+//  - Tool matrix: Z_OFFSET-selected / PROBE_TEST-selected / null-selected (empty tools)
+//    — exercises D-05 pre-select + null-guard fallback
+//  - 2 theme variants on Z_OFFSET-selected (dark + light)
+//  - fs=L overflow check (portrait): verifies Focus placeholder + list don't clip
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Preview(
+    name = "ProbeScreen: Z_OFFSET selected (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ProbeScreenZOffsetSelected() = PreviewBox(colorfulDark) {
+    ProbeContent(
+        tools = SampleFixtures.probeToolList,
+        selected = ProbeTool.Z_OFFSET,
+        onSelect = {},
+        onBack = {},
+    )
+}
+
+@Preview(
+    name = "ProbeScreen: PROBE_TEST selected (Nexus7 landscape)",
+    device = NEXUS7,
+    showBackground = true,
+)
+@Composable
+private fun ProbeScreenProbeTestSelected() = PreviewBox(colorfulDark) {
+    ProbeContent(
+        tools = SampleFixtures.probeToolList,
+        selected = ProbeTool.PROBE_TEST,
+        onSelect = {},
+        onBack = {},
+    )
+}
+
+@Preview(
+    name = "ProbeScreen: null selected / empty tools (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ProbeScreenNullSelected() = PreviewBox(colorfulDark) {
+    ProbeContent(
+        tools = emptyList(),
+        selected = null,
+        onSelect = {},
+        onBack = {},
+    )
+}
+
+// ── Theme variants on Z_OFFSET-selected ──────────────────────────────────────
+
+@Nexus7Previews
+@Composable
+private fun ProbeScreenThemeColorfulDark() = PreviewBox(colorfulDark) {
+    ProbeContent(
+        tools = SampleFixtures.probeToolList,
+        selected = ProbeTool.Z_OFFSET,
+        onSelect = {},
+        onBack = {},
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun ProbeScreenThemeColorfulLight() = PreviewBox(colorfulLight) {
+    ProbeContent(
+        tools = SampleFixtures.probeToolList,
+        selected = ProbeTool.Z_OFFSET,
+        onSelect = {},
+        onBack = {},
+    )
+}
+
+// ── fs=L overflow check ───────────────────────────────────────────────────────
+
+@Preview(
+    name = "ProbeScreen fs=L portrait overflow check",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ProbeScreenFsLargeOverflowPortrait() = PreviewBox(fsLargeSeed) {
+    ProbeContent(
+        tools = SampleFixtures.probeToolList,
+        selected = ProbeTool.Z_OFFSET,
+        onSelect = {},
+        onBack = {},
+    )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ProbeContent + ApplyBabystepBody previews (Task R2)
+//
+// Targets both the ProbeContent seam (APPLY_BABYSTEP selected) and the standalone
+// ApplyBabystepBody composable (WARNING-5 preview-first convention). No live Moonraker.
+//
+// Axes:
+//  - ProbeContent: APPLY_BABYSTEP selected, canApply=true + canApply=false
+//  - ApplyBabystepBody: canApply=true (values populated) × 2 themes; canApply=false
+//  - fs=L overflow check (portrait): verifies hero value + buttons don't clip
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Preview(
+    name = "ProbeScreen: APPLY_BABYSTEP selected, canApply=true (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ProbeScreenApplyBabystepCanApply() = PreviewBox(colorfulDark) {
+    ProbeContent(
+        tools = SampleFixtures.probeToolList,
+        selected = ProbeTool.APPLY_BABYSTEP,
+        applyBabystepVm = SampleFixtures.applyBabystepCanApply,
+        onSelect = {},
+        onBack = {},
+    )
+}
+
+@Preview(
+    name = "ProbeScreen: APPLY_BABYSTEP selected, canApply=false / no data (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ProbeScreenApplyBabystepNoData() = PreviewBox(colorfulDark) {
+    ProbeContent(
+        tools = SampleFixtures.probeToolList,
+        selected = ProbeTool.APPLY_BABYSTEP,
+        applyBabystepVm = SampleFixtures.applyBabystepNoData,
+        onSelect = {},
+        onBack = {},
+    )
+}
+
+// ── ApplyBabystepBody standalone previews ────────────────────────────────────
+
+@Preview(
+    name = "ApplyBabystepBody: canApply=true dark (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ApplyBabystepBodyCanApplyDark() = PreviewBox(colorfulDark) {
+    ApplyBabystepBody(
+        vm = SampleFixtures.applyBabystepCanApply,
+        active = false,
+        isPrinting = false,
+        step = 0.05,
+        onAdjust = {}, onClear = {}, onSave = {},
+        modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+    )
+}
+
+@Preview(
+    name = "ApplyBabystepBody: canApply=true light (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ApplyBabystepBodyCanApplyLight() = PreviewBox(colorfulLight) {
+    ApplyBabystepBody(
+        vm = SampleFixtures.applyBabystepCanApply,
+        active = false,
+        isPrinting = false,
+        step = 0.05,
+        onAdjust = {}, onClear = {}, onSave = {},
+        modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+    )
+}
+
+@Preview(
+    name = "ApplyBabystepBody: canApply=false / no data (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ApplyBabystepBodyNoData() = PreviewBox(colorfulDark) {
+    ApplyBabystepBody(
+        vm = SampleFixtures.applyBabystepNoData,
+        active = true,
+        isPrinting = false,
+        step = 0.05,
+        onAdjust = {}, onClear = {}, onSave = {},
+        modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+    )
+}
+
+@Preview(
+    name = "ApplyBabystepBody: fs=L overflow check (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ApplyBabystepBodyFsLarge() = PreviewBox(fsLargeSeed) {
+    ApplyBabystepBody(
+        vm = SampleFixtures.applyBabystepCanApply,
+        active = false,
+        isPrinting = false,
+        step = 0.05,
+        onAdjust = {}, onClear = {}, onSave = {},
+        modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+    )
+}
+
+@Preview(name = "ApplyBabystepBody: ACTIVE non-zero dark (Nexus7 portrait)", device = NEXUS7_PORTRAIT, showBackground = true)
+@Composable
+private fun ApplyBabystepBodyActiveDark() = PreviewBox(colorfulDark) {
+    ApplyBabystepBody(
+        vm = SampleFixtures.applyBabystepCanApply,
+        active = true,
+        isPrinting = false,
+        step = 0.05,
+        onAdjust = {}, onClear = {}, onSave = {},
+        modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+    )
+}
+
+@Preview(name = "ApplyBabystepBody: ACTIVE zero (disabled Clear/Save) dark", device = NEXUS7_PORTRAIT, showBackground = true)
+@Composable
+private fun ApplyBabystepBodyActiveZero() = PreviewBox(colorfulDark) {
+    ApplyBabystepBody(
+        vm = SampleFixtures.applyBabystepZero,
+        active = true, isPrinting = false, step = 0.05,
+        onAdjust = {}, onClear = {}, onSave = {},
+        modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+    )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ProbeTestBody previews (Task R3)
+//
+// Two axes:
+//  A) ProbeContent with PROBE_TEST selected — exercises the body wiring + live status params.
+//  B) Standalone ProbeTestBody — exercises all four Focus rows in isolation.
+//
+// ProbeTestBody axes:
+//  - State matrix: no-data / triggered (OPEN) / triggered+lastZ / with accuracy result
+//  - 2 theme variants (dark + light) on triggered state
+//  - fs=L overflow check (accuracy state — 6-stat table + stepper + buttons)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── A) ProbeContent + PROBE_TEST selected ────────────────────────────────────
+
+@Preview(
+    name = "ProbeScreen R3: PROBE_TEST no-data (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ProbeScreenProbeTestNoData() = PreviewBox(colorfulDark) {
+    ProbeContent(
+        tools = SampleFixtures.probeToolList,
+        selected = ProbeTool.PROBE_TEST,
+        probeTestVm = SampleFixtures.probeTestNoData,
+        onSelect = {},
+        onBack = {},
+    )
+}
+
+@Preview(
+    name = "ProbeScreen R3: PROBE_TEST triggered+lastZ (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ProbeScreenProbeTestTriggered() = PreviewBox(colorfulDark) {
+    ProbeContent(
+        tools = SampleFixtures.probeToolList,
+        selected = ProbeTool.PROBE_TEST,
+        probeTestVm = SampleFixtures.probeTestTriggered,
+        onSelect = {},
+        onBack = {},
+    )
+}
+
+@Preview(
+    name = "ProbeScreen R3: PROBE_TEST with accuracy (Nexus7 landscape)",
+    device = NEXUS7,
+    showBackground = true,
+)
+@Composable
+private fun ProbeScreenProbeTestWithAccuracy() = PreviewBox(colorfulDark) {
+    ProbeContent(
+        tools = SampleFixtures.probeToolList,
+        selected = ProbeTool.PROBE_TEST,
+        probeTestVm = SampleFixtures.probeTestWithAccuracy,
+        onSelect = {},
+        onBack = {},
+    )
+}
+
+// ── B) Standalone ProbeTestBody ───────────────────────────────────────────────
+
+@Preview(
+    name = "ProbeTestBody: no-data (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ProbeTestBodyNoData() = PreviewBox(colorfulDark) {
+    ProbeTestBody(
+        vm = SampleFixtures.probeTestNoData,
+        samplesIdx = 4,
+        dispatcher = null,
+        uDp = 56.dp,
+        onSamplesUp = {},
+        onSamplesDown = {},
+        modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+    )
+}
+
+@Preview(
+    name = "ProbeTestBody: triggered OPEN+lastZ dark (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ProbeTestBodyTriggeredDark() = PreviewBox(colorfulDark) {
+    ProbeTestBody(
+        vm = SampleFixtures.probeTestTriggered,
+        samplesIdx = 4,
+        dispatcher = null,
+        uDp = 56.dp,
+        onSamplesUp = {},
+        onSamplesDown = {},
+        modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+    )
+}
+
+@Preview(
+    name = "ProbeTestBody: triggered OPEN+lastZ light (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ProbeTestBodyTriggeredLight() = PreviewBox(colorfulLight) {
+    ProbeTestBody(
+        vm = SampleFixtures.probeTestTriggered,
+        samplesIdx = 4,
+        dispatcher = null,
+        uDp = 56.dp,
+        onSamplesUp = {},
+        onSamplesDown = {},
+        modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+    )
+}
+
+@Preview(
+    name = "ProbeTestBody: with accuracy result (Nexus7 landscape)",
+    device = NEXUS7,
+    showBackground = true,
+)
+@Composable
+private fun ProbeTestBodyWithAccuracy() = PreviewBox(colorfulDark) {
+    ProbeTestBody(
+        vm = SampleFixtures.probeTestWithAccuracy,
+        samplesIdx = 4,
+        dispatcher = null,
+        uDp = 56.dp,
+        onSamplesUp = {},
+        onSamplesDown = {},
+        modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+    )
+}
+
+// ── fs=L overflow check (accuracy state — 6-stat table + stepper + buttons) ──
+
+@Preview(
+    name = "ProbeTestBody: fs=L accuracy portrait overflow check",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun ProbeTestBodyFsLargeAccuracyPortrait() = PreviewBox(fsLargeSeed) {
+    ProbeTestBody(
+        vm = SampleFixtures.probeTestWithAccuracy,
+        samplesIdx = 4,
+        dispatcher = null,
+        uDp = 56.dp,
+        onSamplesUp = {},
+        onSamplesDown = {},
+        modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+    )
+}
+
+@Preview(
+    name = "ProbeTestBody: fs=L accuracy landscape overflow check",
+    device = NEXUS7,
+    showBackground = true,
+)
+@Composable
+private fun ProbeTestBodyFsLargeAccuracyLandscape() = PreviewBox(fsLargeSeed) {
+    ProbeTestBody(
+        vm = SampleFixtures.probeTestWithAccuracy,
+        samplesIdx = 4,
+        dispatcher = null,
+        uDp = 56.dp,
+        onSamplesUp = {},
+        onSamplesDown = {},
+        modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+    )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EddyRunBody previews (Task R5)
+//
+// Targets the stateless EddyRunBody seam (WARNING-5 preview-first convention).
+// No live Moonraker, no VM — pure fixture data and sample console lines.
+// BUILD-BLIND: eddy hardware required; build-blind note always visible.
+//
+// Two variants:
+//  - Drive Current: no stage selector (tapStages = null)
+//  - Eddy Tap: with stage selector (Guess / Refine / Verify chips)
+//
+// Preview axes:
+//  - Variant × portrait/landscape (drive current empty/filled; tap guess-selected)
+//  - 6 theme combos on Tap-with-stages portrait (richest state — stage chips + buttons)
+//  - fs = L overflow check on Drive Current portrait (description + build-blind note + tail)
+// ─────────────────────────────────────────────────────────────────────────────
+
+private val sampleEddyConsoleLines = listOf(
+    "LDC_CALIBRATE_DRIVE_CURRENT CHIP=btt_eddy",
+    "// Preparing calibration…",
+    "// Testing drive current: 15",
+    "// Testing drive current: 20",
+    "// Optimal drive current: 20",
+    "// Done.",
+)
+
+private val sampleTapStageLabels = listOf("Guess", "Refine", "Verify")
+
+private const val SAMPLE_BUILD_BLIND_NOTE =
+    "⚠ Requires eddy current hardware — not validated on device (build-blind)."
+
+// ── Drive Current: no stage selector, empty console ─────────────────────────
+
+@Preview(
+    name = "EddyRunBody: Drive Current empty console (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun EddyRunBodyDriveCurrentEmpty() = PreviewBox(colorfulDark) {
+    EddyRunBody(
+        description = "Adjust the Eddy current coil drive current for optimal signal amplitude.",
+        buildBlindNote = SAMPLE_BUILD_BLIND_NOTE,
+        lines = emptyList(),
+        tapStages = null,
+        selectedStage = null,
+        onSelectStage = {},
+        onRun = {},
+        onSave = {},
+        uDp = 56.dp,
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+// ── Drive Current: no stage selector, filled console ────────────────────────
+
+@Preview(
+    name = "EddyRunBody: Drive Current filled console (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun EddyRunBodyDriveCurrentFilled() = PreviewBox(colorfulDark) {
+    EddyRunBody(
+        description = "Adjust the Eddy current coil drive current for optimal signal amplitude.",
+        buildBlindNote = SAMPLE_BUILD_BLIND_NOTE,
+        lines = sampleEddyConsoleLines,
+        tapStages = null,
+        selectedStage = null,
+        onSelectStage = {},
+        onRun = {},
+        onSave = {},
+        uDp = 56.dp,
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Preview(
+    name = "EddyRunBody: Drive Current filled console (Nexus7 landscape)",
+    device = NEXUS7,
+    showBackground = true,
+)
+@Composable
+private fun EddyRunBodyDriveCurrentFilledLandscape() = PreviewBox(colorfulDark) {
+    EddyRunBody(
+        description = "Adjust the Eddy current coil drive current for optimal signal amplitude.",
+        buildBlindNote = SAMPLE_BUILD_BLIND_NOTE,
+        lines = sampleEddyConsoleLines,
+        tapStages = null,
+        selectedStage = null,
+        onSelectStage = {},
+        onRun = {},
+        onSave = {},
+        uDp = 56.dp,
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+// ── Eddy Tap: stage selector, Guess selected ──────────────────────────────
+
+@Preview(
+    name = "EddyRunBody: Tap Guess-selected empty console (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun EddyRunBodyTapGuessEmpty() = PreviewBox(colorfulDark) {
+    EddyRunBody(
+        description = "Set the Eddy current tap threshold used to detect bed contact.",
+        buildBlindNote = SAMPLE_BUILD_BLIND_NOTE,
+        lines = emptyList(),
+        tapStages = sampleTapStageLabels,
+        selectedStage = "Guess",
+        onSelectStage = {},
+        onRun = {},
+        onSave = {},
+        uDp = 56.dp,
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Preview(
+    name = "EddyRunBody: Tap Refine-selected filled console (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun EddyRunBodyTapRefineSelected() = PreviewBox(colorfulDark) {
+    EddyRunBody(
+        description = "Set the Eddy current tap threshold used to detect bed contact.",
+        buildBlindNote = SAMPLE_BUILD_BLIND_NOTE,
+        lines = sampleEddyConsoleLines,
+        tapStages = sampleTapStageLabels,
+        selectedStage = "Refine",
+        onSelectStage = {},
+        onRun = {},
+        onSave = {},
+        uDp = 56.dp,
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Preview(
+    name = "EddyRunBody: Tap Guess-selected filled console (Nexus7 landscape)",
+    device = NEXUS7,
+    showBackground = true,
+)
+@Composable
+private fun EddyRunBodyTapGuessFilledLandscape() = PreviewBox(colorfulDark) {
+    EddyRunBody(
+        description = "Set the Eddy current tap threshold used to detect bed contact.",
+        buildBlindNote = SAMPLE_BUILD_BLIND_NOTE,
+        lines = sampleEddyConsoleLines,
+        tapStages = sampleTapStageLabels,
+        selectedStage = "Guess",
+        onSelectStage = {},
+        onRun = {},
+        onSave = {},
+        uDp = 56.dp,
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+// ── 6-theme matrix on Tap Guess-selected portrait (richest state) ─────────
+
+@Nexus7Previews
+@Composable
+private fun EddyRunBodyTapThemeColorfulDark() = PreviewBox(colorfulDark) {
+    EddyRunBody(
+        description = "Set the Eddy current tap threshold used to detect bed contact.",
+        buildBlindNote = SAMPLE_BUILD_BLIND_NOTE,
+        lines = sampleEddyConsoleLines, tapStages = sampleTapStageLabels,
+        selectedStage = "Guess", onSelectStage = {}, onRun = {}, onSave = {}, uDp = 56.dp,
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun EddyRunBodyTapThemeColorfulLight() = PreviewBox(colorfulLight) {
+    EddyRunBody(
+        description = "Set the Eddy current tap threshold used to detect bed contact.",
+        buildBlindNote = SAMPLE_BUILD_BLIND_NOTE,
+        lines = sampleEddyConsoleLines, tapStages = sampleTapStageLabels,
+        selectedStage = "Guess", onSelectStage = {}, onRun = {}, onSave = {}, uDp = 56.dp,
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun EddyRunBodyTapThemeSimpleDark() = PreviewBox(simpleDark) {
+    EddyRunBody(
+        description = "Set the Eddy current tap threshold used to detect bed contact.",
+        buildBlindNote = SAMPLE_BUILD_BLIND_NOTE,
+        lines = sampleEddyConsoleLines, tapStages = sampleTapStageLabels,
+        selectedStage = "Guess", onSelectStage = {}, onRun = {}, onSave = {}, uDp = 56.dp,
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun EddyRunBodyTapThemeSimpleLight() = PreviewBox(simpleLight) {
+    EddyRunBody(
+        description = "Set the Eddy current tap threshold used to detect bed contact.",
+        buildBlindNote = SAMPLE_BUILD_BLIND_NOTE,
+        lines = sampleEddyConsoleLines, tapStages = sampleTapStageLabels,
+        selectedStage = "Guess", onSelectStage = {}, onRun = {}, onSave = {}, uDp = 56.dp,
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun EddyRunBodyTapThemeHighContrastDark() = PreviewBox(highContrastDark) {
+    EddyRunBody(
+        description = "Set the Eddy current tap threshold used to detect bed contact.",
+        buildBlindNote = SAMPLE_BUILD_BLIND_NOTE,
+        lines = sampleEddyConsoleLines, tapStages = sampleTapStageLabels,
+        selectedStage = "Guess", onSelectStage = {}, onRun = {}, onSave = {}, uDp = 56.dp,
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun EddyRunBodyTapThemeHighContrastLight() = PreviewBox(highContrastLight) {
+    EddyRunBody(
+        description = "Set the Eddy current tap threshold used to detect bed contact.",
+        buildBlindNote = SAMPLE_BUILD_BLIND_NOTE,
+        lines = sampleEddyConsoleLines, tapStages = sampleTapStageLabels,
+        selectedStage = "Guess", onSelectStage = {}, onRun = {}, onSave = {}, uDp = 56.dp,
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+// ── fs = L overflow check ─────────────────────────────────────────────────────
+
+@Preview(
+    name = "EddyRunBody: Drive Current fs=L portrait overflow check",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun EddyRunBodyDriveCurrentFsLargePortrait() = PreviewBox(fsLargeSeed) {
+    EddyRunBody(
+        description = "Adjust the Eddy current coil drive current for optimal signal amplitude.",
+        buildBlindNote = SAMPLE_BUILD_BLIND_NOTE,
+        lines = sampleEddyConsoleLines,
+        tapStages = null,
+        selectedStage = null,
+        onSelectStage = {},
+        onRun = {},
+        onSave = {},
+        uDp = 56.dp,
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Preview(
+    name = "EddyRunBody: Tap fs=L portrait overflow check",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun EddyRunBodyTapFsLargePortrait() = PreviewBox(fsLargeSeed) {
+    EddyRunBody(
+        description = "Set the Eddy current tap threshold used to detect bed contact.",
+        buildBlindNote = SAMPLE_BUILD_BLIND_NOTE,
+        lines = sampleEddyConsoleLines,
+        tapStages = sampleTapStageLabels,
+        selectedStage = "Guess",
+        onSelectStage = {},
+        onRun = {},
+        onSave = {},
+        uDp = 56.dp,
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EddyCalibrateBody previews (Task R6)
+//
+// Targets the stateless EddyCalibrateBody seam (WARNING-5 preview-first convention).
+// No live Moonraker, no VM — pure fixture data and sample console lines.
+// BUILD-BLIND: eddy hardware required; build-blind note visible in Idle phase.
+//
+// Three phases:
+//  - Idle: description + build-blind caution + Start button
+//  - Idle-starting: disabled "Starting…" button (eddy_calibrate in flight)
+//  - Active (paper-test): Z readout + ManualProbeJog + Accept + Abort
+//  - Accepted (sweep): ConsoleTail + Save button
+//
+// Preview axes:
+//  - State matrix: Idle / Idle-starting / Active / Accepted (portrait)
+//  - 6 theme combos on Active portrait (richest state — jog + buttons)
+//  - fs = L overflow check on Active portrait
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Preview(
+    name = "EddyCalibrate: Idle (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun EddyCalibrateBodyIdle() = PreviewBox(colorfulDark) {
+    EddyCalibrateBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Idle, homedGate = true),
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS,
+        starting = false, enabled = false,
+        lines = emptyList(), uDp = 56.dp,
+        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
+        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {},
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Preview(
+    name = "EddyCalibrate: Idle-starting disabled (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun EddyCalibrateBodyIdleStarting() = PreviewBox(colorfulDark) {
+    EddyCalibrateBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Idle, homedGate = true),
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS,
+        starting = true, enabled = false,
+        lines = emptyList(), uDp = 56.dp,
+        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
+        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {},
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Preview(
+    name = "EddyCalibrate: Active paper-test (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun EddyCalibrateBodyActive() = PreviewBox(colorfulDark) {
+    EddyCalibrateBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Active),
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS,
+        starting = false, enabled = true,
+        lines = emptyList(), uDp = 56.dp,
+        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
+        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {},
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Preview(
+    name = "EddyCalibrate: Active paper-test (Nexus7 landscape)",
+    device = NEXUS7,
+    showBackground = true,
+)
+@Composable
+private fun EddyCalibrateBodyActiveLandscape() = PreviewBox(colorfulDark) {
+    EddyCalibrateBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Active),
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS,
+        starting = false, enabled = true,
+        lines = emptyList(), uDp = 56.dp,
+        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
+        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {},
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Preview(
+    name = "EddyCalibrate: Accepted sweep console (Nexus7 portrait)",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun EddyCalibrateBodySweep() = PreviewBox(colorfulDark) {
+    EddyCalibrateBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Accepted),
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS,
+        starting = false, enabled = false,
+        lines = sampleEddyConsoleLines, uDp = 56.dp,
+        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
+        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {},
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Preview(
+    name = "EddyCalibrate: Accepted sweep console (Nexus7 landscape)",
+    device = NEXUS7,
+    showBackground = true,
+)
+@Composable
+private fun EddyCalibrateBodySweepLandscape() = PreviewBox(colorfulDark) {
+    EddyCalibrateBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Accepted),
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS,
+        starting = false, enabled = false,
+        lines = sampleEddyConsoleLines, uDp = 56.dp,
+        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
+        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {},
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+// ── 6-theme matrix on Active (richest state: jog + Accept + Abort) ──────────
+
+@Nexus7Previews
+@Composable
+private fun EddyCalibrateBodyThemeColorfulDark() = PreviewBox(colorfulDark) {
+    EddyCalibrateBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Active),
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS, starting = false, enabled = true,
+        lines = emptyList(), uDp = 56.dp,
+        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
+        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {},
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun EddyCalibrateBodyThemeColorfulLight() = PreviewBox(colorfulLight) {
+    EddyCalibrateBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Active),
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS, starting = false, enabled = true,
+        lines = emptyList(), uDp = 56.dp,
+        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
+        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {},
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun EddyCalibrateBodyThemeSimpleDark() = PreviewBox(simpleDark) {
+    EddyCalibrateBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Active),
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS, starting = false, enabled = true,
+        lines = emptyList(), uDp = 56.dp,
+        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
+        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {},
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun EddyCalibrateBodyThemeSimpleLight() = PreviewBox(simpleLight) {
+    EddyCalibrateBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Active),
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS, starting = false, enabled = true,
+        lines = emptyList(), uDp = 56.dp,
+        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
+        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {},
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun EddyCalibrateBodyThemeHighContrastDark() = PreviewBox(highContrastDark) {
+    EddyCalibrateBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Active),
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS, starting = false, enabled = true,
+        lines = emptyList(), uDp = 56.dp,
+        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
+        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {},
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+@Nexus7Previews
+@Composable
+private fun EddyCalibrateBodyThemeHighContrastLight() = PreviewBox(highContrastLight) {
+    EddyCalibrateBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Active),
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS, starting = false, enabled = true,
+        lines = emptyList(), uDp = 56.dp,
+        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
+        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {},
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+// ── fs = L overflow check (Active state — Z readout + ManualProbeJog + buttons) ─
+
+@Preview(
+    name = "EddyCalibrate fs=L Active portrait overflow check",
+    device = NEXUS7_PORTRAIT,
+    showBackground = true,
+)
+@Composable
+private fun EddyCalibrateBodyFsLargePortrait() = PreviewBox(fsLargeSeed) {
+    EddyCalibrateBody(
+        vm = SampleFixtures.probeVm(ProbePageState.Active),
+        step = 0.05, steps = DEFAULT_TESTZ_STEPS, starting = false, enabled = true,
+        lines = emptyList(), uDp = 56.dp,
+        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
+        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {},
+        modifier = Modifier.fillMaxSize(),
     )
 }

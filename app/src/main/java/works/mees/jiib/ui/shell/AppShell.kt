@@ -38,10 +38,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import works.mees.jiib.R
+import works.mees.jiib.calibration.ApplyBabystepHolder
 import works.mees.jiib.calibration.BedMeshHolder
 import works.mees.jiib.calibration.CalibrationHubHolder
 import works.mees.jiib.calibration.CalibrationRoutine
 import works.mees.jiib.calibration.ProbeCalibrateHolder
+import works.mees.jiib.calibration.ProbePageState
+import works.mees.jiib.calibration.ProbeHubHolder
+import works.mees.jiib.calibration.ProbeTestHolder
 import works.mees.jiib.calibration.ScrewsTiltHolder
 import works.mees.jiib.calibration.TiltHolder
 import works.mees.jiib.command.CommandRegistry
@@ -76,7 +80,7 @@ import works.mees.jiib.ui.macros.BookmarkedMacrosScreen
 import works.mees.jiib.ui.macros.MacroHolder
 import works.mees.jiib.ui.calibration.BedMeshScreen
 import works.mees.jiib.ui.calibration.CalibrationHubScreen
-import works.mees.jiib.ui.calibration.ProbeCalibrateScreen
+import works.mees.jiib.ui.calibration.ProbeScreen
 import works.mees.jiib.ui.calibration.ScrewsTiltScreen
 import works.mees.jiib.ui.calibration.TiltScreen
 import works.mees.jiib.ui.calibration.TiltVariant
@@ -365,7 +369,7 @@ fun AppShell(
     // idle so the holders simply carry no error until a live session attaches; re-captured when `store`
     // swaps (a new session brings a new dispatcher). The two TiltHolders share ONE TiltScreen via an
     // applied-selector lambda (D-02) and each fold ONLY their own routine's failures via its dispatchKey.
-    val calibrationHubHolder = remember(store) { CalibrationHubHolder(scope = scope, store = store) }
+    val calibrationHubHolder = remember(store) { CalibrationHubHolder(scope = scope, store = store, showUnsupportedTools = container.showUnsupportedTools) }
     val calibEvents = spine?.dispatcher?.events
     val screwsTiltHolder = remember(store) {
         ScrewsTiltHolder(scope = scope, store = store, events = calibEvents)
@@ -395,12 +399,28 @@ fun AppShell(
             activeProfileId = container.activeProfileId,
         )
     }
+    // R1: ProbeCalibrateHolder, EddyCalibrateHolder, ProbeTestHolder retired — their old
+    // CalibrationProbe / ProbeHub / ProbeXxx routes are gone. ProbeHubHolder feeds the new
+    // single ProbeScreen's tool list. ApplyBabystepHolder is re-hoisted here (R2) because
+    // the APPLY_BABYSTEP Focus body lives inside ProbeScreen, not its own route.
+    // R3: ProbeTestHolder re-hoisted here — the PROBE_TEST Focus body lives inside ProbeScreen.
+    // R4: ProbeCalibrateHolder re-hoisted here — the Z_OFFSET inline session body lives inside
+    // ProbeScreen. The events arg wires Failure toasts for probe_calibrate/testz/accept/abort.
+    val probeHubHolder = remember(store) {
+        ProbeHubHolder(scope = scope, store = store, showUnsupportedTools = container.showUnsupportedTools)
+    }
+    val applyBabystepHolder = remember(store) { ApplyBabystepHolder(scope = scope, store = store) }
+    val probeTestHolder = remember(store) { ProbeTestHolder(scope = scope, store = store) }
     val probeCalibrateHolder = remember(store) {
         ProbeCalibrateHolder(scope = scope, store = store, events = calibEvents)
     }
-    // D-01 move #2 (22-07): the four calibration *Vm collections are removed; TiltScreen/BedMeshScreen/
-    // ProbeCalibrateScreen now take their holder directly and collect holder.vm internally (mirroring the
-    // existing ScrewsTiltScreen pattern). The holder builds above (lines 366-385) stay in AppShell.
+    // R6: SEPARATE ProbeCalibrateHolder for the Eddy Calibrate tool — isolates reset()/sawActive/
+    // capturedOffset/abort latches from the Z-Offset session (Codex plan-review #1 requirement).
+    val eddyCalibrateHolder = remember(store) {
+        ProbeCalibrateHolder(scope = scope, store = store, events = calibEvents)
+    }
+    // D-01 move #2 (22-07): TiltScreen/BedMeshScreen now take their holder directly and collect
+    // holder.vm internally. The holders built above stay in AppShell.
 
     // ---- Fine-Tune holder (17-06) ------------------------------------------------------------------
     // ONE FineTuneHolder per spine (re-keyed when the spine rebuilds (reconnect), mirroring the Phase-5
@@ -520,7 +540,9 @@ fun AppShell(
     // Macro BackHandlers for popup/system-list REMOVED: Macros merged to a single FieldMode screen (25-05);
     // in-screen Back is handled by the screen's own FootButtonBar (MacroFieldMode state machine).
     // Calibration sub-state BackHandler REMOVED (D-07, Phase 27): NavHost back-stack owns Calibration
-    // sub-routes. The D-09 probe-session BackHandler is now inside composable<NavDest.CalibrationProbe>.
+    // sub-routes. The old CalibrationProbe / EddyCalibrate route BackHandlers were retired with R1.
+    // R4: the D-09 probe-session BackHandler is re-added INSIDE composable<NavDest.Probe> above
+    // (priority-2, after NavHost's internal pop but before the scan/prompt overlays — CR-01).
     // The scan/prompt overlay BackHandlers MOVED into their overlay `if` blocks after the NavHost (CR-01).
 
     BoxWithConstraints(
@@ -647,32 +669,7 @@ fun AppShell(
                     onBack = { navController.popBackStack() },
                 )
             }
-            composable<NavDest.CalibrationProbe> {
-                // Collect the probe VM and inFlight set for the D-09 BackHandler gating.
-                val vm by probeCalibrateHolder.vm.collectAsStateWithLifecycle()
-                val inFlight by remember(dispatcher) {
-                    dispatcher?.inFlight ?: MutableStateFlow(emptySet())
-                }.collectAsStateWithLifecycle(initialValue = emptySet())
-                val starting = vm.state == works.mees.jiib.calibration.ProbePageState.Idle &&
-                    ("probe_calibrate" in inFlight || "z_endstop_calibrate" in inFlight)
-                // D-09 BackHandler: swallow system Back while a probe session is Active OR starting.
-                // GATED to require no overlay visible (D-09, Codex WARNING-6). After CR-01 (27-review)
-                // the scan/prompt overlay handlers are composed AFTER the whole NavHost and therefore
-                // out-prioritize this one whenever an overlay is visible — the overlay conditions here
-                // are belt-and-braces so this gate's enabled-ness MATCHES the actual dispatch priority.
-                // nav.scanActive and promptView.visible are captured from the outer AppShell.
-                BackHandler(
-                    enabled = (vm.state == works.mees.jiib.calibration.ProbePageState.Active || starting) &&
-                        !nav.scanActive && !promptView.visible
-                ) {
-                    // Intentionally swallow — abandoning a live probe nozzle descent is unsafe.
-                }
-                ProbeCalibrateScreen(
-                    container = container,
-                    holder = probeCalibrateHolder,
-                    onBack = { navController.popBackStack() },
-                )
-            }
+            // CalibrationProbe route removed (R1) — probe access is now via NavDest.Probe below.
             composable<NavDest.CalibrationBedMesh> {
                 BedMeshScreen(
                     container = container,
@@ -700,6 +697,42 @@ fun AppShell(
                     container = container,
                     holder = qglHolder,
                     variant = TiltVariant.Qgl,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            // R1: single Focus-centric Probe screen replaces the old ProbeHub + 5 tool sub-routes.
+            // ProbeHubHolder still feeds the tool list; all old screen/holder imports are retired.
+            // R2: ApplyBabystepHolder re-hoisted here (above) feeds the APPLY_BABYSTEP Focus body.
+            // R3: ProbeTestHolder re-hoisted here (above) feeds the PROBE_TEST Focus body.
+            // R4: ProbeCalibrateHolder re-hoisted here (above) feeds the Z_OFFSET session body.
+            composable<NavDest.Probe> {
+                // D-09: suppress system Back while ANY probe session is active-or-starting.
+                // The holder VMs are observed HERE (not inside ProbeScreen) so AppShell owns the
+                // BackHandler registration, which puts it at priority-2 (INSIDE composable<>) —
+                // above NavHost's internal pop but below the scan/prompt overlay handlers (CR-01).
+                val probeCalibrateVm by probeCalibrateHolder.vm.collectAsStateWithLifecycle()
+                val eddyCalibrateVm by eddyCalibrateHolder.vm.collectAsStateWithLifecycle()
+                val probeInFlight by remember(dispatcher) {
+                    dispatcher?.inFlight ?: MutableStateFlow(emptySet<String>())
+                }.collectAsStateWithLifecycle(initialValue = emptySet())
+                val probeStarting = probeCalibrateVm.state == ProbePageState.Idle &&
+                    ("probe_calibrate" in probeInFlight || "z_endstop_calibrate" in probeInFlight)
+                // R6: Eddy Calibrate "starting" feedback (eddy_calibrate in flight while Idle).
+                val eddyStarting = eddyCalibrateVm.state == ProbePageState.Idle &&
+                    "eddy_calibrate" in probeInFlight
+                // Combined session lock — either active session suppresses system Back (D-09).
+                val probeSessionActive = probeCalibrateVm.state == ProbePageState.Active || probeStarting ||
+                    eddyCalibrateVm.state == ProbePageState.Active || eddyStarting
+                BackHandler(enabled = probeSessionActive) { /* swallow — no exit during live session */ }
+
+                ProbeScreen(
+                    container = container,
+                    probeHubHolder = probeHubHolder,
+                    applyBabystepHolder = applyBabystepHolder,
+                    probeTestHolder = probeTestHolder,
+                    probeCalibrateHolder = probeCalibrateHolder,
+                    eddyCalibrateHolder = eddyCalibrateHolder,
+                    gcodeResponses = store.gcodeResponses,
                     onBack = { navController.popBackStack() },
                 )
             }
@@ -837,11 +870,12 @@ fun AppShell(
                 // D-07 (Phase 27): ALL SIX calibration routes mapped so pop-to-root fires from ANY
                 // routine, not just the hub (Codex SHOW-STOPPER-2 / D-17).
                 d.isRoute<NavDest.CalibrationHub>()         -> NavDest.CalibrationHub
-                d.isRoute<NavDest.CalibrationProbe>()       -> NavDest.CalibrationProbe
                 d.isRoute<NavDest.CalibrationBedMesh>()     -> NavDest.CalibrationBedMesh
                 d.isRoute<NavDest.CalibrationScrewsTilt>()  -> NavDest.CalibrationScrewsTilt
                 d.isRoute<NavDest.CalibrationZTilt>()       -> NavDest.CalibrationZTilt
                 d.isRoute<NavDest.CalibrationQgl>()         -> NavDest.CalibrationQgl
+                // R1: single Probe screen (replaces CalibrationProbe + ProbeHub + 5 probe routes)
+                d.isRoute<NavDest.Probe>()                  -> NavDest.Probe
                 // Non-foot-gun destinations — shouldPopToRoot returns false for these.
                 else -> null
             }
@@ -978,10 +1012,11 @@ fun AppShell(
             estopDest.isRoute<NavDest.Macros>() ||
             estopDest.isRoute<NavDest.CalibrationHub>() ||
             estopDest.isRoute<NavDest.CalibrationBedMesh>() ||
-            estopDest.isRoute<NavDest.CalibrationProbe>() ||
             estopDest.isRoute<NavDest.CalibrationScrewsTilt>() ||
             estopDest.isRoute<NavDest.CalibrationZTilt>() ||
             estopDest.isRoute<NavDest.CalibrationQgl>() ||
+            // R1: single Probe screen owns its e-stop via FocusFrame header dock.
+            estopDest.isRoute<NavDest.Probe>() ||
             estopDest.isRoute<NavDest.System>() ||
             estopDest.isRoute<NavDest.SystemInfo>() ||
             estopDest.isRoute<NavDest.AppSettings>() ||

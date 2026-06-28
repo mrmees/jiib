@@ -87,6 +87,12 @@ class PrinterStateStore(
      *  null if the printer has no `[probe]` section (probe-less, Z_ENDSTOP_CALIBRATE) or the read fails. */
     val probeZOffset: StateFlow<Float?> = _probeZOffset.asStateFlow()
 
+    private val _endstopZOffset = MutableStateFlow<Float?>(null)
+    /** `configfile.settings.stepper_z.position_endstop` (the saved endstop calibration — used by
+     *  `Z_OFFSET_APPLY_ENDSTOP` on probe-less printers); null if the printer has a `[probe]` (not needed),
+     *  the `[stepper_z]` section is missing a `position_endstop`, or the configfile read fails. */
+    val endstopZOffset: StateFlow<Float?> = _endstopZOffset.asStateFlow()
+
     private val _temperatureBackfill = MutableStateFlow<Map<String, FloatArray>>(emptyMap())
     /** Per-sensor `server.temperature_store` history (oldest→newest), seeds the graph on connect (G-1). */
     val temperatureBackfill: StateFlow<Map<String, FloatArray>> = _temperatureBackfill.asStateFlow()
@@ -325,6 +331,9 @@ class PrinterStateStore(
     fun setProbeZOffset(value: Float?) {
         _probeZOffset.value = value
     }
+
+    /** One-shot at handshake: the saved `stepper_z.position_endstop` (Apply Babystepping on probe-less printers). */
+    fun setEndstopZOffset(value: Float?) { _endstopZOffset.value = value }
 
     /** One-shot at handshake: per-sensor temperature_store backfill (05-03). NOT the throttled hot path. */
     fun setTemperatureBackfill(backfill: Map<String, FloatArray>) {

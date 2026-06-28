@@ -34,10 +34,12 @@ data class RoutineEntry(
 )
 
 /**
- * Pure hub data source: ALL five routines (UI-SPEC §1 — none omitted), each marked supported via
- * [calibrationSupported], supported-first ordering (stable within each group by enum order).
+ * Pure hub data source: routines derived from [caps], supported-first ordering (stable within
+ * each group by enum order). When [showUnsupported] is `false` (the default), unsupported
+ * routines are omitted entirely; when `true` all five render (legacy behaviour — greyed-but-listed).
  */
-fun calibrationSupport(caps: Capabilities): List<RoutineEntry> =
+fun calibrationSupport(caps: Capabilities, showUnsupported: Boolean): List<RoutineEntry> =
     CalibrationRoutine.entries
         .map { RoutineEntry(it, calibrationSupported(caps, it)) }
+        .filter { showUnsupported || it.isSupported }
         .sortedByDescending { it.isSupported }

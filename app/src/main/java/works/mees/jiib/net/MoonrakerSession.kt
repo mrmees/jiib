@@ -43,6 +43,7 @@ import works.mees.jiib.state.Screw
 import works.mees.jiib.state.ScrewConfig
 import works.mees.jiib.state.deriveCapabilities
 import works.mees.jiib.state.deriveSubscribeSet
+import works.mees.jiib.state.probeIsZEndstopFromPin
 import works.mees.jiib.state.parseHeaterLimits
 import works.mees.jiib.state.parsePrinterInfoHostname
 import works.mees.jiib.state.parseTemperatureStore
@@ -564,6 +565,18 @@ class MoonrakerSession(
             // The saved probe z_offset (09-07): shown as the idle "current Z offset" on Probe-Calibrate.
             // Same one-shot configfile result (Pitfall 3, no extra query); null on a probe-less printer.
             store.setProbeZOffset(settings?.objectOrNull("probe")?.floatOrNullAt("z_offset"))
+            // The saved stepper_z position_endstop: used by Z_OFFSET_APPLY_ENDSTOP on probe-less printers.
+            // Same one-shot configfile result (Pitfall 3, no extra query); null when a [probe] is present
+            // (not needed on that path) or when stepper_z has no position_endstop (virtual endstop setup).
+            store.setEndstopZOffset(settings?.objectOrNull("stepper_z")?.floatOrNullAt("position_endstop"))
+            // Probe-is-Z-endstop (Probe Test live polling): read stepper_z.endstop_pin from the SAME
+            // one-shot configfile result and republish capabilities with the derived flag (Capabilities
+            // was published earlier, before this configfile read).
+            val zEndstopPin = settings?.objectOrNull("stepper_z")
+                ?.get("endstop_pin")?.let { (it as? JsonPrimitive)?.contentOrNull }
+            store.setCapabilities(
+                store.capabilities.value.copy(probeIsZEndstop = probeIsZEndstopFromPin(zEndstopPin)),
+            )
 
             // (c) the `[screws_tilt_adjust]` config — screw coords + names (D-04/D-06) — the one-shot the
             // Screws-Tilt holder COMBINEs for the to-scale bed + per-point labels. Same configfile result;
