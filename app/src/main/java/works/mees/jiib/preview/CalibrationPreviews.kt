@@ -1186,7 +1186,7 @@ private fun ApplyBabystepBodyFsLarge() = PreviewBox(fsLargeSeed) {
 // ProbeTestBody previews (Task R3)
 //
 // Two axes:
-//  A) ProbeContent with PROBE_TEST selected — exercises the field-row dot + body wiring.
+//  A) ProbeContent with PROBE_TEST selected — exercises the body wiring + live status params.
 //  B) Standalone ProbeTestBody — exercises all four Focus rows in isolation.
 //
 // ProbeTestBody axes:
@@ -1224,6 +1224,8 @@ private fun ProbeScreenProbeTestTriggered() = PreviewBox(colorfulDark) {
         tools = SampleFixtures.probeToolList,
         selected = ProbeTool.PROBE_TEST,
         probeTestVm = SampleFixtures.probeTestTriggered,
+        probeIsZEndstop = true,
+        liveTriggered = true,
         onSelect = {},
         onBack = {},
     )
@@ -1240,6 +1242,8 @@ private fun ProbeScreenProbeTestWithAccuracy() = PreviewBox(colorfulDark) {
         tools = SampleFixtures.probeToolList,
         selected = ProbeTool.PROBE_TEST,
         probeTestVm = SampleFixtures.probeTestWithAccuracy,
+        probeIsZEndstop = true,
+        liveTriggered = false,
         onSelect = {},
         onBack = {},
     )
@@ -1274,6 +1278,8 @@ private fun ProbeTestBodyNoData() = PreviewBox(colorfulDark) {
 private fun ProbeTestBodyTriggeredDark() = PreviewBox(colorfulDark) {
     ProbeTestBody(
         vm = SampleFixtures.probeTestTriggered,
+        probeIsZEndstop = true,
+        liveTriggered = true,
         samplesIdx = 4,
         dispatcher = null,
         uDp = 56.dp,
@@ -1292,6 +1298,8 @@ private fun ProbeTestBodyTriggeredDark() = PreviewBox(colorfulDark) {
 private fun ProbeTestBodyTriggeredLight() = PreviewBox(colorfulLight) {
     ProbeTestBody(
         vm = SampleFixtures.probeTestTriggered,
+        probeIsZEndstop = true,
+        liveTriggered = true,
         samplesIdx = 4,
         dispatcher = null,
         uDp = 56.dp,
@@ -1310,6 +1318,8 @@ private fun ProbeTestBodyTriggeredLight() = PreviewBox(colorfulLight) {
 private fun ProbeTestBodyWithAccuracy() = PreviewBox(colorfulDark) {
     ProbeTestBody(
         vm = SampleFixtures.probeTestWithAccuracy,
+        probeIsZEndstop = true,
+        liveTriggered = false,
         samplesIdx = 4,
         dispatcher = null,
         uDp = 56.dp,
@@ -1330,6 +1340,8 @@ private fun ProbeTestBodyWithAccuracy() = PreviewBox(colorfulDark) {
 private fun ProbeTestBodyFsLargeAccuracyPortrait() = PreviewBox(fsLargeSeed) {
     ProbeTestBody(
         vm = SampleFixtures.probeTestWithAccuracy,
+        probeIsZEndstop = true,
+        liveTriggered = false,
         samplesIdx = 4,
         dispatcher = null,
         uDp = 56.dp,
@@ -1348,6 +1360,8 @@ private fun ProbeTestBodyFsLargeAccuracyPortrait() = PreviewBox(fsLargeSeed) {
 private fun ProbeTestBodyFsLargeAccuracyLandscape() = PreviewBox(fsLargeSeed) {
     ProbeTestBody(
         vm = SampleFixtures.probeTestWithAccuracy,
+        probeIsZEndstop = true,
+        liveTriggered = false,
         samplesIdx = 4,
         dispatcher = null,
         uDp = 56.dp,
