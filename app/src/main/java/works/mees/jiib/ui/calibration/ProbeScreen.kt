@@ -552,14 +552,14 @@ internal fun ProbeContent(
         )
     }
 
-    val babystepSaveTitle = stringResource(R.string.probe_apply_babystep_confirm_title)
-    val babystepSaveMessage = stringResource(R.string.probe_apply_babystep_confirm_message)
-    val babystepSaveLabel = stringResource(R.string.calibration_save_config)
+    // Single "Save & Restart" gate (owner UAT 2026-06-28): one confirm that BOTH bakes the babystep
+    // into z_offset (apply) AND persists it (SAVE_CONFIG, which restarts Klipper). The prior two-phase
+    // "Apply Babystepping?" → "Save & Restart" double-gate was dropped.
     val onBabystepSave: () -> Unit = {
         pending = ProbeConfirm(
-            title = babystepSaveTitle,
-            message = babystepSaveMessage,
-            confirmLabel = babystepSaveLabel,
+            title = saveTitle,
+            message = saveMessage,
+            confirmLabel = saveTitle,
             warn = true,
             onConfirm = {
                 if (applyBabystepVm.applyCommand == PrinterCommands.Z_OFFSET_APPLY_PROBE) {
@@ -567,10 +567,7 @@ internal fun ProbeContent(
                 } else {
                     dispatcher?.dispatch(CommandRegistry.zOffsetApplyEndstop, Unit)
                 }
-                pending = ProbeConfirm(
-                    title = saveTitle, message = saveMessage, confirmLabel = saveTitle, warn = true,
-                    onConfirm = { dispatcher?.dispatch(CommandRegistry.saveConfig, Unit) },
-                )
+                dispatcher?.dispatch(CommandRegistry.saveConfig, Unit)
             },
         )
     }
@@ -1258,79 +1255,77 @@ internal fun ApplyBabystepBody(
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
-    Box(modifier) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Spacer(Modifier.weight(1f))
+    Column(
+        modifier = modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Spacer(Modifier.weight(1f))
 
-            // Secondary rows
+        // Secondary rows
+        BabystepOffsetRow(
+            label = stringResource(R.string.probe_apply_babystep_saved_label),
+            value = vm.savedOffset?.let { babystepFmt(it) } ?: "—",
+        )
+        BabystepOffsetRow(
+            label = stringResource(R.string.probe_apply_babystep_new_label),
+            value = vm.newOffset?.let { babystepFmt(it) } ?: "—",
+        )
+        if (active) {
             BabystepOffsetRow(
-                label = stringResource(R.string.probe_apply_babystep_saved_label),
-                value = vm.savedOffset?.let { babystepFmt(it) } ?: "—",
+                label = stringResource(R.string.calibration_increment), // "Step Size"
+                value = babystepFmt(step),
             )
-            BabystepOffsetRow(
-                label = stringResource(R.string.probe_apply_babystep_new_label),
-                value = vm.newOffset?.let { babystepFmt(it) } ?: "—",
+        }
+
+        HorizontalDivider(
+            modifier = Modifier
+                .fillMaxWidth(0.7f)
+                .padding(vertical = fsSp(10f, t.fs).dp),
+            color = t.outline,
+        )
+
+        // Live Babystep — same compact row format as Saved/New (owner UAT 2026-06-28): the big
+        // hero block was overflowing the Active Focus and squeezing the action buttons below their
+        // 1U floor. Set apart by the divider above so it still reads as the live value of concern.
+        BabystepOffsetRow(
+            label = stringResource(R.string.probe_apply_babystep_live_label),
+            value = vm.liveBabystep?.let { babystepFmt(it) } ?: "—",
+        )
+
+        Spacer(Modifier.weight(1f))
+
+        // Bottom action zone — edge-to-edge, bottom-anchored.
+        if (!active) {
+            OutlinedControl(
+                label = stringResource(R.string.probe_apply_babystep_adjust),
+                icon = JiibIcons.LineWeight,
+                onClick = onAdjust,
+                intent = Intent.Go,
+                modifier = Modifier.fillMaxWidth(),
             )
-            if (active) {
-                BabystepOffsetRow(
-                    label = stringResource(R.string.calibration_increment), // "Step Size"
-                    value = babystepFmt(step),
-                )
-            }
-
-            HorizontalDivider(
-                modifier = Modifier
-                    .fillMaxWidth(0.7f)
-                    .padding(vertical = fsSp(10f, t.fs).dp),
-                color = t.outline,
-            )
-
-            // Hero — Live Babystep (the swapped, prominent value)
-            Text(
-                text = stringResource(R.string.probe_apply_babystep_live_label),
-                color = t.text2,
-                style = JiibType.body.toTextStyle(t),
-            )
-            ZHero(text = vm.liveBabystep?.let { babystepFmt(it) } ?: "—")
-
-            Spacer(Modifier.weight(1f))
-
-            // Bottom action zone — edge-to-edge, bottom-anchored.
-            if (!active) {
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 OutlinedControl(
-                    label = stringResource(R.string.probe_apply_babystep_adjust),
-                    icon = JiibIcons.LineWeight,
-                    onClick = onAdjust,
-                    intent = Intent.Go,
-                    modifier = Modifier.fillMaxWidth(),
+                    label = stringResource(R.string.probe_apply_babystep_clear),
+                    icon = JiibIcons.SpoolClear,
+                    onClick = onClear,
+                    intent = Intent.Accent,
+                    enabled = babystepClearEnabled(vm.liveBabystep),
+                    contentDescription = stringResource(R.string.cd_probe_apply_babystep_clear),
+                    modifier = Modifier.weight(1f),
                 )
-            } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    OutlinedControl(
-                        label = stringResource(R.string.probe_apply_babystep_clear),
-                        icon = JiibIcons.SpoolClear,
-                        onClick = onClear,
-                        intent = Intent.Accent,
-                        enabled = babystepClearEnabled(vm.liveBabystep),
-                        contentDescription = stringResource(R.string.cd_probe_apply_babystep_clear),
-                        modifier = Modifier.weight(1f),
-                    )
-                    OutlinedControl(
-                        label = stringResource(R.string.common_save), // = "Save" (the guard dialog warns about the restart)
-                        icon = JiibIcons.Save,
-                        onClick = onSave,
-                        intent = Intent.Warn,
-                        enabled = babystepSaveEnabled(vm, isPrinting),
-                        contentDescription = stringResource(R.string.cd_probe_apply_babystep_save),
-                        modifier = Modifier.weight(1f),
-                    )
-                }
+                OutlinedControl(
+                    label = stringResource(R.string.common_save), // = "Save" (the guard dialog warns about the restart)
+                    icon = JiibIcons.Save,
+                    onClick = onSave,
+                    intent = Intent.Warn,
+                    enabled = babystepSaveEnabled(vm, isPrinting),
+                    contentDescription = stringResource(R.string.cd_probe_apply_babystep_save),
+                    modifier = Modifier.weight(1f),
+                )
             }
         }
     }

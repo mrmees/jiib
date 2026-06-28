@@ -511,14 +511,14 @@
     <string name="calibration_hub_title">Calibration</string>
 
     <!-- Routine titles -->
-    <string name="calibration_routine_probe_title">Probe Calibrate</string>
+    <string name="calibration_routine_probe_title">Nozzle Distance</string>
     <string name="calibration_routine_mesh_title">Bed Mesh</string>
     <string name="calibration_routine_screws_title">Screws Tilt</string>
     <string name="calibration_routine_ztilt_title">Z Tilt</string>
     <string name="calibration_routine_qgl_title">QGL</string>
 
     <!-- Routine descriptions (author-written, owner reviews at UAT per D-05) -->
-    <string name="calibration_routine_probe_desc">Precisely measures the distance between your probe and the nozzle tip. Tap to nudge the nozzle to paper-drag height, then accept.</string>
+    <string name="calibration_routine_probe_desc">Set the nozzle-to-bed distance — calibrate the probe\'s Z offset, test the probe, and live-adjust Z mid-print. Includes eddy-probe setup on supported hardware.</string>
     <string name="calibration_routine_mesh_desc">Maps the height variation across the print bed. Runs automatically — no interaction during calibration.</string>
     <string name="calibration_routine_screws_desc">Calculates how much to turn each bed-leveling screw. The display shows turns and direction.</string>
     <string name="calibration_routine_ztilt_desc">Adjusts multiple Z-axis motors for a level gantry. Runs automatically, may iterate.</string>
@@ -610,7 +610,7 @@
 
     <!-- ============== settings — 28-07 dense restyle feature toggles ============== -->
     <string name="settings_webcam">Webcam</string>
-    <string name="settings_babystep">Z-Babystep adjust</string>
+    <string name="settings_babystep">Live Z Adjust</string>
     <string name="settings_babystep_layers">First-layer window</string>
     <string name="settings_babystep_layers_hint">Layers</string>
 
@@ -789,7 +789,7 @@
     <string name="increment_values_title">Increment Values</string>
     <string name="increment_values_finetune">Fine-Tune</string>
     <string name="increment_values_microstep">Microstep</string>
-    <string name="increment_values_babystep">Babystep</string>
+    <string name="increment_values_babystep">Live Z Adjust</string>
     <string name="increment_values_probe_testz">Probe Z Test</string>
     <string name="increment_values_select_hint">Select a control to edit its increment steps.</string>
     <string name="increment_values_input_hint">Comma-separated values</string>
@@ -827,7 +827,7 @@
     <!-- Tool titles (visible in hub Field list + each tool\'s Focus header) -->
     <string name="probe_tool_z_offset_calibrate_title">Probe Calibrate</string>
     <string name="probe_tool_test_title">Probe Test</string>
-    <string name="probe_tool_babystep_title">Apply Babystepping</string>
+    <string name="probe_tool_babystep_title">Live Z-Offset</string>
     <string name="probe_tool_eddy_calibrate_title">Eddy: Calibrate</string>
     <string name="probe_tool_eddy_tap_title">Eddy: Tap Threshold</string>
     <string name="probe_tool_eddy_drive_current_title">Eddy: Drive Current</string>
@@ -881,11 +881,8 @@
 
     <!-- ApplyBabystepScreen (Task 18) -->
     <string name="probe_apply_babystep_saved_label">Saved z_offset</string>
-    <string name="probe_apply_babystep_live_label">Live babystep</string>
+    <string name="probe_apply_babystep_live_label">Live Z Adjust</string>
     <string name="probe_apply_babystep_new_label">New z_offset</string>
-    <string name="probe_apply_babystep_action">Apply</string>
-    <string name="probe_apply_babystep_confirm_title">Apply Babystepping?</string>
-    <string name="probe_apply_babystep_confirm_message">Writes the live babystep into the saved z_offset. Use Save &amp; Restart to persist the change to config.</string>
     <string name="probe_apply_babystep_adjust">Adjust</string>
     <string name="probe_apply_babystep_clear">Clear</string>
     <string name="cd_probe_apply_babystep_clear">Clear the live babystep offset</string>
