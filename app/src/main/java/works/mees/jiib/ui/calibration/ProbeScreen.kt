@@ -1335,10 +1335,10 @@ internal fun ProbeTestBody(
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
-    Box(modifier, contentAlignment = Alignment.Center) {
+    Box(modifier) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxSize()
                 .padding(horizontal = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -1415,7 +1415,10 @@ internal fun ProbeTestBody(
                 )
             }
 
-            // ── Row3: Samples stepper [−] n [+] ───────────────────────────────
+            // Pin the control zone (samples + action buttons) to the BOTTOM of the Focus.
+            Spacer(Modifier.weight(1f))
+
+            // ── Samples stepper [−] n [+] ─────────────────────────────────────
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
