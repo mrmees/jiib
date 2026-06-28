@@ -31,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,8 +45,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import java.util.Locale
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import works.mees.jiib.R
@@ -101,6 +107,7 @@ import works.mees.jiib.designsystem.components.ConfirmOnBack
 import works.mees.jiib.designsystem.components.HardLockStatusCard
 import works.mees.jiib.designsystem.components.UnknownStatusCard
 import works.mees.jiib.ui.increments.IncrementControls
+import works.mees.jiib.ui.move.parseEndstops
 
 // Internal tap-stage API keys (Klipper STAGE= parameter values for eddyTapCalibrate).
 // Kept here (ProbeScreen) so ProbeContent can build the correct EddyTapArgs.
@@ -239,6 +246,37 @@ fun ProbeScreen(
 
     var selected by remember { mutableStateOf<ProbeTool?>(null) }
     var samplesIdx by remember { mutableStateOf(SAMPLES_DEFAULT_IDX) }
+
+    // Probe Test live switch status — silent query_endstops poll (stepper_z = the probe on a virtual-Z
+    // -endstop printer). Mirrors MoveScreen's endstop poll: lifecycle-scoped, rememberUpdatedState the
+    // dispatcher so a reconnect re-targets, repeatOnLifecycle suspends while backgrounded.
+    var probeLiveTriggered by remember { mutableStateOf<Boolean?>(null) }
+    val probeIsZEndstop = capabilities.probeIsZEndstop
+    val pollDispatcher by rememberUpdatedState(dispatcher)
+    val probeLifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(selected, probeIsZEndstop, probeLifecycleOwner) {
+        if (selected != ProbeTool.PROBE_TEST || !probeIsZEndstop) {
+            probeLiveTriggered = null
+            return@LaunchedEffect
+        }
+        probeLifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            while (true) {
+                try {
+                    val d = pollDispatcher
+                    if (d != null) {
+                        val rows = parseEndstops(d.query(CommandRegistry.queryEndstops, Unit))
+                        probeLiveTriggered = rows.firstOrNull { it.name == "stepper_z" }?.triggered
+                    }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Throwable) {
+                    // keep last value on a transient query failure
+                }
+                delay(500)
+            }
+        }
+    }
+
     // D-05: pre-select first tool + reconcile against the current visible list.
     // Writing state during composition is valid here — the condition settles after at most one
     // extra recomposition (once selected is set, the `if` body no longer fires).
@@ -254,7 +292,6 @@ fun ProbeScreen(
     // wiped a pending Accepted when switching tools and back (Task 5 / Codex #4).
     LaunchedEffect(selected) {
         when (selected) {
-            ProbeTool.PROBE_TEST -> dispatcher?.dispatch(CommandRegistry.queryProbe, Unit)
             ProbeTool.EDDY_CALIBRATE -> {
                 eddyCalibrateHolder.reset()
                 eddyLines.clear()
@@ -293,6 +330,8 @@ fun ProbeScreen(
         eddyStarting = eddyStarting,
         inFlight = inFlight,
         samplesIdx = samplesIdx,
+        liveTriggered = probeLiveTriggered,
+        probeIsZEndstop = probeIsZEndstop,
         dispatcher = dispatcher,
         isPrinting = isPrinting,
         gating = gating,
