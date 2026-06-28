@@ -4,6 +4,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -14,6 +16,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -21,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import works.mees.jiib.designsystem.control.neutralSoftFill
 import works.mees.jiib.designsystem.icons.JiibIcon
 import works.mees.jiib.designsystem.icons.JiibIconView
 import works.mees.jiib.theme.JiibType
@@ -57,6 +62,15 @@ internal fun listRowUsesAccentFill(selected: Boolean): Boolean = selected
  */
 internal fun listRowBorderWidthFor(selected: Boolean): Dp =
     if (selected) 2.dp else 1.5.dp
+
+/**
+ * Returns `true` when the row should render the NEUTRAL press highlight — i.e. it is currently
+ * [pressed] AND not [selected]. Selection wins: a selected row keeps its accent fill on press
+ * (owner decision 2026-06-28) rather than flashing gray. Pure boolean — host-testable without
+ * a Compose runtime, mirroring [listRowUsesAccentFill].
+ */
+internal fun listRowUsesPressedFill(selected: Boolean, pressed: Boolean): Boolean =
+    pressed && !selected
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Composable
@@ -109,14 +123,24 @@ fun ListRow(
     val t = LocalTokens.current
     val shape = RoundedCornerShape(t.rCtrl)
     // Token-routed colors — THEME-01 compliance, no raw Color(0x…) for chrome.
-    val bgColor = if (listRowUsesAccentFill(selected)) t.accentSoft else Color.Transparent
+    // PRESSED STATE (owner 2026-06-28): supersedes the R10 plain-clickable revert. That revert was
+    // about scroll press-*timing* ("cause #4"), which lives in clickable's pointer logic and is NOT
+    // touched here — we change only the press *visual*. On touch-down an UNSELECTED row fills with
+    // the canonical neutral soft tint (the same value the Neutral-intent button press uses), instead
+    // of the default Material ripple that merely dimmed toward the background ("nothing happened").
+    // A SELECTED row keeps its accent fill on press (selection wins — listRowUsesPressedFill). Border
+    // width/color stay constant on press so there is no layout reflow. LazyColumn composes only the
+    // visible rows, so the per-row interactionSource allocation is bounded (~a dozen), exactly like
+    // every OutlinedControl button already does.
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val bgColor = when {
+        listRowUsesAccentFill(selected) -> t.accentSoft
+        listRowUsesPressedFill(selected, pressed) -> neutralSoftFill(t)
+        else -> Color.Transparent
+    }
     val borderColor = if (selected) t.accentLine else t.outline
     val borderWidth = listRowBorderWidthFor(selected)
-    // R10 (26.5-03 + codex review): plain clickable RESTORED — the explicit
-    // interactionSource/LocalIndication draft didn't deliver Part 5 cause #4 immediacy (the
-    // scrollable press-delay lives in clickable's pointer logic, not indication laziness) and
-    // eagerly allocated per row. Cause #4 deferred pending morning instrumentation; a real fix
-    // is custom press detection, not parameter plumbing.
 
     Row(
         modifier
@@ -127,7 +151,11 @@ fun ListRow(
             .clip(shape)
             .background(bgColor)
             .border(BorderStroke(borderWidth, borderColor), shape)
-            .clickable(onClick = onClick)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick,
+            )
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

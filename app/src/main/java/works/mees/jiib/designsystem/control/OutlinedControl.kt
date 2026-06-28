@@ -77,6 +77,14 @@ private fun Intent.outlineColor(t: ThemeTokens): Color = when (this) {
 }
 
 /**
+ * The canonical NEUTRAL soft press-fill — a low-alpha outline tint flattened over the surface.
+ * Single-sourced here so both [Intent.softColor] (Neutral arm) and ListRow's press highlight read
+ * the SAME value; hardcoding the 0.22f a second time would let them silently drift.
+ */
+internal fun neutralSoftFill(t: ThemeTokens): Color =
+    t.outline.copy(alpha = 0.22f).compositeOver(t.surface)
+
+/**
  * The SOFT pressed-fill tint per intent (owner 2026-06-17): a low-alpha intent color flattened
  * over the surface — the same softness as the IncrementPicker selected tile (`accentSoft` fill +
  * intent-colored border). Subtle enough that the strong text/icon stay readable in dark AND light
@@ -84,7 +92,7 @@ private fun Intent.outlineColor(t: ThemeTokens): Color = when (this) {
  * is needed; the border (still [outlineColor]) carries the intent's full color.
  */
 private fun Intent.softColor(t: ThemeTokens): Color = when (this) {
-    Intent.Neutral -> t.outline.copy(alpha = 0.22f).compositeOver(t.surface)
+    Intent.Neutral -> neutralSoftFill(t)
     Intent.Accent -> t.accentSoft.compositeOver(t.surface)
     Intent.Warn -> t.heatSoft.compositeOver(t.surface)
     Intent.Danger -> t.stopSoft.compositeOver(t.surface)

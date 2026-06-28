@@ -66,4 +66,33 @@ class ListRowTest {
             listRowBorderWidthFor(selected = false),
         )
     }
+
+    /**
+     * The neutral press highlight applies ONLY to an unselected row that is currently pressed.
+     * A selected row keeps its accent treatment on press (owner decision 2026-06-28: selection
+     * wins; a selected row must not flash gray, which would read as "deselecting").
+     */
+    @Test
+    fun pressed_unselected_uses_neutral_fill() {
+        assertTrue(
+            "unselected + pressed should resolve to the neutral press fill",
+            listRowUsesPressedFill(selected = false, pressed = true),
+        )
+    }
+
+    @Test
+    fun pressed_selected_stays_accent() {
+        assertFalse(
+            "selected rows ignore the press fill (selection wins) even while pressed",
+            listRowUsesPressedFill(selected = true, pressed = true),
+        )
+    }
+
+    @Test
+    fun resting_unselected_has_no_press_fill() {
+        assertFalse(
+            "unselected + not pressed should resolve to transparent (no press fill)",
+            listRowUsesPressedFill(selected = false, pressed = false),
+        )
+    }
 }
