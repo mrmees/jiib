@@ -249,9 +249,8 @@ private val DEFAULT_TESTZ_STEPS = listOf(0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.
 private fun ZOffsetIdleUnhomed() = PreviewBox(colorfulDark) {
     ZOffsetBody(
         vm = SampleFixtures.probeVm(ProbePageState.Idle, homedGate = false),
-        step = 0.1, steps = DEFAULT_TESTZ_STEPS, starting = false, enabled = false,
-        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
-        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {}, onHomeAll = {},
+        step = 0.1, starting = false,
+        onStart = {}, onAccept = {}, onSaveConfig = {}, onHomeAll = {},
     )
 }
 
@@ -260,9 +259,8 @@ private fun ZOffsetIdleUnhomed() = PreviewBox(colorfulDark) {
 private fun ZOffsetIdleHomed() = PreviewBox(colorfulDark) {
     ZOffsetBody(
         vm = SampleFixtures.probeVm(ProbePageState.Idle, homedGate = true),
-        step = 0.1, steps = DEFAULT_TESTZ_STEPS, starting = false, enabled = false,
-        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
-        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {}, onHomeAll = {},
+        step = 0.1, starting = false,
+        onStart = {}, onAccept = {}, onSaveConfig = {}, onHomeAll = {},
     )
 }
 
@@ -271,9 +269,8 @@ private fun ZOffsetIdleHomed() = PreviewBox(colorfulDark) {
 private fun ZOffsetIdleStarting() = PreviewBox(colorfulDark) {
     ZOffsetBody(
         vm = SampleFixtures.probeVm(ProbePageState.Idle, homedGate = true),
-        step = 0.1, steps = DEFAULT_TESTZ_STEPS, starting = true, enabled = false,
-        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
-        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {}, onHomeAll = {},
+        step = 0.1, starting = true,
+        onStart = {}, onAccept = {}, onSaveConfig = {}, onHomeAll = {},
     )
 }
 
@@ -282,9 +279,8 @@ private fun ZOffsetIdleStarting() = PreviewBox(colorfulDark) {
 private fun ZOffsetActive() = PreviewBox(colorfulDark) {
     ZOffsetBody(
         vm = SampleFixtures.probeVm(ProbePageState.Active),
-        step = 0.05, steps = DEFAULT_TESTZ_STEPS, starting = false, enabled = true,
-        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
-        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {}, onHomeAll = {},
+        step = 0.05, starting = false,
+        onStart = {}, onAccept = {}, onSaveConfig = {}, onHomeAll = {},
     )
 }
 
@@ -293,9 +289,8 @@ private fun ZOffsetActive() = PreviewBox(colorfulDark) {
 private fun ZOffsetAccepted() = PreviewBox(colorfulDark) {
     ZOffsetBody(
         vm = SampleFixtures.probeVm(ProbePageState.Accepted),
-        step = 0.05, steps = DEFAULT_TESTZ_STEPS, starting = false, enabled = false,
-        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
-        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {}, onHomeAll = {},
+        step = 0.05, starting = false,
+        onStart = {}, onAccept = {}, onSaveConfig = {}, onHomeAll = {},
     )
 }
 
@@ -306,9 +301,8 @@ private fun ZOffsetAccepted() = PreviewBox(colorfulDark) {
 private fun ZOffsetThemeColorfulDark() = PreviewBox(colorfulDark) {
     ZOffsetBody(
         vm = SampleFixtures.probeVm(ProbePageState.Active),
-        step = 0.05, steps = DEFAULT_TESTZ_STEPS, starting = false, enabled = true,
-        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
-        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {}, onHomeAll = {},
+        step = 0.05, starting = false,
+        onStart = {}, onAccept = {}, onSaveConfig = {}, onHomeAll = {},
     )
 }
 
@@ -317,9 +311,8 @@ private fun ZOffsetThemeColorfulDark() = PreviewBox(colorfulDark) {
 private fun ZOffsetThemeColorfulLight() = PreviewBox(colorfulLight) {
     ZOffsetBody(
         vm = SampleFixtures.probeVm(ProbePageState.Active),
-        step = 0.05, steps = DEFAULT_TESTZ_STEPS, starting = false, enabled = true,
-        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
-        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {}, onHomeAll = {},
+        step = 0.05, starting = false,
+        onStart = {}, onAccept = {}, onSaveConfig = {}, onHomeAll = {},
     )
 }
 
@@ -328,9 +321,8 @@ private fun ZOffsetThemeColorfulLight() = PreviewBox(colorfulLight) {
 private fun ZOffsetThemeSimpleDark() = PreviewBox(simpleDark) {
     ZOffsetBody(
         vm = SampleFixtures.probeVm(ProbePageState.Active),
-        step = 0.05, steps = DEFAULT_TESTZ_STEPS, starting = false, enabled = true,
-        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
-        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {}, onHomeAll = {},
+        step = 0.05, starting = false,
+        onStart = {}, onAccept = {}, onSaveConfig = {}, onHomeAll = {},
     )
 }
 
@@ -339,9 +331,8 @@ private fun ZOffsetThemeSimpleDark() = PreviewBox(simpleDark) {
 private fun ZOffsetThemeSimpleLight() = PreviewBox(simpleLight) {
     ZOffsetBody(
         vm = SampleFixtures.probeVm(ProbePageState.Active),
-        step = 0.05, steps = DEFAULT_TESTZ_STEPS, starting = false, enabled = true,
-        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
-        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {}, onHomeAll = {},
+        step = 0.05, starting = false,
+        onStart = {}, onAccept = {}, onSaveConfig = {}, onHomeAll = {},
     )
 }
 
@@ -350,9 +341,8 @@ private fun ZOffsetThemeSimpleLight() = PreviewBox(simpleLight) {
 private fun ZOffsetThemeHighContrastDark() = PreviewBox(highContrastDark) {
     ZOffsetBody(
         vm = SampleFixtures.probeVm(ProbePageState.Active),
-        step = 0.05, steps = DEFAULT_TESTZ_STEPS, starting = false, enabled = true,
-        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
-        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {}, onHomeAll = {},
+        step = 0.05, starting = false,
+        onStart = {}, onAccept = {}, onSaveConfig = {}, onHomeAll = {},
     )
 }
 
@@ -361,9 +351,8 @@ private fun ZOffsetThemeHighContrastDark() = PreviewBox(highContrastDark) {
 private fun ZOffsetThemeHighContrastLight() = PreviewBox(highContrastLight) {
     ZOffsetBody(
         vm = SampleFixtures.probeVm(ProbePageState.Active),
-        step = 0.05, steps = DEFAULT_TESTZ_STEPS, starting = false, enabled = true,
-        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
-        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {}, onHomeAll = {},
+        step = 0.05, starting = false,
+        onStart = {}, onAccept = {}, onSaveConfig = {}, onHomeAll = {},
     )
 }
 
@@ -374,9 +363,8 @@ private fun ZOffsetThemeHighContrastLight() = PreviewBox(highContrastLight) {
 private fun ZOffsetFsLargePortrait() = PreviewBox(fsLargeSeed) {
     ZOffsetBody(
         vm = SampleFixtures.probeVm(ProbePageState.Active),
-        step = 0.05, steps = DEFAULT_TESTZ_STEPS, starting = false, enabled = true,
-        onTestZUp = {}, onTestZDown = {}, onStepUp = {}, onStepDown = {},
-        onStart = {}, onAccept = {}, onAbort = {}, onSaveConfig = {}, onHomeAll = {},
+        step = 0.05, starting = false,
+        onStart = {}, onAccept = {}, onSaveConfig = {}, onHomeAll = {},
     )
 }
 
@@ -402,6 +390,7 @@ private fun ProbeContentZOffsetActive() = PreviewBox(colorfulDark) {
         tools = SampleFixtures.probeToolList,
         selected = ProbeTool.Z_OFFSET,
         probeCalibrateVm = SampleFixtures.probeVm(ProbePageState.Active),
+        activeSessionTool = ProbeTool.Z_OFFSET,
         step = 0.05, steps = DEFAULT_TESTZ_STEPS, starting = false,
         onSelect = {},
         onBack = {},

@@ -37,6 +37,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -405,6 +406,10 @@ internal fun ProbeContent(
     // Combined session lock — either active session blocks tool switching and suppresses Back.
     val sessionActive = zActiveOrStarting || eddyActiveOrStarting
 
+    // Z-Offset-specific Field/foot decisions (keyed on the owner-tracked tool — Eddy never trips it).
+    val zFieldMode = probeFieldMode(activeSessionTool, probeCalibrateVm.state)
+    val zFootMode = probeFootMode(activeSessionTool, probeCalibrateVm.state, sessionActive)
+
     // inFlight is threaded in as a param (already collected in ProbeScreen) — single subscriber.
     // Used to gate ManualProbeJog: no-op TESTZ while a jog is already in flight.
     val jogEnabled = probeCalibrateVm.state == ProbePageState.Active &&
@@ -507,16 +512,9 @@ internal fun ProbeContent(
                         ProbeTool.Z_OFFSET -> ZOffsetBody(
                             vm = probeCalibrateVm,
                             step = step,
-                            steps = steps,
                             starting = starting,
-                            enabled = jogEnabled,
-                            onTestZUp = onTestZUp,
-                            onTestZDown = onTestZDown,
-                            onStepUp = onStepUp,
-                            onStepDown = onStepDown,
                             onStart = onStart,
                             onAccept = onAccept,
-                            onAbort = onAbort,
                             onSaveConfig = onSaveConfig,
                             onHomeAll = onHomeAll,
                             modifier = Modifier.fillMaxSize(),
@@ -622,95 +620,116 @@ internal fun ProbeContent(
                 }
             },
             field = {
-                // Field: tool list + FootButtonBar (FootButtonBar lives INSIDE field — shared pattern).
-                ListBlock(modifier = Modifier.weight(1f)) {
-                    items(tools, key = { it.tool.name }) { entry ->
-                        // Session lock (D-09): while ANY probe session is active-or-starting
-                        // (Z-Offset OR Eddy Calibrate), dim all rows and make them non-tappable.
-                        val rowLocked = sessionActive
-                        ListRow(
-                            // FIX-3: while locked, highlight the effective (session-owning) tool
-                            // so the Field tracks the forced Focus body.
-                            selected = if (rowLocked) (entry.tool == effectiveSelected) else (entry.tool == selected),
-                            onClick = if (!rowLocked) { { onSelect(entry.tool) } } else { {} },
-                            uDp = grid.uDp,
-                            modifier = if (rowLocked) {
-                                Modifier.alpha(0.38f).semantics { disabled() }
-                            } else {
-                                Modifier
-                            },
-                            leadingContent = {
-                                // R23: canonical 0.6U list-row icon (registry-routed).
-                                ListRowIcon(
-                                    icon = probeToolIconToken(entry.tool),
-                                    uDp = grid.uDp,
-                                    // D-06: dim unsupported tools to text3; supported = accent.
-                                    tint = if (entry.isSupported) t.accent else t.text3,
+                when (zFieldMode) {
+                    ProbeFieldMode.Z_CONTROL_ROWS -> ProbeControlRows(
+                        step = step,
+                        steps = steps,
+                        jogEnabled = jogEnabled,
+                        uDp = grid.uDp,
+                        onTestZUp = onTestZUp,
+                        onTestZDown = onTestZDown,
+                        onStepUp = onStepUp,
+                        onStepDown = onStepDown,
+                        modifier = Modifier.weight(1f),
+                    )
+                    ProbeFieldMode.TOOL_LIST -> ListBlock(modifier = Modifier.weight(1f)) {
+                        items(tools, key = { it.tool.name }) { entry ->
+                            // Session lock (D-09): while ANY probe session is active-or-starting
+                            // (Z-Offset OR Eddy Calibrate), dim all rows and make them non-tappable.
+                            val rowLocked = sessionActive
+                            ListRow(
+                                // FIX-3: while locked, highlight the effective (session-owning) tool
+                                // so the Field tracks the forced Focus body.
+                                selected = if (rowLocked) (entry.tool == effectiveSelected) else (entry.tool == selected),
+                                onClick = if (!rowLocked) { { onSelect(entry.tool) } } else { {} },
+                                uDp = grid.uDp,
+                                modifier = if (rowLocked) {
+                                    Modifier.alpha(0.38f).semantics { disabled() }
+                                } else {
+                                    Modifier
+                                },
+                                leadingContent = {
+                                    // R23: canonical 0.6U list-row icon (registry-routed).
+                                    ListRowIcon(
+                                        icon = probeToolIconToken(entry.tool),
+                                        uDp = grid.uDp,
+                                        // D-06: dim unsupported tools to text3; supported = accent.
+                                        tint = if (entry.isSupported) t.accent else t.text3,
+                                    )
+                                },
+                                trailingContent = when (entry.tool) {
+                                    // Trailing readout: new z_offset for APPLY_BABYSTEP row
+                                    // (mirrors FineTuneScreen's current-value readout pattern).
+                                    ProbeTool.APPLY_BABYSTEP -> ({
+                                        Text(
+                                            text = applyBabystepVm.newOffset
+                                                ?.let { babystepFmt(it) } ?: "—",
+                                            style = JiibType.dataInline.toTextStyle(t),
+                                            color = t.text2,
+                                        )
+                                    })
+                                    // Trailing readout: OPEN/TRIGGERED color dot for PROBE_TEST row.
+                                    ProbeTool.PROBE_TEST -> ({
+                                        val dotColor = when (probeTestVm.triggered) {
+                                            true  -> t.stop
+                                            false -> t.accent
+                                            null  -> t.text3
+                                        }
+                                        Box(
+                                            Modifier
+                                                .size(10.dp)
+                                                .clip(CircleShape)
+                                                .background(dotColor),
+                                        )
+                                    })
+                                    // Trailing readout: PERSISTED saved z_offset (negated) across ALL
+                                    // states. Intentionally stable — the Focus hero shows the in-session
+                                    // delta (currentZ - saved); they are different quantities by design,
+                                    // not a disagreement.
+                                    ProbeTool.Z_OFFSET -> ({
+                                        val zTrailing = probeCalibrateVm.savedZOffset?.let { fmtZOffset(-it) }
+                                        Text(
+                                            text = zTrailing ?: "—",
+                                            style = JiibType.dataInline.toTextStyle(t),
+                                            color = t.text2,
+                                        )
+                                    })
+                                    else -> null
+                                },
+                            ) {
+                                // D-06: dim unsupported label text to text3.
+                                ListRowLabel(
+                                    text = stringResource(probeToolTitleRes(entry.tool)),
+                                    color = if (entry.isSupported) t.text else t.text3,
                                 )
-                            },
-                            trailingContent = when (entry.tool) {
-                                // Trailing readout: new z_offset for APPLY_BABYSTEP row
-                                // (mirrors FineTuneScreen's current-value readout pattern).
-                                ProbeTool.APPLY_BABYSTEP -> ({
-                                    Text(
-                                        text = applyBabystepVm.newOffset
-                                            ?.let { babystepFmt(it) } ?: "—",
-                                        style = JiibType.dataInline.toTextStyle(t),
-                                        color = t.text2,
-                                    )
-                                })
-                                // Trailing readout: OPEN/TRIGGERED color dot for PROBE_TEST row.
-                                ProbeTool.PROBE_TEST -> ({
-                                    val dotColor = when (probeTestVm.triggered) {
-                                        true  -> t.stop
-                                        false -> t.accent
-                                        null  -> t.text3
-                                    }
-                                    Box(
-                                        Modifier
-                                            .size(10.dp)
-                                            .clip(CircleShape)
-                                            .background(dotColor),
-                                    )
-                                })
-                                // Trailing readout: PERSISTED saved z_offset (negated) across ALL
-                                // states. Intentionally stable — the Focus hero shows the in-session
-                                // delta (currentZ - saved); they are different quantities by design,
-                                // not a disagreement.
-                                ProbeTool.Z_OFFSET -> ({
-                                    val zTrailing = probeCalibrateVm.savedZOffset?.let { fmtZOffset(-it) }
-                                    Text(
-                                        text = zTrailing ?: "—",
-                                        style = JiibType.dataInline.toTextStyle(t),
-                                        color = t.text2,
-                                    )
-                                })
-                                else -> null
-                            },
-                        ) {
-                            // D-06: dim unsupported label text to text3.
-                            ListRowLabel(
-                                text = stringResource(probeToolTitleRes(entry.tool)),
-                                color = if (entry.isSupported) t.text else t.text3,
-                            )
+                            }
                         }
                     }
                 }
 
-                // Back only — R5/R8: accent intent, first button.
-                // D-09 session lock: suppress Back while ANY session is active-or-starting
-                // (Z-Offset OR Eddy Calibrate). The only exits are Accept/Abort in each body.
                 FootButtonBar(
                     uDp = grid.uDp,
-                    actions = if (sessionActive) emptyList() else listOf(
-                        FootAction(
-                            label = stringResource(R.string.common_back),
-                            onClick = onBack,
-                            intent = Intent.Accent,
-                            icon = JiibIcons.Back,
-                            contentDescription = stringResource(R.string.cd_back),
-                        ),
-                    ),
+                    actions = when (zFootMode) {
+                        ProbeFootMode.ABORT -> listOf(
+                            FootAction(
+                                label = stringResource(R.string.calibration_abort),
+                                onClick = onAbort,
+                                intent = Intent.Danger,
+                                icon = JiibIcons.CalibrationAbort,
+                                contentDescription = stringResource(R.string.calibration_abort),
+                            ),
+                        )
+                        ProbeFootMode.NONE -> emptyList()
+                        ProbeFootMode.BACK -> listOf(
+                            FootAction(
+                                label = stringResource(R.string.common_back),
+                                onClick = onBack,
+                                intent = Intent.Accent,
+                                icon = JiibIcons.Back,
+                                contentDescription = stringResource(R.string.cd_back),
+                            ),
+                        )
+                    },
                 )
             },
         )
@@ -739,170 +758,109 @@ internal fun ProbeContent(
 // ZOffsetBody — Focus content for the Z-Offset Calibrate tool (Task R4)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Focus body for the Z-Offset Calibrate tool (Task R4). Renders four rows:
- *  Row1 — Z hero readout (state-adaptive: Idle = saved offset negated; Active = live Z position;
- *    Accepted = captured offset). Geist Mono, [JiibType.focusHero].
- *  Rows2-3 — [ManualProbeJog] (Z-nudge + step selector, two-column D-08 motif); enabled ONLY while
- *    Active and no TESTZ in flight.
- *  Row4 — State-adaptive button line:
- *    Idle + starting → disabled "Starting…" ([JiibType.Neutral], [CalibrationWait] icon).
- *    Idle + !homedGate → [Home All] ([Intent.Go]) — pre-flight, probe-calibrate needs XYZ homed.
- *    Idle + homedGate → [Start] ([Intent.Go]) — dispatches PROBE_CALIBRATE or Z_ENDSTOP_CALIBRATE
- *      per [ProbeCalibrateVm.startCommand] (probe-present gate A3).
- *    Active → [Accept] ([Intent.Go]) + [Abort] ([Intent.Danger]).
- *    Accepted → [Save &amp; Restart] ([Intent.Warn]) — raises the full-screen SAVE_CONFIG guard via
- *      [onSaveConfig], which calls [ProbeContent]'s shared [onRequestConfirm] host.
- *
- * No [ConfirmGuard] rendered here — the guard is hosted full-screen in [ProbeContent] via
- * [onSaveConfig] → [onRequestConfirm] (matches the [ApplyBabystepBody] pattern).
- *
- * Session lock: Field row selection + foot-bar Back are suppressed while [ProbePageState.Active]
- * or [starting] — enforced in [ProbeContent] via [zActiveOrStarting]. The nav-layer [BackHandler]
- * in `composable<NavDest.Probe>` (AppShell.kt) owns system-Back suppression (D-09 / T-27-04-01).
- */
 @Composable
 internal fun ZOffsetBody(
     vm: ProbeCalibrateVm,
     step: Double,
-    steps: List<Double>,
     starting: Boolean,
-    enabled: Boolean,
-    onTestZUp: () -> Unit,
-    onTestZDown: () -> Unit,
-    onStepUp: () -> Unit,
-    onStepDown: () -> Unit,
     onStart: () -> Unit,
     onAccept: () -> Unit,
-    onAbort: () -> Unit,
     onSaveConfig: () -> Unit,
     onHomeAll: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
-
-    // Row1 Z hero: proven delta formula from ProbeFocus (port, don't redesign).
-    // Idle → negated saved offset; Active/Accepted → currentZ - saved (delta from saved baseline).
-    val saved = vm.savedZOffset // raw, Moonraker stores positive
-    val currentZ = when (vm.state) {
-        ProbePageState.Active   -> vm.zPosition
-        ProbePageState.Accepted -> vm.capturedOffset
-        else                    -> null
-    }
-    val zText: String = when (vm.state) {
-        ProbePageState.Idle -> saved?.let { fmtZOffset(-it) } ?: "—"
-        else -> if (saved != null && currentZ != null) fmtZOffset(currentZ - saved) else "—"
-    }
-
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        // ── Row1: Z hero readout (Geist Mono, accent2 hero colour) ──────────────
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(vertical = fsSp(8f, t.fs).dp),
-        ) {
-            Text(
-                text = zText,
-                style = JiibType.focusHero.toTextStyle(t),
-                color = t.accent2,
-            )
-            Text(
-                text = "mm",
-                style = JiibType.caption.toTextStyle(t),
-                color = t.text3,
-            )
-        }
-
-        // ── Rows2-3: ManualProbeJog (two-column D-08 motif, weight fills space) ──
-        ManualProbeJog(
-            vm = vm,
-            step = step,
-            steps = steps,
-            enabled = enabled,
-            onTestZUp = onTestZUp,
-            onTestZDown = onTestZDown,
-            onStepUp = onStepUp,
-            onStepDown = onStepDown,
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-        )
-
-        // ── Row4: state-adaptive action buttons ──────────────────────────────────
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = fsSp(8f, t.fs).dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            when (vm.state) {
-                ProbePageState.Idle -> when {
-                    starting -> {
-                        // Start gcode in flight, session not yet Active — disabled "Starting…"
-                        OutlinedControl(
-                            label = stringResource(R.string.probe_starting),
-                            icon = JiibIcons.CalibrationWait,
-                            onClick = {},
-                            intent = Intent.Neutral,
-                            enabled = false,
-                            modifier = Modifier
-                                .weight(1f)
-                                .alpha(0.38f)
-                                .semantics { disabled() },
-                        )
-                    }
-                    !vm.homedGate -> {
-                        // Must home XYZ first — Home All = the expected pre-flight action (Go).
-                        OutlinedControl(
-                            label = stringResource(R.string.calibration_home_all),
-                            icon = JiibIcons.MoveHomeAll,
-                            onClick = onHomeAll,
-                            intent = Intent.Go,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                    else -> {
-                        // Homed and ready — Start = the screen's expected action (Go).
-                        OutlinedControl(
-                            label = stringResource(R.string.calibration_start),
-                            icon = JiibIcons.CalibrationRun,
-                            onClick = onStart,
-                            intent = Intent.Go,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                }
-                ProbePageState.Active -> {
-                    // Back suppressed (D-09) — only Accept (go) and Abort (danger) offered.
-                    OutlinedControl(
-                        label = stringResource(R.string.calibration_accept),
-                        icon = JiibIcons.CheckCircle,
-                        onClick = onAccept,
-                        intent = Intent.Go,
-                        modifier = Modifier.weight(1f),
-                    )
-                    OutlinedControl(
-                        label = stringResource(R.string.calibration_abort),
-                        icon = JiibIcons.CalibrationAbort,
-                        onClick = onAbort,
-                        intent = Intent.Danger,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-                ProbePageState.Accepted -> {
-                    // SAVE_CONFIG restarts Klipper (hazard-in-process, R5 → warn / amber).
-                    OutlinedControl(
-                        label = stringResource(R.string.calibration_save_config),
-                        icon = JiibIcons.Save,
-                        onClick = onSaveConfig,
-                        intent = Intent.Warn,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        when (vm.state) {
+            ProbePageState.Idle -> {
+                Text(
+                    text = stringResource(R.string.zoffset_idle_blurb),
+                    style = JiibType.body.toTextStyle(t),
+                    color = t.text2,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(vertical = fsSp(8f, t.fs).dp),
+                )
+                Spacer(Modifier.weight(1f))
+                ZHero(text = vm.savedZOffset?.let { fmtZOffset(-it) } ?: "—")
+                Spacer(Modifier.weight(1f))
+                IdleActionButton(vm = vm, starting = starting, onStart = onStart, onHomeAll = onHomeAll)
+            }
+            ProbePageState.Active -> {
+                val r = zOffsetActiveReadouts(vm, step)
+                Spacer(Modifier.weight(1f))
+                ReadoutRow(label = stringResource(R.string.calibration_saved_offset), value = r.saved)
+                ZHero(text = r.currentZ)
+                ReadoutRow(label = stringResource(R.string.calibration_increment), value = r.increment)
+                Spacer(Modifier.weight(1f))
+                OutlinedControl(
+                    label = stringResource(R.string.calibration_accept),
+                    icon = JiibIcons.CheckCircle,
+                    onClick = onAccept,
+                    intent = Intent.Go,
+                    modifier = Modifier.fillMaxWidth().padding(top = fsSp(8f, t.fs).dp),
+                )
+            }
+            ProbePageState.Accepted -> {
+                val saved = vm.savedZOffset
+                val captured = vm.capturedOffset
+                val deltaText = if (saved != null && captured != null) fmtZOffset(captured - saved) else "—"
+                Spacer(Modifier.weight(1f))
+                ZHero(text = deltaText)
+                Spacer(Modifier.weight(1f))
+                OutlinedControl(
+                    label = stringResource(R.string.calibration_reboot_to_save),
+                    icon = JiibIcons.Save,
+                    onClick = onSaveConfig,
+                    intent = Intent.Warn,
+                    modifier = Modifier.fillMaxWidth().padding(top = fsSp(8f, t.fs).dp),
+                )
             }
         }
+    }
+}
+
+/** The big Geist-Mono Z number (accent2 hero) + "mm" caption. */
+@Composable
+private fun ZHero(text: String) {
+    val t = LocalTokens.current
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(text = text, style = JiibType.focusHero.toTextStyle(t), color = t.accent2)
+        Text(text = "mm", style = JiibType.caption.toTextStyle(t), color = t.text3)
+    }
+}
+
+/** A labeled inline readout line (name start, value end) for the Active readout block (UAT-2). */
+@Composable
+private fun ReadoutRow(label: String, value: String) {
+    val t = LocalTokens.current
+    Row(Modifier.fillMaxWidth().padding(horizontal = fsSp(12f, t.fs).dp, vertical = fsSp(2f, t.fs).dp)) {
+        Text(text = label, style = JiibType.body.toTextStyle(t), color = t.text2)
+        Spacer(Modifier.weight(1f))
+        Text(text = "$value mm", style = JiibType.dataInline.toTextStyle(t), color = t.text)
+    }
+}
+
+/** Idle action button: Starting… (disabled) / Home All (not homed) / Start (homed). */
+@Composable
+private fun IdleActionButton(
+    vm: ProbeCalibrateVm, starting: Boolean, onStart: () -> Unit, onHomeAll: () -> Unit,
+) {
+    val t = LocalTokens.current
+    val mod = Modifier.fillMaxWidth().padding(top = fsSp(8f, t.fs).dp)
+    when {
+        starting -> OutlinedControl(
+            label = stringResource(R.string.probe_starting), icon = JiibIcons.CalibrationWait,
+            onClick = {}, intent = Intent.Neutral, enabled = false,
+            modifier = mod.alpha(0.38f).semantics { disabled() },
+        )
+        !vm.homedGate -> OutlinedControl(
+            label = stringResource(R.string.calibration_home_all), icon = JiibIcons.MoveHomeAll,
+            onClick = onHomeAll, intent = Intent.Go, modifier = mod,
+        )
+        else -> OutlinedControl(
+            label = stringResource(R.string.calibration_start), icon = JiibIcons.CalibrationRun,
+            onClick = onStart, intent = Intent.Go, modifier = mod,
+        )
     }
 }
 
