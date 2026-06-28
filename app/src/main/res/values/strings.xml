@@ -544,6 +544,16 @@
     <!-- Quoted to preserve the deliberate double space between label and value. -->
     <string name="probe_saved_ref">"saved  %1$s"</string>
 
+    <!-- Z-Offset Calibrate screen (Field-list redesign) -->
+    <string name="zoffset_idle_blurb">Home all axes, then tap Start to begin Z-offset calibration.</string>
+    <string name="zoffset_move_up">Move Up</string>
+    <string name="zoffset_move_down">Move Down</string>
+    <string name="zoffset_increment_up">Increment Up</string>
+    <string name="zoffset_increment_down">Increment Down</string>
+    <string name="calibration_reboot_to_save">Reboot to Save</string>
+    <string name="calibration_saved_offset">Saved offset</string>
+    <string name="calibration_increment">Increment</string>
+
     <!-- Bed Mesh screen (Phase 27-05) -->
     <string name="mesh_calibrate">Calibrate</string>
     <string name="mesh_apply">Apply</string>
