@@ -1836,6 +1836,108 @@ internal fun ManualProbeJog(
     }
 }
 
+/** True when a larger step exists above the current one (mirrors ManualProbeJog's `idx < lastIndex`). */
+internal fun incrementUpEnabled(step: Double, steps: List<Double>): Boolean {
+    val idx = steps.indexOf(step).let { if (it < 0) 0 else it }
+    return idx < steps.lastIndex
+}
+
+/** True when a smaller step exists below the current one. Unknown step → index 0 → false. */
+internal fun incrementDownEnabled(step: Double, steps: List<Double>): Boolean {
+    val idx = steps.indexOf(step).let { if (it < 0) 0 else it }
+    return idx > 0
+}
+
+/**
+ * The four Z-Offset Active-state control rows that replace the tool list in the Field while a
+ * Z-Offset calibration session is live. Built standalone so Eddy can adopt it later.
+ *
+ * Move rows render the raw `arrow_upward`/`arrow_downward` ligatures via the SAME JiibIconView path
+ * ProbeIconButton uses (icon-law: same glyph/purpose as ManualProbeJog, not a new choice) tinted
+ * `t.directional.z`. Increment rows use the registered Increase/Decrease tokens via ListRowIcon.
+ * Rows are non-tappable + dimmed when disabled.
+ */
+@Composable
+internal fun ProbeControlRows(
+    step: Double,
+    steps: List<Double>,
+    jogEnabled: Boolean,
+    uDp: Dp,
+    onTestZUp: () -> Unit,
+    onTestZDown: () -> Unit,
+    onStepUp: () -> Unit,
+    onStepDown: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val t = LocalTokens.current
+    val upEnabled = incrementUpEnabled(step, steps)
+    val downEnabled = incrementDownEnabled(step, steps)
+
+    ListBlock(modifier = modifier) {
+        item(key = "move_up") {
+            ControlRow(
+                enabled = jogEnabled, onClick = onTestZUp, uDp = uDp,
+                leadingContent = { RawArrow("arrow_upward", stringResource(R.string.probe_cd_raise), uDp) },
+                label = stringResource(R.string.zoffset_move_up),
+            )
+        }
+        item(key = "move_down") {
+            ControlRow(
+                enabled = jogEnabled, onClick = onTestZDown, uDp = uDp,
+                leadingContent = { RawArrow("arrow_downward", stringResource(R.string.probe_cd_lower), uDp) },
+                label = stringResource(R.string.zoffset_move_down),
+            )
+        }
+        item(key = "inc_up") {
+            ControlRow(
+                enabled = upEnabled, onClick = onStepUp, uDp = uDp,
+                leadingContent = { ListRowIcon(icon = JiibIcons.Increase, uDp = uDp, tint = t.text) },
+                label = stringResource(R.string.zoffset_increment_up),
+            )
+        }
+        item(key = "inc_down") {
+            ControlRow(
+                enabled = downEnabled, onClick = onStepDown, uDp = uDp,
+                leadingContent = { ListRowIcon(icon = JiibIcons.Decrease, uDp = uDp, tint = t.text) },
+                label = stringResource(R.string.zoffset_increment_down),
+            )
+        }
+    }
+}
+
+/** A raw Material ligature leading glyph, sized to a list-row icon, in the Z-axis directional tint. */
+@Composable
+private fun RawArrow(glyph: String, cd: String, uDp: Dp) {
+    val t = LocalTokens.current
+    JiibIconView(
+        icon = JiibIcon(IconRef.Ligature(glyph), alternate = glyph),
+        contentDescription = cd,
+        tint = t.directional.z,
+        sizeDp = uDp * 0.6f,
+    )
+}
+
+/** One translucent control row honoring the standard disabled treatment. */
+@Composable
+private fun ControlRow(
+    enabled: Boolean,
+    onClick: () -> Unit,
+    uDp: Dp,
+    leadingContent: @Composable () -> Unit,
+    label: String,
+) {
+    val t = LocalTokens.current
+    ListRow(
+        selected = false,
+        onClick = if (enabled) onClick else ({}),
+        uDp = uDp,
+        modifier = if (enabled) Modifier else Modifier.alpha(0.38f).semantics { disabled() },
+        leadingContent = leadingContent,
+    ) {
+        ListRowLabel(text = label, color = if (enabled) t.text else t.text3)
+    }
+}
+
 /**
  * The live-Z readout center cell of the Z-nudge column (D-08). Shows the current probe-session Z
  * position (or saved offset when Idle). Uses Geist Mono tabular numerals and `t.directional.z` outline
