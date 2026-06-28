@@ -3,6 +3,7 @@ package works.mees.jiib.ui.calibration
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import works.mees.jiib.calibration.ApplyBabystepVm
 import works.mees.jiib.calibration.ProbePageState
 import works.mees.jiib.calibration.ProbeTool
 
@@ -91,5 +92,20 @@ class ProbeFieldModeTest {
             ProbeFieldMode.TOOL_LIST,
             probeFieldMode(null, ProbePageState.Active, ProbeTool.APPLY_BABYSTEP, babystepActive = true),
         )
+    }
+
+    @Test fun `clear is enabled only for a non-zero live babystep`() {
+        assertEquals(false, babystepClearEnabled(null))
+        assertEquals(false, babystepClearEnabled(0.0))
+        assertEquals(true, babystepClearEnabled(-0.06))
+        assertEquals(true, babystepClearEnabled(0.10))
+    }
+
+    @Test fun `save is enabled only when canApply and not printing`() {
+        val ready = ApplyBabystepVm(savedOffset = 2.04, liveBabystep = -0.06, newOffset = 2.10, canApply = true)
+        val zero = ApplyBabystepVm(savedOffset = 2.04, liveBabystep = 0.0, newOffset = 2.04, canApply = false)
+        assertEquals(true, babystepSaveEnabled(ready, isPrinting = false))
+        assertEquals(false, babystepSaveEnabled(ready, isPrinting = true))   // print restart guard
+        assertEquals(false, babystepSaveEnabled(zero, isPrinting = false))   // nothing to bake
     }
 }

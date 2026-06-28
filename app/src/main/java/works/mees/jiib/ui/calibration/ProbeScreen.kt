@@ -1830,6 +1830,18 @@ internal fun probeFootMode(
 internal fun orphanSessionAdoption(state: ProbePageState, activeSessionTool: ProbeTool?): ProbeTool? =
     if (state == ProbePageState.Active && activeSessionTool == null) ProbeTool.Z_OFFSET else null
 
+/** Clear (zero the live babystep) is meaningful only when a non-zero offset is live. */
+internal fun babystepClearEnabled(liveBabystep: Double?): Boolean =
+    liveBabystep != null && liveBabystep != 0.0
+
+/**
+ * Save bakes the babystep into z_offset then SAVE_CONFIG (restarts Klipper). Enabled only when there is
+ * something to bake ([ApplyBabystepVm.canApply]) AND no print is running — SAVE_CONFIG is NOT print-gated
+ * app-wide (Codex 2026-06-28), so the button itself must block during a print/pause.
+ */
+internal fun babystepSaveEnabled(vm: ApplyBabystepVm, isPrinting: Boolean): Boolean =
+    vm.canApply && !isPrinting
+
 // ─────────────────────────────────────────────────────────────────────────────
 // ManualProbeJog + helpers — moved here from ProbeCalibrateScreen (now deleted)
 // ─────────────────────────────────────────────────────────────────────────────
