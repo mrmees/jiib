@@ -284,7 +284,7 @@ fun ProbeScreen(
         selected = tools.firstOrNull()?.tool
     }
 
-    // Auto-query when PROBE_TEST is first shown.
+    // (PROBE_TEST live switch status is driven by the query_endstops poll above, not here.)
     // R5/R6: Clear the shared eddy console lines whenever the user switches to ANY eddy tool so
     // Drive Current ↔ Tap ↔ Calibrate switches don't show each other's leftover output.
     // R6: Also reset the eddy calibrate holder on EDDY_CALIBRATE entry (Pitfall 3, separate holder).
