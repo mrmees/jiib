@@ -856,8 +856,8 @@
     <!-- ProbeTestScreen (Task 17) -->
     <string name="probe_test_title">Probe Test</string>
     <string name="probe_test_query">Query</string>
-    <string name="probe_test_probe_once">Probe Once</string>
-    <string name="probe_test_run_accuracy">Run Accuracy</string>
+    <string name="probe_test_probe_once">Single Probe</string>
+    <string name="probe_test_run_accuracy">Probe Accuracy</string>
     <string name="probe_test_samples_label">Samples</string>
     <string name="probe_test_status_open">OPEN</string>
     <string name="probe_test_status_triggered">TRIGGERED</string>

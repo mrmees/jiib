@@ -456,6 +456,10 @@ object JiibIcons {
     val ProbeQuery       = JiibIcon(IconRef.Ligature("indeterminate_question_box"), alternate = "probe_query")
     /** Probe Test — Probe Once action glyph (labs). */
     val ProbeOnce        = JiibIcon(IconRef.Ligature("labs"),                      alternate = "probe_once")
+    /** Single Probe (one PROBE) — owner-picked glyph. */
+    val ProbeSingle      = JiibIcon(IconRef.Ligature("1x_mobiledata"),             alternate = "probe_single")
+    /** Probe Accuracy (PROBE_ACCURACY stats) — owner-picked glyph. */
+    val ProbeAccuracy    = JiibIcon(IconRef.Ligature("bar_chart_4_bars"),          alternate = "probe_accuracy")
     /** Eddy Current sensor: Calibrate screen header + hub row glyph (detector_status). */
     val EddyCalibrate    = JiibIcon(IconRef.Ligature("detector_status"),           alternate = "eddy_calibrate")
     /** Eddy Current sensor: Tap Threshold screen header + hub row glyph (detector_offline). */
@@ -509,6 +513,6 @@ object JiibIcons {
         Babystep,
         Contrast, InvertColors, Colors, Star, Shuffle, HumidityHigh, WaterDrop,
         BlurCircular, HdrStrong, HdrWeak, Preview, MeshView2D, MeshViewIso, MeshViewProbe,
-        ProbeTestTool, ProbeQuery, ProbeOnce, EddyCalibrate, EddyTap, EddyDriveCurrent,
+        ProbeTestTool, ProbeQuery, ProbeOnce, ProbeSingle, ProbeAccuracy, EddyCalibrate, EddyTap, EddyDriveCurrent,
     )
 }
