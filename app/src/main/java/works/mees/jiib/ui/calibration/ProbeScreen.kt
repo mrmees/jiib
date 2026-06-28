@@ -232,11 +232,6 @@ fun ProbeScreen(
         orphanSessionAdoption(probeCalibrateVm.state, activeSessionTool)?.let { activeSessionTool = it }
     }
 
-    var probeMoved by remember { mutableStateOf(false) }
-    // Reset the stow-note gate whenever the Z session is not Active, so a fresh session re-shows it.
-    LaunchedEffect(probeCalibrateVm.state) {
-        if (probeCalibrateVm.state != ProbePageState.Active) probeMoved = false
-    }
 
     var selected by remember { mutableStateOf<ProbeTool?>(null) }
     var samplesIdx by remember { mutableStateOf(SAMPLES_DEFAULT_IDX) }
@@ -304,14 +299,12 @@ fun ProbeScreen(
         eddyChip = eddyChip,
         eddySelectedStageIdx = eddySelectedStageIdx,
         onEddySelectStageIdx = { eddySelectedStageIdx = it },
-        probeMoved = probeMoved,
         onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
         onSelect = { selected = it },
         onSamplesUp = { samplesIdx = (samplesIdx + 1).coerceAtMost(SAMPLES_STEPS.lastIndex) },
         onSamplesDown = { samplesIdx = (samplesIdx - 1).coerceAtLeast(0) },
         onStart = {
             activeSessionTool = ProbeTool.Z_OFFSET  // FIX-3: mark owner before dispatch
-            probeMoved = false                       // fresh Z session re-shows the stow note
             val d = dispatcher ?: return@ProbeContent
             if (probeCalibrateVm.startCommand == PrinterCommands.Z_ENDSTOP_CALIBRATE) {
                 d.dispatch(CommandRegistry.zEndstopCalibrate, Unit)
@@ -334,16 +327,8 @@ fun ProbeScreen(
             dispatcher?.dispatch(CommandRegistry.abort, Unit)
         },
         onHomeAll = { dispatcher?.dispatch(CommandRegistry.homeAll, Unit) },
-        onTestZUp = {
-            if (activeSessionTool == ProbeTool.Z_OFFSET &&
-                probeCalibrateVm.state == ProbePageState.Active) probeMoved = true
-            dispatcher?.dispatch(CommandRegistry.testZ, TestZArgs(step))
-        },
-        onTestZDown = {
-            if (activeSessionTool == ProbeTool.Z_OFFSET &&
-                probeCalibrateVm.state == ProbePageState.Active) probeMoved = true
-            dispatcher?.dispatch(CommandRegistry.testZ, TestZArgs(-step))
-        },
+        onTestZUp = { dispatcher?.dispatch(CommandRegistry.testZ, TestZArgs(step)) },
+        onTestZDown = { dispatcher?.dispatch(CommandRegistry.testZ, TestZArgs(-step)) },
         onStepUp = {
             val idx = testzSteps.indexOf(step).let { if (it < 0) 0 else it }
             step = testzSteps[(idx + 1).coerceAtMost(testzSteps.lastIndex)]
@@ -411,7 +396,6 @@ internal fun ProbeContent(
     onEddyAccept: () -> Unit = {},
     onEddyAbort: () -> Unit = {},
     onHomeAll: () -> Unit = {},
-    probeMoved: Boolean = false,
     onTestZUp: () -> Unit = {},
     onTestZDown: () -> Unit = {},
     onStepUp: () -> Unit = {},
@@ -448,9 +432,16 @@ internal fun ProbeContent(
     val saveTitle   = stringResource(R.string.calibration_save_config)
     val saveMessage = stringResource(R.string.calibration_save_config_confirm)
 
+    // During an ACTIVE Probe-Calibrate routine the header morphs into a caution reminder to stow the
+    // probe before adjusting (replaces the old in-body stow note). Same condition as the Field morph.
+    val zControlsActive = zFieldMode == ProbeFieldMode.Z_CONTROL_ROWS
     // Null-selected guard: when selected == null use the hub identity fallback in the Focus header.
-    val focusTitle = selected?.let { stringResource(probeToolTitleRes(it)) }
-        ?: stringResource(R.string.probe_hub_title)
+    val focusTitle = when {
+        zControlsActive -> stringResource(R.string.probe_calibrate_remove_probe_title)
+        else -> selected?.let { stringResource(probeToolTitleRes(it)) }
+            ?: stringResource(R.string.probe_hub_title)
+    }
+    val focusTitleColor = if (zControlsActive) t.heat else null
     val focusIcon = selected?.let { probeToolIconToken(it) } ?: JiibIcons.RoutineProbeCalibrate
 
     // Shared full-screen guard host — bodies call onRequestConfirm to raise a ConfirmGuard that
@@ -499,6 +490,7 @@ internal fun ProbeContent(
                 FocusFrame(
                     title = focusTitle,
                     icon = focusIcon,
+                    titleColor = focusTitleColor,
                     uDp = grid.uDp,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -541,7 +533,6 @@ internal fun ProbeContent(
                             onAccept = onAccept,
                             onSaveConfig = onSaveConfig,
                             onHomeAll = onHomeAll,
-                            showStowNote = showStowNote(probeCalibrateVm.state, probeMoved),
                             modifier = Modifier.fillMaxSize(),
                         )
                         ProbeTool.APPLY_BABYSTEP -> ApplyBabystepBody(
@@ -792,7 +783,6 @@ internal fun ZOffsetBody(
     onAccept: () -> Unit,
     onSaveConfig: () -> Unit,
     onHomeAll: () -> Unit,
-    showStowNote: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
@@ -809,19 +799,12 @@ internal fun ZOffsetBody(
                 Spacer(Modifier.weight(1f))
                 ZHero(text = vm.savedZOffset?.let { fmtZOffset(-it) } ?: "—")
                 Spacer(Modifier.weight(1f))
+                // Negated-convention explainer, shown before the routine starts (above the button).
+                InvertedValuesNote()
                 IdleActionButton(vm = vm, starting = starting, onStart = onStart, onHomeAll = onHomeAll)
             }
             ProbePageState.Active -> {
                 val r = zOffsetActiveReadouts(vm, step)
-                if (showStowNote) {
-                    Text(
-                        text = stringResource(R.string.probe_calibrate_stow_note),
-                        style = JiibType.caption.toTextStyle(t),
-                        color = t.heat,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth().padding(vertical = fsSp(4f, t.fs).dp),
-                    )
-                }
                 Spacer(Modifier.weight(1f))
                 HeroReadoutRow(label = stringResource(R.string.calibration_current_offset), value = r.currentOffset)
                 ReadoutRow(label = stringResource(R.string.calibration_saved_offset), value = r.saved)
@@ -829,13 +812,7 @@ internal fun ZOffsetBody(
                 ReadoutRow(label = stringResource(R.string.calibration_increment), value = r.stepSize)
                 Spacer(Modifier.weight(1f))
                 // Footnote (above the buttons): explains the negated readout convention.
-                Text(
-                    text = stringResource(R.string.probe_calibrate_inverted_note),
-                    style = JiibType.caption.toTextStyle(t),
-                    color = t.text3,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth().padding(bottom = fsSp(4f, t.fs).dp),
-                )
+                InvertedValuesNote()
                 OutlinedControl(
                     label = stringResource(R.string.calibration_accept),
                     icon = JiibIcons.CheckCircle,
@@ -896,6 +873,23 @@ private fun HeroReadoutRow(label: String, value: String) {
         Spacer(Modifier.weight(1f))
         Text(text = "$value mm", style = JiibType.statValue.toTextStyle(t), color = t.accent2)
     }
+}
+
+/**
+ * The negated-convention explainer caption ("jiib displays inverted values…"), shown in the
+ * Probe-Calibrate Focus both before the routine (Idle) and during it (Active), above the action button.
+ * Body-size (one step up from caption), dimmed to text3 so it reads as a footnote.
+ */
+@Composable
+private fun InvertedValuesNote(modifier: Modifier = Modifier) {
+    val t = LocalTokens.current
+    Text(
+        text = stringResource(R.string.probe_calibrate_inverted_note),
+        style = JiibType.body.toTextStyle(t),
+        color = t.text3,
+        textAlign = TextAlign.Center,
+        modifier = modifier.fillMaxWidth().padding(bottom = fsSp(4f, t.fs).dp),
+    )
 }
 
 /** Idle action button: Starting… (disabled) / Home All (not homed) / Start (homed). */
@@ -2090,7 +2084,3 @@ internal fun zOffsetActiveReadouts(vm: ProbeCalibrateVm, step: Double): ZReadout
         stepSize = fmtStep(step),
     )
 }
-
-/** Stow-probe reminder is shown only during Active and only until the user's first head move. */
-internal fun showStowNote(state: ProbePageState, probeMoved: Boolean): Boolean =
-    state == ProbePageState.Active && !probeMoved

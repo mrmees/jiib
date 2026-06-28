@@ -555,7 +555,7 @@
     <string name="calibration_increment">Step Size</string>
     <string name="calibration_current_offset">Current Offset</string>
     <string name="calibration_difference">Difference</string>
-    <string name="probe_calibrate_stow_note">Remove or stow the probe if necessary before adjusting.</string>
+    <string name="probe_calibrate_remove_probe_title">REMOVE/STOW PROBE!</string>
     <string name="probe_calibrate_inverted_note">jiib displays inverted values during calibration for logical consistency.</string>
 
     <!-- Bed Mesh screen (Phase 27-05) -->

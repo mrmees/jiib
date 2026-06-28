@@ -241,6 +241,7 @@ fun FocusFrame(
     title: String,
     icon: JiibIcon,
     iconTint: Color? = null,
+    titleColor: Color? = null,
     uDp: Dp,
     modifier: Modifier = Modifier,
     edge: FocusEdge = FocusEdge.Neutral,
@@ -284,6 +285,7 @@ fun FocusFrame(
             title = title,
             icon = icon,
             iconTint = iconTint,
+            titleColor = titleColor,
             uDp = uDp,
             isPrinting = isPrinting,
             safetyActive = safetyActive,
@@ -331,6 +333,7 @@ private fun FocusHeader(
     title: String,
     icon: JiibIcon,
     iconTint: Color? = null,
+    titleColor: Color? = null,
     uDp: Dp,
     isPrinting: Boolean,
     safetyActive: Boolean,
@@ -375,7 +378,7 @@ private fun FocusHeader(
         // when it overflows AND no end glyph occupies it; marquee only on the overflow path.
         Text(
             text = title,
-            color = t.text,
+            color = titleColor ?: t.text,
             style = titleStyle,
             maxLines = 1,
             textAlign = TextAlign.Center,
