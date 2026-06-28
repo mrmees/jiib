@@ -551,8 +551,11 @@
     <string name="zoffset_increment_up">Increment Up</string>
     <string name="zoffset_increment_down">Increment Down</string>
     <string name="calibration_reboot_to_save">Reboot to Save</string>
-    <string name="calibration_saved_offset">Saved offset</string>
-    <string name="calibration_increment">Increment</string>
+    <string name="calibration_saved_offset">Saved Offset</string>
+    <string name="calibration_increment">Step Size</string>
+    <string name="calibration_current_offset">Current Offset</string>
+    <string name="calibration_difference">Difference</string>
+    <string name="probe_calibrate_stow_note">Remove or stow the probe if necessary before adjusting.</string>
 
     <!-- Bed Mesh screen (Phase 27-05) -->
     <string name="mesh_calibrate">Calibrate</string>
@@ -821,7 +824,7 @@
     <string name="probe_hub_title">Probe</string>
 
     <!-- Tool titles (visible in hub Field list + each tool\'s Focus header) -->
-    <string name="probe_tool_z_offset_calibrate_title">Z-Offset Calibrate</string>
+    <string name="probe_tool_z_offset_calibrate_title">Probe Calibrate</string>
     <string name="probe_tool_test_title">Probe Test</string>
     <string name="probe_tool_babystep_title">Apply Babystepping</string>
     <string name="probe_tool_eddy_calibrate_title">Eddy: Calibrate</string>
