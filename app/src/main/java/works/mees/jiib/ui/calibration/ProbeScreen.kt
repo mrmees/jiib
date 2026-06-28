@@ -224,6 +224,13 @@ fun ProbeScreen(
     LaunchedEffect(sessionActiveForTracking) {
         if (!sessionActiveForTracking) activeSessionTool = null
     }
+    // Adopt an orphan active session (live manual_probe with no tracked owner — external start, or app
+    // restart / re-entry mid-session) as Z-Offset, so the Field controls + Abort foot appear instead of
+    // leaving the user stuck with only Accept. Only fires when activeSessionTool is null, so a tracked
+    // Z or eddy session (owner already set in onStart/onEddyStart) is never overridden.
+    LaunchedEffect(probeCalibrateVm.state, activeSessionTool) {
+        orphanSessionAdoption(probeCalibrateVm.state, activeSessionTool)?.let { activeSessionTool = it }
+    }
 
     var probeMoved by remember { mutableStateOf(false) }
     // Reset the stow-note gate whenever the Z session is not Active, so a fresh session re-shows it.
@@ -1746,6 +1753,21 @@ internal fun probeFootMode(
     anySessionActive -> ProbeFootMode.NONE
     else -> ProbeFootMode.BACK
 }
+
+/**
+ * Adopt an ORPHAN active manual_probe session as a Z-Offset session. An orphan is a session that is
+ * live ([ProbePageState.Active]) but has no tracked owner ([activeSessionTool] == null) — it was started
+ * outside this screen instance: by the console/Mainsail, or by an app restart / re-entry while the
+ * session was still running. Without adoption the Focus resolves the orphan to Z-Offset (so it shows
+ * Accept) but the Field/foot gates see a null owner and show NO control rows and NO Abort — leaving the
+ * user stuck with only Accept (committing a possibly-wrong measurement). Adopting it as Z_OFFSET makes
+ * [activeSessionTool] the single source of truth again so the morph + Abort foot appear, matching the
+ * in-screen-start flow. TESTZ/ACCEPT/ABORT all work for any manual_probe session, so an (extremely rare)
+ * orphan eddy session is also driveable this way. Returns the tool to adopt, or null when nothing
+ * should be adopted (already tracked, or not a live session).
+ */
+internal fun orphanSessionAdoption(state: ProbePageState, activeSessionTool: ProbeTool?): ProbeTool? =
+    if (state == ProbePageState.Active && activeSessionTool == null) ProbeTool.Z_OFFSET else null
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ManualProbeJog + helpers — moved here from ProbeCalibrateScreen (now deleted)

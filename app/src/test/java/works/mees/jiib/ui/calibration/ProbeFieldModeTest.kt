@@ -1,6 +1,7 @@
 package works.mees.jiib.ui.calibration
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 import works.mees.jiib.calibration.ProbePageState
 import works.mees.jiib.calibration.ProbeTool
@@ -30,5 +31,23 @@ class ProbeFieldModeTest {
             probeFootMode(ProbeTool.Z_OFFSET, ProbePageState.Idle, anySessionActive = true))
         assertEquals(ProbeFootMode.BACK,
             probeFootMode(null, ProbePageState.Idle, anySessionActive = false))
+    }
+
+    @Test fun `an orphan active session (no tracked owner) is adopted as Z_OFFSET`() {
+        // Entering while manual_probe is already running (external start / app restart mid-session):
+        // state Active but no owner → adopt as Z_OFFSET so the user gets controls + an exit, not just Accept.
+        val adopted = orphanSessionAdoption(ProbePageState.Active, activeSessionTool = null)
+        assertEquals(ProbeTool.Z_OFFSET, adopted)
+        // After adoption the Field morphs to the control rows and the foot offers Abort (the exit the
+        // user previously lacked) — the end-to-end fix for the "stuck with only Accept" bug.
+        assertEquals(ProbeFieldMode.Z_CONTROL_ROWS, probeFieldMode(adopted, ProbePageState.Active))
+        assertEquals(ProbeFootMode.ABORT, probeFootMode(adopted, ProbePageState.Active, anySessionActive = true))
+    }
+
+    @Test fun `tracked, eddy, or non-active sessions are not adopted`() {
+        assertNull(orphanSessionAdoption(ProbePageState.Active, ProbeTool.Z_OFFSET))     // user-started Z
+        assertNull(orphanSessionAdoption(ProbePageState.Active, ProbeTool.EDDY_CALIBRATE)) // user-started eddy
+        assertNull(orphanSessionAdoption(ProbePageState.Idle, null))                     // no live session
+        assertNull(orphanSessionAdoption(ProbePageState.Accepted, null))                 // already accepted
     }
 }
