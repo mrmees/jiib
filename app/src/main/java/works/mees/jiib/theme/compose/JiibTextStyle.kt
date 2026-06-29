@@ -1,14 +1,21 @@
 package works.mees.jiib.theme.compose
 
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import works.mees.jiib.designsystem.layout.LocalUnitDp
 import works.mees.jiib.theme.AppFont
 import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.TextRole
@@ -69,6 +76,83 @@ fun BoxScope.FocusHeroText(
         ),
         modifier = modifier,
     )
+}
+
+/**
+ * Bounded Focus-body text (Focus-text law, 2026-06-29). Renders [text] in [role] and SHRINKS the font
+ * (role base size → [minSp], never below) so the RENDERED content fits the HEIGHT budget without
+ * overflowing the FocusFrame clip. The general (non-hero) sibling of [FocusHeroText]; the sanctioned
+ * replacement for raw `Text(..., style = role.toTextStyle(t))` in a Focus body.
+ *
+ * **Mechanism:** Uses [BoxWithConstraints] to read the bounded pixel height, then derives a line-count
+ * budget (`maxLines`) from the max font size using a conservative line-height factor of 1.5×. This
+ * lets [TextAutoSize.StepBased] shrink via `didExceedMaxLines` — the mechanism that actually works for
+ * soft-wrapped text (`didOverflowHeight` alone does NOT trigger autosize shrinkage in Compose
+ * foundation 1.11.x). With `maxLines` computed at the MAX font size and rendered at any SMALLER
+ * auto-chosen size, the rendered line height is always ≤ the estimated budget, so `didOverflowHeight`
+ * stays false. When text is too long to fit fully (very long strings in small boxes), the composable
+ * displays as many lines as the height allows at the smallest readable size.
+ *
+ * Vertical budget (use one): [maxHeightU] caps at N unit-grid heights (U from [LocalUnitDp]); or pass
+ * `Modifier.weight(1f)`/`fillMaxSize()` in [modifier] to fill the leftover slot.
+ *
+ * WIDTH CONTRACT: the inner BasicText fills the budget box width, so the caller MUST give [modifier] a
+ * bounded width — `weight(1f)` (in a Row OR Column) or `fillMaxSize()`. Do NOT drop a bare [FocusText]
+ * into a Row cell without `weight(1f)`/a width, or it will greedily measure too wide.
+ */
+@Composable
+fun FocusText(
+    text: String,
+    role: TextRole,
+    t: ThemeTokens,
+    color: Color,
+    modifier: Modifier = Modifier,
+    maxHeightU: Float? = null,
+    textAlign: TextAlign = TextAlign.Center,
+    minSp: Float = 15f,
+    maxSp: Float? = null,
+) {
+    val uDp = LocalUnitDp.current ?: 64.dp   // LocalUnitDp is Dp? (null until a U-aware container provides it)
+    val boxMod = modifier.then(
+        if (maxHeightU != null) Modifier.heightIn(max = uDp * maxHeightU) else Modifier,
+    )
+    BoxWithConstraints(modifier = boxMod, contentAlignment = Alignment.Center) {
+        val density = LocalDensity.current
+        val maxFontSizeSp = fsSp(maxSp ?: role.baseSp, t.fs)
+        // Compute a line-count budget from the height constraint. Factor 1.5 is a conservative
+        // estimate of the line-height-to-font-size ratio (Geist actual ≈ 1.4). Using a factor ≥
+        // the actual ratio guarantees that N rendered lines at ANY font ≤ maxSp will not exceed
+        // the box height — because rendered_height ≤ N × actual_lineHeight ≤ N × factor × maxSp_px
+        // ≤ floor(maxHeight / (factor × maxSp_px)) × factor × maxSp_px ≤ maxHeight.
+        val maxLines = if (constraints.hasBoundedHeight) {
+            val lineHeightPx = with(density) { (maxFontSizeSp * 1.5f).sp.toPx() }
+            (constraints.maxHeight.toFloat() / lineHeightPx).toInt().coerceAtLeast(1)
+        } else Int.MAX_VALUE
+
+        BasicText(
+            text = text,
+            style = TextStyle(
+                fontFamily = (if (role.role == TypeRole.Ui) t.uiFont else t.dataFont).family,
+                fontWeight = role.weight,
+                color = color,
+                textAlign = textAlign,
+            ),
+            softWrap = true,
+            maxLines = maxLines,
+            autoSize = TextAutoSize.StepBased(
+                minFontSize = fsSp(minSp, t.fs).sp,
+                maxFontSize = maxFontSizeSp.sp,
+                stepSize = 1.sp,
+            ),
+            // fillMaxWidth gives bounded width for text wrapping.
+            // heightIn caps the BasicText at the box height so didOverflowHeight reflects the
+            // bounded constraint rather than defaulting to Infinity (always-false).
+            modifier = Modifier.fillMaxWidth().then(
+                if (constraints.hasBoundedHeight) Modifier.heightIn(max = this.maxHeight)
+                else Modifier
+            ),
+        )
+    }
 }
 
 /**
