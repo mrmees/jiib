@@ -9,13 +9,13 @@ import works.mees.jiib.R
  * The single source of truth for selectable fonts (and the release `res/font` subset list). Each
  * [AppFont] is a singleton so [ThemeTokens] equality stays reference-cheap. Geist / Geist Mono are
  * the defaults and the unknown-id fallback. Adding a family = drop static TTFs in `res/font` + one
- * row here (+ update `tools/verify_fonts.py`, Task 12).
+ * row here (+ update `tools/verify_fonts.py`).
  *
  * All bundled faces are STATIC TTFs (variable-axis selection is API 26+, the floor is API 23) and
- * carry redistributable licenses (OFL 1.1, Apache-2.0, or DejaVu's permissive Bitstream Vera
- * license). Data faces are genuinely monospaced — tabular numerics by glyph-metric construction,
- * NO `fontFeatureSettings("tnum")` (see [Geist]). Variable upstreams were instanced to statics with
- * fonttools (every axis pinned; the output carries no `fvar`).
+ * carry redistributable licenses (OFL 1.1, Apache-2.0, or the Microsoft OFL for Cascadia Code).
+ * Data faces are genuinely monospaced — tabular numerics by glyph-metric construction. Variable
+ * upstreams were instanced to statics with fonttools (every axis pinned; the output carries no
+ * `fvar`).
  */
 object FontCatalog {
     val GEIST = AppFont(
@@ -35,206 +35,282 @@ object FontCatalog {
         ),
     )
 
-    // ---- UI families (Task 12) ----------------------------------------------------------------
+    // ---- UI families (sorted by displayName after Geist) -------------------------
 
-    val INTER = AppFont(
-        id = "inter", displayName = "Inter", kind = FontKind.Ui,
+    val ALDRICH = AppFont(
+        id = "aldrich", displayName = "Aldrich", kind = FontKind.Ui,
         family = FontFamily(
-            Font(R.font.inter_regular, FontWeight.Normal),
-            Font(R.font.inter_medium, FontWeight.Medium),
-            Font(R.font.inter_semibold, FontWeight.SemiBold),
-            Font(R.font.inter_bold, FontWeight.Bold),
+            Font(R.font.aldrich_regular, FontWeight.Normal),
         ),
         weights = mapOf(
-            FontWeight.Normal to R.font.inter_regular,
-            FontWeight.Medium to R.font.inter_medium,
-            FontWeight.SemiBold to R.font.inter_semibold,
-            FontWeight.Bold to R.font.inter_bold,
+            FontWeight.Normal to R.font.aldrich_regular,
         ),
     )
-    val IBM_PLEX_SANS = AppFont(
-        id = "ibm_plex_sans", displayName = "IBM Plex Sans", kind = FontKind.Ui,
+    val ARVO = AppFont(
+        id = "arvo", displayName = "Arvo", kind = FontKind.Ui,
         family = FontFamily(
-            Font(R.font.ibm_plex_sans_regular, FontWeight.Normal),
-            Font(R.font.ibm_plex_sans_medium, FontWeight.Medium),
-            Font(R.font.ibm_plex_sans_semibold, FontWeight.SemiBold),
-            Font(R.font.ibm_plex_sans_bold, FontWeight.Bold),
+            Font(R.font.arvo_regular, FontWeight.Normal),
+            Font(R.font.arvo_bold, FontWeight.Bold),
         ),
         weights = mapOf(
-            FontWeight.Normal to R.font.ibm_plex_sans_regular,
-            FontWeight.Medium to R.font.ibm_plex_sans_medium,
-            FontWeight.SemiBold to R.font.ibm_plex_sans_semibold,
-            FontWeight.Bold to R.font.ibm_plex_sans_bold,
+            FontWeight.Normal to R.font.arvo_regular,
+            FontWeight.Bold to R.font.arvo_bold,
         ),
     )
-    val SOURCE_SANS_3 = AppFont(
-        id = "source_sans_3", displayName = "Source Sans 3", kind = FontKind.Ui,
+    val ASIMOVIAN = AppFont(
+        id = "asimovian", displayName = "Asimovian", kind = FontKind.Ui,
         family = FontFamily(
-            Font(R.font.source_sans_3_regular, FontWeight.Normal),
-            Font(R.font.source_sans_3_semibold, FontWeight.SemiBold),
-            Font(R.font.source_sans_3_bold, FontWeight.Bold),
+            Font(R.font.asimovian_regular, FontWeight.Normal),
         ),
         weights = mapOf(
-            FontWeight.Normal to R.font.source_sans_3_regular,
-            FontWeight.SemiBold to R.font.source_sans_3_semibold,
-            FontWeight.Bold to R.font.source_sans_3_bold,
+            FontWeight.Normal to R.font.asimovian_regular,
         ),
     )
-    val RUBIK = AppFont(
-        id = "rubik", displayName = "Rubik", kind = FontKind.Ui,
+    val BAKBAK_ONE = AppFont(
+        id = "bakbak_one", displayName = "Bakbak One", kind = FontKind.Ui,
         family = FontFamily(
-            Font(R.font.rubik_regular, FontWeight.Normal),
-            Font(R.font.rubik_medium, FontWeight.Medium),
-            Font(R.font.rubik_semibold, FontWeight.SemiBold),
-            Font(R.font.rubik_bold, FontWeight.Bold),
+            Font(R.font.bakbak_one_regular, FontWeight.Normal),
         ),
         weights = mapOf(
-            FontWeight.Normal to R.font.rubik_regular,
-            FontWeight.Medium to R.font.rubik_medium,
-            FontWeight.SemiBold to R.font.rubik_semibold,
-            FontWeight.Bold to R.font.rubik_bold,
+            FontWeight.Normal to R.font.bakbak_one_regular,
         ),
     )
-    val WORK_SANS = AppFont(
-        id = "work_sans", displayName = "Work Sans", kind = FontKind.Ui,
+    val CARLITO = AppFont(
+        id = "carlito", displayName = "Carlito", kind = FontKind.Ui,
         family = FontFamily(
-            Font(R.font.work_sans_regular, FontWeight.Normal),
-            Font(R.font.work_sans_medium, FontWeight.Medium),
-            Font(R.font.work_sans_semibold, FontWeight.SemiBold),
-            Font(R.font.work_sans_bold, FontWeight.Bold),
+            Font(R.font.carlito_regular, FontWeight.Normal),
+            Font(R.font.carlito_bold, FontWeight.Bold),
         ),
         weights = mapOf(
-            FontWeight.Normal to R.font.work_sans_regular,
-            FontWeight.Medium to R.font.work_sans_medium,
-            FontWeight.SemiBold to R.font.work_sans_semibold,
-            FontWeight.Bold to R.font.work_sans_bold,
+            FontWeight.Normal to R.font.carlito_regular,
+            FontWeight.Bold to R.font.carlito_bold,
         ),
     )
-    val DM_SANS = AppFont(
-        id = "dm_sans", displayName = "DM Sans", kind = FontKind.Ui,
+    val FAUSTINA = AppFont(
+        id = "faustina", displayName = "Faustina", kind = FontKind.Ui,
         family = FontFamily(
-            Font(R.font.dm_sans_regular, FontWeight.Normal),
-            Font(R.font.dm_sans_medium, FontWeight.Medium),
-            Font(R.font.dm_sans_bold, FontWeight.Bold),
+            Font(R.font.faustina_regular, FontWeight.Normal),
+            Font(R.font.faustina_medium, FontWeight.Medium),
+            Font(R.font.faustina_semibold, FontWeight.SemiBold),
+            Font(R.font.faustina_bold, FontWeight.Bold),
         ),
         weights = mapOf(
-            FontWeight.Normal to R.font.dm_sans_regular,
-            FontWeight.Medium to R.font.dm_sans_medium,
-            FontWeight.Bold to R.font.dm_sans_bold,
+            FontWeight.Normal to R.font.faustina_regular,
+            FontWeight.Medium to R.font.faustina_medium,
+            FontWeight.SemiBold to R.font.faustina_semibold,
+            FontWeight.Bold to R.font.faustina_bold,
         ),
     )
-    val MANROPE = AppFont(
-        id = "manrope", displayName = "Manrope", kind = FontKind.Ui,
+    val GENOS = AppFont(
+        id = "genos", displayName = "Genos", kind = FontKind.Ui,
         family = FontFamily(
-            Font(R.font.manrope_regular, FontWeight.Normal),
-            Font(R.font.manrope_medium, FontWeight.Medium),
-            Font(R.font.manrope_semibold, FontWeight.SemiBold),
-            Font(R.font.manrope_bold, FontWeight.Bold),
+            Font(R.font.genos_regular, FontWeight.Normal),
+            Font(R.font.genos_medium, FontWeight.Medium),
+            Font(R.font.genos_semibold, FontWeight.SemiBold),
+            Font(R.font.genos_bold, FontWeight.Bold),
         ),
         weights = mapOf(
-            FontWeight.Normal to R.font.manrope_regular,
-            FontWeight.Medium to R.font.manrope_medium,
-            FontWeight.SemiBold to R.font.manrope_semibold,
-            FontWeight.Bold to R.font.manrope_bold,
+            FontWeight.Normal to R.font.genos_regular,
+            FontWeight.Medium to R.font.genos_medium,
+            FontWeight.SemiBold to R.font.genos_semibold,
+            FontWeight.Bold to R.font.genos_bold,
         ),
     )
-    val NUNITO_SANS = AppFont(
-        id = "nunito_sans", displayName = "Nunito Sans", kind = FontKind.Ui,
+    val GOLDMAN = AppFont(
+        id = "goldman", displayName = "Goldman", kind = FontKind.Ui,
         family = FontFamily(
-            Font(R.font.nunito_sans_regular, FontWeight.Normal),
-            Font(R.font.nunito_sans_semibold, FontWeight.SemiBold),
-            Font(R.font.nunito_sans_bold, FontWeight.Bold),
+            Font(R.font.goldman_regular, FontWeight.Normal),
+            Font(R.font.goldman_bold, FontWeight.Bold),
         ),
         weights = mapOf(
-            FontWeight.Normal to R.font.nunito_sans_regular,
-            FontWeight.SemiBold to R.font.nunito_sans_semibold,
-            FontWeight.Bold to R.font.nunito_sans_bold,
+            FontWeight.Normal to R.font.goldman_regular,
+            FontWeight.Bold to R.font.goldman_bold,
         ),
     )
-    val OPEN_SANS = AppFont(
-        id = "open_sans", displayName = "Open Sans", kind = FontKind.Ui,
+    val KANIT = AppFont(
+        id = "kanit", displayName = "Kanit", kind = FontKind.Ui,
         family = FontFamily(
-            Font(R.font.open_sans_regular, FontWeight.Normal),
-            Font(R.font.open_sans_semibold, FontWeight.SemiBold),
-            Font(R.font.open_sans_bold, FontWeight.Bold),
+            Font(R.font.kanit_regular, FontWeight.Normal),
+            Font(R.font.kanit_medium, FontWeight.Medium),
+            Font(R.font.kanit_semibold, FontWeight.SemiBold),
+            Font(R.font.kanit_bold, FontWeight.Bold),
         ),
         weights = mapOf(
-            FontWeight.Normal to R.font.open_sans_regular,
-            FontWeight.SemiBold to R.font.open_sans_semibold,
-            FontWeight.Bold to R.font.open_sans_bold,
+            FontWeight.Normal to R.font.kanit_regular,
+            FontWeight.Medium to R.font.kanit_medium,
+            FontWeight.SemiBold to R.font.kanit_semibold,
+            FontWeight.Bold to R.font.kanit_bold,
         ),
     )
-    val ATKINSON_HYPERLEGIBLE = AppFont(
-        id = "atkinson_hyperlegible", displayName = "Atkinson Hyperlegible", kind = FontKind.Ui,
+    val NOTO_SANS = AppFont(
+        id = "noto_sans", displayName = "Noto Sans", kind = FontKind.Ui,
         family = FontFamily(
-            Font(R.font.atkinson_hyperlegible_regular, FontWeight.Normal),
-            Font(R.font.atkinson_hyperlegible_bold, FontWeight.Bold),
+            Font(R.font.noto_sans_regular, FontWeight.Normal),
+            Font(R.font.noto_sans_medium, FontWeight.Medium),
+            Font(R.font.noto_sans_semibold, FontWeight.SemiBold),
+            Font(R.font.noto_sans_bold, FontWeight.Bold),
         ),
         weights = mapOf(
-            FontWeight.Normal to R.font.atkinson_hyperlegible_regular,
-            FontWeight.Bold to R.font.atkinson_hyperlegible_bold,
+            FontWeight.Normal to R.font.noto_sans_regular,
+            FontWeight.Medium to R.font.noto_sans_medium,
+            FontWeight.SemiBold to R.font.noto_sans_semibold,
+            FontWeight.Bold to R.font.noto_sans_bold,
         ),
     )
-    val LEXEND = AppFont(
-        id = "lexend", displayName = "Lexend", kind = FontKind.Ui,
+    val OXANIUM = AppFont(
+        id = "oxanium", displayName = "Oxanium", kind = FontKind.Ui,
         family = FontFamily(
-            Font(R.font.lexend_regular, FontWeight.Normal),
-            Font(R.font.lexend_medium, FontWeight.Medium),
-            Font(R.font.lexend_semibold, FontWeight.SemiBold),
-            Font(R.font.lexend_bold, FontWeight.Bold),
+            Font(R.font.oxanium_regular, FontWeight.Normal),
+            Font(R.font.oxanium_medium, FontWeight.Medium),
+            Font(R.font.oxanium_semibold, FontWeight.SemiBold),
+            Font(R.font.oxanium_bold, FontWeight.Bold),
         ),
         weights = mapOf(
-            FontWeight.Normal to R.font.lexend_regular,
-            FontWeight.Medium to R.font.lexend_medium,
-            FontWeight.SemiBold to R.font.lexend_semibold,
-            FontWeight.Bold to R.font.lexend_bold,
+            FontWeight.Normal to R.font.oxanium_regular,
+            FontWeight.Medium to R.font.oxanium_medium,
+            FontWeight.SemiBold to R.font.oxanium_semibold,
+            FontWeight.Bold to R.font.oxanium_bold,
+        ),
+    )
+    val RASA = AppFont(
+        id = "rasa", displayName = "Rasa", kind = FontKind.Ui,
+        family = FontFamily(
+            Font(R.font.rasa_regular, FontWeight.Normal),
+            Font(R.font.rasa_medium, FontWeight.Medium),
+            Font(R.font.rasa_semibold, FontWeight.SemiBold),
+            Font(R.font.rasa_bold, FontWeight.Bold),
+        ),
+        weights = mapOf(
+            FontWeight.Normal to R.font.rasa_regular,
+            FontWeight.Medium to R.font.rasa_medium,
+            FontWeight.SemiBold to R.font.rasa_semibold,
+            FontWeight.Bold to R.font.rasa_bold,
+        ),
+    )
+    val ROBOTO = AppFont(
+        id = "roboto", displayName = "Roboto", kind = FontKind.Ui,
+        family = FontFamily(
+            Font(R.font.roboto_regular, FontWeight.Normal),
+            Font(R.font.roboto_medium, FontWeight.Medium),
+            Font(R.font.roboto_bold, FontWeight.Bold),
+        ),
+        weights = mapOf(
+            FontWeight.Normal to R.font.roboto_regular,
+            FontWeight.Medium to R.font.roboto_medium,
+            FontWeight.Bold to R.font.roboto_bold,
+        ),
+    )
+    val SARPANCH = AppFont(
+        id = "sarpanch", displayName = "Sarpanch", kind = FontKind.Ui,
+        family = FontFamily(
+            Font(R.font.sarpanch_regular, FontWeight.Normal),
+            Font(R.font.sarpanch_bold, FontWeight.Bold),
+        ),
+        weights = mapOf(
+            FontWeight.Normal to R.font.sarpanch_regular,
+            FontWeight.Bold to R.font.sarpanch_bold,
+        ),
+    )
+    val ZILLA_SLAB = AppFont(
+        id = "zilla_slab", displayName = "Zilla Slab", kind = FontKind.Ui,
+        family = FontFamily(
+            Font(R.font.zilla_slab_regular, FontWeight.Normal),
+            Font(R.font.zilla_slab_medium, FontWeight.Medium),
+            Font(R.font.zilla_slab_semibold, FontWeight.SemiBold),
+            Font(R.font.zilla_slab_bold, FontWeight.Bold),
+        ),
+        weights = mapOf(
+            FontWeight.Normal to R.font.zilla_slab_regular,
+            FontWeight.Medium to R.font.zilla_slab_medium,
+            FontWeight.SemiBold to R.font.zilla_slab_semibold,
+            FontWeight.Bold to R.font.zilla_slab_bold,
         ),
     )
 
-    // ---- Data (monospaced) families (Task 12) -------------------------------------------------
+    // ---- Data (monospaced) families (sorted by displayName after Geist Mono) ------
 
-    val JETBRAINS_MONO = AppFont(
-        id = "jetbrains_mono", displayName = "JetBrains Mono", kind = FontKind.Data,
+    val ANONYMOUS_PRO = AppFont(
+        id = "anonymous_pro", displayName = "Anonymous Pro", kind = FontKind.Data,
         family = FontFamily(
-            Font(R.font.jetbrains_mono_medium, FontWeight.Medium),
-            Font(R.font.jetbrains_mono_semibold, FontWeight.SemiBold),
+            Font(R.font.anonymous_pro_medium, FontWeight.Medium),
+            Font(R.font.anonymous_pro_semibold, FontWeight.SemiBold),
         ),
         weights = mapOf(
-            FontWeight.Medium to R.font.jetbrains_mono_medium,
-            FontWeight.SemiBold to R.font.jetbrains_mono_semibold,
+            FontWeight.Medium to R.font.anonymous_pro_medium,
+            FontWeight.SemiBold to R.font.anonymous_pro_semibold,
         ),
     )
-    val IBM_PLEX_MONO = AppFont(
-        id = "ibm_plex_mono", displayName = "IBM Plex Mono", kind = FontKind.Data,
+    val CASCADIA_CODE = AppFont(
+        id = "cascadia_code", displayName = "Cascadia Code", kind = FontKind.Data,
         family = FontFamily(
-            Font(R.font.ibm_plex_mono_medium, FontWeight.Medium),
-            Font(R.font.ibm_plex_mono_semibold, FontWeight.SemiBold),
+            Font(R.font.cascadia_code_medium, FontWeight.Medium),
+            Font(R.font.cascadia_code_semibold, FontWeight.SemiBold),
         ),
         weights = mapOf(
-            FontWeight.Medium to R.font.ibm_plex_mono_medium,
-            FontWeight.SemiBold to R.font.ibm_plex_mono_semibold,
+            FontWeight.Medium to R.font.cascadia_code_medium,
+            FontWeight.SemiBold to R.font.cascadia_code_semibold,
         ),
     )
-    val SOURCE_CODE_PRO = AppFont(
-        id = "source_code_pro", displayName = "Source Code Pro", kind = FontKind.Data,
+    val COURIER_PRIME = AppFont(
+        id = "courier_prime", displayName = "Courier Prime", kind = FontKind.Data,
         family = FontFamily(
-            Font(R.font.source_code_pro_medium, FontWeight.Medium),
-            Font(R.font.source_code_pro_semibold, FontWeight.SemiBold),
+            Font(R.font.courier_prime_medium, FontWeight.Medium),
+            Font(R.font.courier_prime_semibold, FontWeight.SemiBold),
         ),
         weights = mapOf(
-            FontWeight.Medium to R.font.source_code_pro_medium,
-            FontWeight.SemiBold to R.font.source_code_pro_semibold,
+            FontWeight.Medium to R.font.courier_prime_medium,
+            FontWeight.SemiBold to R.font.courier_prime_semibold,
         ),
     )
-    val ROBOTO_MONO = AppFont(
-        id = "roboto_mono", displayName = "Roboto Mono", kind = FontKind.Data,
+    val DATATYPE = AppFont(
+        id = "datatype", displayName = "Datatype", kind = FontKind.Data,
         family = FontFamily(
-            Font(R.font.roboto_mono_medium, FontWeight.Medium),
-            Font(R.font.roboto_mono_semibold, FontWeight.SemiBold),
+            Font(R.font.datatype_medium, FontWeight.Medium),
+            Font(R.font.datatype_semibold, FontWeight.SemiBold),
         ),
         weights = mapOf(
-            FontWeight.Medium to R.font.roboto_mono_medium,
-            FontWeight.SemiBold to R.font.roboto_mono_semibold,
+            FontWeight.Medium to R.font.datatype_medium,
+            FontWeight.SemiBold to R.font.datatype_semibold,
+        ),
+    )
+    val KODE_MONO = AppFont(
+        id = "kode_mono", displayName = "Kode Mono", kind = FontKind.Data,
+        family = FontFamily(
+            Font(R.font.kode_mono_medium, FontWeight.Medium),
+            Font(R.font.kode_mono_semibold, FontWeight.SemiBold),
+        ),
+        weights = mapOf(
+            FontWeight.Medium to R.font.kode_mono_medium,
+            FontWeight.SemiBold to R.font.kode_mono_semibold,
+        ),
+    )
+    val M_PLUS_1_CODE = AppFont(
+        id = "m_plus_1_code", displayName = "M PLUS 1 Code", kind = FontKind.Data,
+        family = FontFamily(
+            Font(R.font.m_plus_1_code_medium, FontWeight.Medium),
+            Font(R.font.m_plus_1_code_semibold, FontWeight.SemiBold),
+        ),
+        weights = mapOf(
+            FontWeight.Medium to R.font.m_plus_1_code_medium,
+            FontWeight.SemiBold to R.font.m_plus_1_code_semibold,
+        ),
+    )
+    val NOVA_MONO = AppFont(
+        id = "nova_mono", displayName = "Nova Mono", kind = FontKind.Data,
+        family = FontFamily(
+            Font(R.font.nova_mono_medium, FontWeight.Medium),
+        ),
+        weights = mapOf(
+            FontWeight.Medium to R.font.nova_mono_medium,
+        ),
+    )
+    val SHARE_TECH_MONO = AppFont(
+        id = "share_tech_mono", displayName = "Share Tech Mono", kind = FontKind.Data,
+        family = FontFamily(
+            Font(R.font.share_tech_mono_medium, FontWeight.Medium),
+        ),
+        weights = mapOf(
+            FontWeight.Medium to R.font.share_tech_mono_medium,
         ),
     )
     val SPACE_MONO = AppFont(
@@ -248,50 +324,19 @@ object FontCatalog {
             FontWeight.SemiBold to R.font.space_mono_semibold,
         ),
     )
-    val INCONSOLATA = AppFont(
-        id = "inconsolata", displayName = "Inconsolata", kind = FontKind.Data,
-        family = FontFamily(
-            Font(R.font.inconsolata_medium, FontWeight.Medium),
-            Font(R.font.inconsolata_semibold, FontWeight.SemiBold),
-        ),
-        weights = mapOf(
-            FontWeight.Medium to R.font.inconsolata_medium,
-            FontWeight.SemiBold to R.font.inconsolata_semibold,
-        ),
-    )
-    val DEJAVU_SANS_MONO = AppFont(
-        id = "dejavu_sans_mono", displayName = "DejaVu Sans Mono", kind = FontKind.Data,
-        family = FontFamily(
-            Font(R.font.dejavu_sans_mono_medium, FontWeight.Medium),
-            Font(R.font.dejavu_sans_mono_semibold, FontWeight.SemiBold),
-        ),
-        weights = mapOf(
-            FontWeight.Medium to R.font.dejavu_sans_mono_medium,
-            FontWeight.SemiBold to R.font.dejavu_sans_mono_semibold,
-        ),
-    )
-    val OVERPASS_MONO = AppFont(
-        id = "overpass_mono", displayName = "Overpass Mono", kind = FontKind.Data,
-        family = FontFamily(
-            Font(R.font.overpass_mono_medium, FontWeight.Medium),
-            Font(R.font.overpass_mono_semibold, FontWeight.SemiBold),
-        ),
-        weights = mapOf(
-            FontWeight.Medium to R.font.overpass_mono_medium,
-            FontWeight.SemiBold to R.font.overpass_mono_semibold,
-        ),
-    )
 
     val DEFAULT_UI = GEIST
     val DEFAULT_DATA = GEIST_MONO
 
     val ui: List<AppFont> = listOf(
-        GEIST, INTER, IBM_PLEX_SANS, SOURCE_SANS_3, RUBIK, WORK_SANS, DM_SANS, MANROPE,
-        NUNITO_SANS, OPEN_SANS, ATKINSON_HYPERLEGIBLE, LEXEND,
+        GEIST,
+        ALDRICH, ARVO, ASIMOVIAN, BAKBAK_ONE, CARLITO, FAUSTINA, GENOS, GOLDMAN,
+        KANIT, NOTO_SANS, OXANIUM, RASA, ROBOTO, SARPANCH, ZILLA_SLAB,
     )
     val data: List<AppFont> = listOf(
-        GEIST_MONO, JETBRAINS_MONO, IBM_PLEX_MONO, SOURCE_CODE_PRO, ROBOTO_MONO, SPACE_MONO,
-        INCONSOLATA, DEJAVU_SANS_MONO, OVERPASS_MONO,
+        GEIST_MONO,
+        ANONYMOUS_PRO, CASCADIA_CODE, COURIER_PRIME, DATATYPE, KODE_MONO, M_PLUS_1_CODE,
+        NOVA_MONO, SHARE_TECH_MONO, SPACE_MONO,
     )
     val all: List<AppFont> = ui + data
 

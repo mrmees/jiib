@@ -15,33 +15,40 @@ FONT_DIR = "app/src/main/res/font"
 # Keep in sync with FontCatalog.kt (dual-update, like docs/commands/catalog.json).
 UI_TTFS = [
     "geist_regular", "geist_medium", "geist_semibold", "geist_bold",
-    "inter_regular", "inter_medium", "inter_semibold", "inter_bold",
-    "ibm_plex_sans_regular", "ibm_plex_sans_medium", "ibm_plex_sans_semibold", "ibm_plex_sans_bold",
-    "source_sans_3_regular", "source_sans_3_semibold", "source_sans_3_bold",
-    "rubik_regular", "rubik_medium", "rubik_semibold", "rubik_bold",
-    "work_sans_regular", "work_sans_medium", "work_sans_semibold", "work_sans_bold",
-    "dm_sans_regular", "dm_sans_medium", "dm_sans_bold",
-    "manrope_regular", "manrope_medium", "manrope_semibold", "manrope_bold",
-    "nunito_sans_regular", "nunito_sans_semibold", "nunito_sans_bold",
-    "open_sans_regular", "open_sans_semibold", "open_sans_bold",
-    "atkinson_hyperlegible_regular", "atkinson_hyperlegible_bold",
-    "lexend_regular", "lexend_medium", "lexend_semibold", "lexend_bold",
+    # --- owner-curated additions ---
+    "aldrich_regular",
+    "arvo_regular", "arvo_bold",
+    "asimovian_regular",
+    "bakbak_one_regular",
+    "carlito_regular", "carlito_bold",
+    "faustina_regular", "faustina_medium", "faustina_semibold", "faustina_bold",
+    "genos_regular", "genos_medium", "genos_semibold", "genos_bold",
+    "goldman_regular", "goldman_bold",
+    "kanit_regular", "kanit_medium", "kanit_semibold", "kanit_bold",
+    "noto_sans_regular", "noto_sans_medium", "noto_sans_semibold", "noto_sans_bold",
+    "oxanium_regular", "oxanium_medium", "oxanium_semibold", "oxanium_bold",
+    "rasa_regular", "rasa_medium", "rasa_semibold", "rasa_bold",
+    "roboto_regular", "roboto_medium", "roboto_bold",
+    "sarpanch_regular", "sarpanch_bold",
+    "zilla_slab_regular", "zilla_slab_medium", "zilla_slab_semibold", "zilla_slab_bold",
 ]
 DATA_TTFS = [
     "geist_mono_medium", "geist_mono_semibold",
-    "jetbrains_mono_medium", "jetbrains_mono_semibold",
-    "ibm_plex_mono_medium", "ibm_plex_mono_semibold",
-    "source_code_pro_medium", "source_code_pro_semibold",
-    "roboto_mono_medium", "roboto_mono_semibold",
+    # --- owner-curated additions ---
+    "anonymous_pro_medium", "anonymous_pro_semibold",
+    "cascadia_code_medium", "cascadia_code_semibold",
+    "courier_prime_medium", "courier_prime_semibold",
+    "datatype_medium", "datatype_semibold",
+    "kode_mono_medium", "kode_mono_semibold",
+    "m_plus_1_code_medium", "m_plus_1_code_semibold",
+    "nova_mono_medium",
+    "share_tech_mono_medium",
     "space_mono_medium", "space_mono_semibold",
-    "inconsolata_medium", "inconsolata_semibold",
-    "dejavu_sans_mono_medium", "dejavu_sans_mono_semibold",
-    "overpass_mono_medium", "overpass_mono_semibold",
 ]
 
 DIGITS = "0123456789"
 DATA_GLYPHS = DIGITS + ".-:/ °"
-UI_GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .,:-%°"
+UI_GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .,:-%"
 
 def cmap(path):
     return TTFont(path).getBestCmap()
