@@ -13,7 +13,9 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import works.mees.jiib.state.FileBrowserDirectory
 import works.mees.jiib.state.FileBrowserRow
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
+import works.mees.jiib.theme.views.typeface
 
 @Composable
 fun FileListView(
@@ -41,6 +43,9 @@ fun FileListView(
         textSecondary = t.text2.toArgb(),
         textMuted = t.text3.toArgb(),
         fs = t.fs,
+        titleTypeface = JiibType.dataInline.typeface(context, t),
+        metaTypeface = JiibType.dataMeta.typeface(context, t),
+        markTypeface = JiibType.caption.typeface(context, t),
     )
     val adapter = remember {
         FileRowsAdapter(FileThumbnailLoader.get(context))

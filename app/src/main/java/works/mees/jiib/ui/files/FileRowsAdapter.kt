@@ -1,5 +1,6 @@
 package works.mees.jiib.ui.files
 
+import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
 import android.view.View
@@ -40,6 +41,12 @@ data class FileRowPalette(
      * it here (mirrors `ConsoleRowPalette.fs`).
      */
     val fs: Float,
+    /** Resolved [Typeface] for the filename title (dataInline role). Bridged down for live font changes. */
+    val titleTypeface: Typeface,
+    /** Resolved [Typeface] for size/date meta and thumbnail label (dataMeta role). */
+    val metaTypeface: Typeface,
+    /** Resolved [Typeface] for the selection mark (caption role). */
+    val markTypeface: Typeface,
 )
 
 class FileRowsAdapter(
@@ -170,12 +177,17 @@ class FileRowView(context: android.content.Context) : LinearLayout(context) {
             stroke = if (item.selected) palette.selectedOutline else palette.outline,
         )
         // Apply each role's base size scaled by the active --fs (the palette carries it; the adapter
-        // cannot read LocalTokens — mirrors ConsoleRowPalette.fs). Family/weight are fixed in init.
+        // cannot read LocalTokens — mirrors ConsoleRowPalette.fs). Typefaces also come from the palette
+        // so a font-family change live-applies on the next token push.
         val fs = palette.fs
         title.textSize = fsSp(JiibType.dataInline.baseSp, fs)
+        title.typeface = palette.titleTypeface
         meta.textSize = fsSp(JiibType.dataMeta.baseSp, fs)
+        meta.typeface = palette.metaTypeface
         thumbLabel.textSize = fsSp(JiibType.dataMeta.baseSp, fs)
+        thumbLabel.typeface = palette.metaTypeface
         selectedMark.textSize = fsSp(JiibType.caption.baseSp, fs)
+        selectedMark.typeface = palette.markTypeface
 
         title.text = row.name
         title.setTextColor(palette.text)

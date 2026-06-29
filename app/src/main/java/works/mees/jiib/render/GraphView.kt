@@ -286,6 +286,7 @@ class GraphView(context: Context) : View(context), ThemeableView {
         reapplyOverrides()
         labelPaint.color = t.text3.toArgb() // muted axis-label color (THEME-01)
         labelPaint.textSize = fsSp(JiibType.statValue.baseSp, t.fs) * density // statValue role — --fs-scaled
+        labelPaint.typeface = JiibType.statValue.typeface(context, t)
         invalidate()
     }
 

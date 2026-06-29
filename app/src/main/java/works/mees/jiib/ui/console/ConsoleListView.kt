@@ -6,11 +6,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import works.mees.jiib.state.ConsoleScrollback
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
+import works.mees.jiib.theme.views.typeface
 
 /**
  * The console scrollback — the 3rd Views-in-Compose scroll surface (CONS-02 / D-05). It reuses the
@@ -47,6 +50,7 @@ fun ConsoleListView(
         success = t.go.toArgb(),
         dimmed = t.text3.toArgb(),
         fs = t.fs,
+        typeface = JiibType.consoleLine.typeface(LocalContext.current, t),
     )
     val adapter = remember { ConsoleRowsAdapter(scrollbackCap = ConsoleScrollback.DEFAULT_CAPACITY) }
     adapter.setPalette(palette)

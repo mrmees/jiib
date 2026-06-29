@@ -98,6 +98,8 @@ import works.mees.jiib.ui.spool.parseNormalizedHex
 import works.mees.jiib.ui.spool.scan.ScanSurface
 import works.mees.jiib.ui.systeminfo.SystemInformationScreen
 import works.mees.jiib.ui.outputs.OutputsScreen
+import works.mees.jiib.theme.FontKind
+import works.mees.jiib.ui.screen.FontPickerScreen
 import works.mees.jiib.ui.screen.PrintersScreen
 import works.mees.jiib.ui.screen.AppSettingsScreen
 import works.mees.jiib.ui.screen.PowerResetScreen
@@ -839,6 +841,22 @@ fun AppShell(
                 AppSettingsScreen(
                     container = container,
                     onBack = { navController.popBackStack() },
+                    onOpenInterfaceFont = { navController.navigate(NavDest.InterfaceFont) },
+                    onOpenDataFont = { navController.navigate(NavDest.DataFont) },
+                )
+            }
+            composable<NavDest.InterfaceFont> {
+                FontPickerScreen(
+                    container = container,
+                    kind = FontKind.Ui,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable<NavDest.DataFont> {
+                FontPickerScreen(
+                    container = container,
+                    kind = FontKind.Data,
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable<NavDest.System> {
@@ -1023,7 +1041,10 @@ fun AppShell(
             estopDest.isRoute<NavDest.PrinterSettings>() ||
             estopDest.isRoute<NavDest.Power>() ||
             estopDest.isRoute<NavDest.ManagePrinters>() ||
-            estopDest.isRoute<NavDest.Theme>()
+            estopDest.isRoute<NavDest.Theme>() ||
+            // Task 9: font picker screens own their e-stop via FocusFrame header dock.
+            estopDest.isRoute<NavDest.InterfaceFont>() ||
+            estopDest.isRoute<NavDest.DataFont>()
         )
         val screenUsesShellEstop = estopDest != null && !screenOwnsEstop && (
             estopDest.isRoute<NavDest.Webcam>()

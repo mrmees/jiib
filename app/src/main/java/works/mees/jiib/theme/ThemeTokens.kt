@@ -123,6 +123,10 @@ data class ThemeTokens(
      * stays source-compatible.
      */
     val mode: PaletteMode = PaletteMode.Colorful,
+    /** Selected Interface (UI) face — resolved into the tokens by AppContainer.effectiveTokens. */
+    val uiFont: AppFont = FontCatalog.DEFAULT_UI,
+    /** Selected Data (mono) face — resolved into the tokens by AppContainer.effectiveTokens. */
+    val dataFont: AppFont = FontCatalog.DEFAULT_DATA,
 )
 
 /**

@@ -900,4 +900,10 @@
     <string name="gating_unknown_message">The printer may still be working. Check the printer, then dismiss.</string>
     <string name="gating_unknown_dismiss">Dismiss</string>
     <string name="gating_back_guard_message">The printer keeps working in the background. Leave this screen?</string>
+
+    <!-- Font picker (Task 9) -->
+    <string name="settings_interface_font">Interface font</string>
+    <string name="settings_data_font">Data font</string>
+    <string name="settings_interface_font_focus">Choose the font for buttons, labels, and titles.</string>
+    <string name="settings_data_font_focus">Choose the font for live numbers (temps, positions, progress). Monospaced for steady digits.</string>
 </resources>
