@@ -154,6 +154,14 @@ class JiibApp : Application() {
             scope = appScope,
             produceFile = { applicationContext.preferencesDataStoreFile("bedmesh_render.preferences_pb") },
         )
+        // The 15th, INDEPENDENT file: font.preferences_pb (Font Picker, Task 7). Backs the app-global
+        // FontPrefs (selected UI face id + selected Data/mono face id). No secrets; own
+        // connection-independent lifecycle per the separate-file discipline. One per process
+        // (single-writer DataStore invariant).
+        val fontDataStore: DataStore<Preferences> = PreferenceDataStoreFactory.create(
+            scope = appScope,
+            produceFile = { applicationContext.preferencesDataStoreFile("font.preferences_pb") },
+        )
 
         container = AppContainer(
             themeDataStore = themeDataStore,
@@ -170,6 +178,7 @@ class JiibApp : Application() {
             heatPresetDataStore = heatPresetDataStore,
             incrementDataStore = incrementDataStore,
             bedMeshRenderDataStore = bedMeshRenderDataStore,
+            fontDataStore = fontDataStore,
             // FULLY-LAZY mDNS scanner (04-01, review #5): the provider lambdas acquire the NsdManager
             // and a fresh multicast lock ONLY when discover() is collected — holding the instance pins
             // no radio. The lock is needed to receive mDNS multicast on Wi-Fi on many devices.

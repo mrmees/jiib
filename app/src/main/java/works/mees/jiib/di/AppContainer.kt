@@ -51,6 +51,8 @@ import works.mees.jiib.state.LastJob
 import works.mees.jiib.state.PrintMetadata
 import works.mees.jiib.state.PrinterState
 import works.mees.jiib.state.Webcam
+import works.mees.jiib.theme.AppFont
+import works.mees.jiib.theme.FontCatalog
 import works.mees.jiib.theme.FontScale
 import works.mees.jiib.theme.StatusSlot
 import works.mees.jiib.theme.mergeOnto
@@ -67,6 +69,7 @@ import works.mees.jiib.calibration.BedMeshViewType
 import works.mees.jiib.ui.settings.BabystepPrefs
 import works.mees.jiib.ui.settings.BedMeshRenderPrefs
 import works.mees.jiib.ui.settings.DisplayPrefs
+import works.mees.jiib.ui.settings.FontPrefs
 import works.mees.jiib.ui.settings.FontScalePrefs
 import works.mees.jiib.ui.settings.TraceStylePrefs
 import works.mees.jiib.ui.webcam.WebcamPrefs
@@ -189,6 +192,13 @@ class AppContainer(
      * single-writer invariant) and injected here.
      */
     bedMeshRenderDataStore: DataStore<Preferences>,
+    /**
+     * The FIFTEENTH, INDEPENDENT file: font.preferences_pb (Font Picker, Task 7). Backs the
+     * app-global [FontPrefs] (selected UI face id + selected Data/mono face id). Carries no secrets,
+     * kept on its own connection-independent lifecycle per the separate-file discipline. Created ONCE
+     * in [works.mees.jiib.JiibApp] (the DataStore single-writer invariant) and injected here.
+     */
+    fontDataStore: DataStore<Preferences>,
     /**
      * The FULLY-LAZY mDNS scanner (04-01, review #5) the Settings "Scan" button collects. Holding it
      * here pins NO radio — its constructor touches neither NsdManager nor the multicast lock; the
@@ -615,6 +625,38 @@ class AppContainer(
     fun setFontScale(choice: FontScale) {
         writeScope.launch { fontScalePrefs.setFontScale(choice) }
     }
+
+    /**
+     * App-global font face persistence (Font Picker, Task 7) — the SEPARATE font.preferences_pb-backed
+     * store holding the selected UI (Interface) face id and Data (mono) face id. PROCESS-SCOPED +
+     * CONNECTION-INDEPENDENT (NOT a field on [SpineHandle]): face choices survive reconnects and printer
+     * swaps.
+     */
+    val fontPrefs: FontPrefs = FontPrefs(fontDataStore)
+
+    /** The selected Interface face (UI text), or the catalog default. Collected by the font picker. */
+    val interfaceFont: Flow<AppFont> =
+        fontPrefs.uiFontId.map { FontCatalog.uiOrDefault(it) }
+
+    /** The selected Data face (monospace/tabular), or the catalog default. */
+    val dataFont: Flow<AppFont> =
+        fontPrefs.dataFontId.map { FontCatalog.dataOrDefault(it) }
+
+    /** Persist the Interface font durably (writeScope, never composition). */
+    fun setInterfaceFont(f: AppFont) {
+        writeScope.launch { fontPrefs.setUiFontId(f.id) }
+    }
+
+    /** Persist the Data font durably (writeScope, never composition). */
+    fun setDataFont(f: AppFont) {
+        writeScope.launch { fontPrefs.setDataFontId(f.id) }
+    }
+
+    /** UI + Data faces as one flow, for the effectiveTokens 5-input combine. */
+    private val selectedFonts: Flow<Pair<AppFont, AppFont>> =
+        combine(fontPrefs.uiFontId, fontPrefs.dataFontId) { ui, data ->
+            FontCatalog.uiOrDefault(ui) to FontCatalog.dataOrDefault(data)
+        }
 
     /**
      * Per-sensor trace color + visibility persistence (D-14, Phase 26) — the SEPARATE
@@ -1087,8 +1129,9 @@ class AppContainer(
      * (PATTERNS FACT 2), so flipping this ONE collect re-themes the classic-Views surfaces too.
      */
     val effectiveTokens: Flow<works.mees.jiib.theme.ThemeTokens> =
-        combine(activeThemeTuple, _themeDraft, _themeOverride, devCyclerEnabled) { base, draft, ov, devOn ->
+        combine(activeThemeTuple, _themeDraft, _themeOverride, devCyclerEnabled, selectedFonts) { base, draft, ov, devOn, fonts ->
             themeResolver.bake(resolveThemeTuple(base, draft, ov, devOn))
+                .copy(uiFont = fonts.first, dataFont = fonts.second)
         }
 
     /**
