@@ -9,8 +9,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
-import works.mees.jiib.theme.Geist
-import works.mees.jiib.theme.GeistMono
+import works.mees.jiib.theme.AppFont
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.TextRole
 import works.mees.jiib.theme.ThemeTokens
 import works.mees.jiib.theme.TypeRole
@@ -22,7 +22,7 @@ import works.mees.jiib.theme.fsSp
  * shrink-to-fit [works.mees.jiib.theme.JiibType.focusHero], use [FocusHeroText] instead.
  */
 fun TextRole.toTextStyle(t: ThemeTokens): TextStyle = TextStyle(
-    fontFamily = if (role == TypeRole.Ui) Geist else GeistMono,
+    fontFamily = (if (role == TypeRole.Ui) t.uiFont else t.dataFont).family,
     fontSize = fsSp(baseSp, t.fs).sp,
     fontWeight = weight,
 )
@@ -55,7 +55,7 @@ fun BoxScope.FocusHeroText(
     BasicText(
         text = text,
         style = TextStyle(
-            fontFamily = if (role.role == TypeRole.Ui) Geist else GeistMono,
+            fontFamily = (if (role.role == TypeRole.Ui) t.uiFont else t.dataFont).family,
             fontWeight = role.weight,
             color = color,
             textAlign = textAlign,
@@ -70,3 +70,14 @@ fun BoxScope.FocusHeroText(
         modifier = modifier,
     )
 }
+
+/**
+ * Render an arbitrary catalog [AppFont]'s own name in its OWN face, at the list-label tier, for the
+ * font picker. The ONE sanctioned inline-family site outside role plumbing (FontConformanceTest
+ * allowlists this file) — keeps the picker screen itself conformant.
+ */
+fun AppFont.previewTextStyle(t: ThemeTokens): TextStyle = TextStyle(
+    fontFamily = this.family,
+    fontSize = fsSp(JiibType.listLabel.baseSp, t.fs).sp,
+    fontWeight = JiibType.listLabel.weight,
+)

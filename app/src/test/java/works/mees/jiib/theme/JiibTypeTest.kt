@@ -51,14 +51,15 @@ class JiibTypeTest {
     }
 
     @Test
-    fun toTextStyleResolvesFamilyAndScaledSize() {
-        val tokens = TokensDark.copy(fs = 1.0f) // baked default-seed fail-safe (theme/BakedTokens.kt)
-        val style = JiibType.statValue.toTextStyle(tokens)
-        assertEquals(GeistMono, style.fontFamily)
-        assertEquals(26f, style.fontSize.value)   // fs = 1.0 → 26 * 1.0
-        assertEquals(FontWeight.SemiBold, style.fontWeight)
+    fun toTextStyleResolvesFamilyFromTokens() {
+        val tokens = TokensDark.copy(fs = 1.0f)
+        // default tokens → default catalog families
+        assertEquals(FontCatalog.DEFAULT_DATA.family, JiibType.statValue.toTextStyle(tokens).fontFamily)
+        assertEquals(FontCatalog.DEFAULT_UI.family, JiibType.listLabel.toTextStyle(tokens).fontFamily)
+        assertEquals(26f, JiibType.statValue.toTextStyle(tokens).fontSize.value)
 
-        val uiStyle = JiibType.listLabel.toTextStyle(tokens)
-        assertEquals(Geist, uiStyle.fontFamily)
+        // a non-default UI face in tokens must flow through to a UI role
+        val custom = tokens.copy(uiFont = FontCatalog.GEIST_MONO) // stand-in distinct family
+        assertEquals(FontCatalog.GEIST_MONO.family, JiibType.listLabel.toTextStyle(custom).fontFamily)
     }
 }
