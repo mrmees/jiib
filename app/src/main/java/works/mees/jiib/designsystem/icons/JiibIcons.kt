@@ -36,6 +36,8 @@ object JiibIcons {
     val TimerUp = JiibIcon(IconRef.Ligature("timer_arrow_up"), alternate = "timer_up")
     val Progress = JiibIcon(IconRef.Ligature("donut_large"), alternate = "progress")
     val PauseCircle = JiibIcon(IconRef.Ligature("pause_circle"), alternate = "pause_circle")
+    val Serif = JiibIcon(IconRef.Ligature("serif"), alternate = "serif")
+    val DataFont = JiibIcon(IconRef.Ligature("format_letter_spacing_standard"), alternate = "data_font")
 
     // --- Spool exemplar glyphs (18-07; the detail-pane Material Symbols) ---
     val Inventory = JiibIcon(IconRef.Ligature("inventory_2"), alternate = "inventory")
@@ -474,7 +476,7 @@ object JiibIcons {
      */
     val all: List<JiibIcon> = listOf(
         Back, Check, Edit, FineTune, Height, Altitude, Layers, Scale, Storefront, TimerDown, TimerUp,
-        Progress, PauseCircle,
+        Progress, PauseCircle, Serif, DataFont,
         Inventory, Palette, CalendarAddOn, CheckCircle, Archive,
         LauncherFiles, LauncherTemperature, LauncherMove, LauncherExtrude, LauncherCalibration,
         LauncherWebcam, LauncherSpool, LauncherMacros, LauncherConsole, LauncherDrawer,
