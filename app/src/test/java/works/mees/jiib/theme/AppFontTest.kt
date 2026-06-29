@@ -14,12 +14,20 @@ class AppFontTest {
         assertEquals(2, f.fontRes(FontWeight.Medium))
     }
 
-    @Test fun missingWeightFallsToNearestLowerThenAny() {
+    @Test fun missingWeightFallsToNearestWithNothingSuitableAbove() {
         val f = font(mapOf(FontWeight.Normal to 1, FontWeight.SemiBold to 3))
-        // Bold (700) has no exact entry → nearest ≤ is SemiBold (600)
+        // Bold (700, >500) has nothing heavier available → nearest lighter is SemiBold (600)
         assertEquals(3, f.fontRes(FontWeight.Bold))
-        // Medium (500) has no exact entry → nearest ≤ is Normal (400)
+        // Medium (500) has nothing in (500..500] above → nearest lighter is Normal (400)
         assertEquals(1, f.fontRes(FontWeight.Medium))
+    }
+
+    @Test fun missingWeightAbove500PrefersHeavier_matchesComposeMatcher() {
+        // Carlito-like: Regular + Bold, no SemiBold. A SemiBold (600, >500) request must jump UP to
+        // Bold (700) — mirroring Compose's FontFamily matcher — NOT down to Regular (400). This is the
+        // alignment that keeps the Compose and classic-Views seams on the same static weight.
+        val f = font(mapOf(FontWeight.Normal to 1, FontWeight.Bold to 4))
+        assertEquals(4, f.fontRes(FontWeight.SemiBold))
     }
 
     @Test fun belowAllFallsToLightest() {
