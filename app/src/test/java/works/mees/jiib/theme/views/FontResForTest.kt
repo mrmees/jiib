@@ -16,7 +16,13 @@ class FontResForTest {
     }
 
     @Test fun tokensSelectTheChosenFace() {
-        val t = TokensDark.copy(dataFont = FontCatalog.GEIST_MONO) // default, but proves the path
-        assertEquals(R.font.geist_mono_medium, fontResFor(JiibType.consoleLine, t)) // Data + Medium
+        // NON-default faces in BOTH slots — proves fontResFor reads the token-selected face, not the
+        // catalog default (Geist / Geist Mono). A vacuous version using the defaults would pass even
+        // if the token path were ignored.
+        val t = TokensDark.copy(uiFont = FontCatalog.NOTO_SANS, dataFont = FontCatalog.SPACE_MONO)
+        // Data role → chosen Space Mono; consoleLine is Medium (Space Mono ships Medium → exact)
+        assertEquals(R.font.space_mono_medium, fontResFor(JiibType.consoleLine, t))
+        // UI role → chosen Noto Sans; listLabel is SemiBold (Noto Sans ships SemiBold → exact)
+        assertEquals(R.font.noto_sans_semibold, fontResFor(JiibType.listLabel, t))
     }
 }
