@@ -197,12 +197,15 @@ class WebcamView(context: Context) : View(context), ThemeableView {
 
         chromeTextPaint.color = t.text.toArgb()
         chromeTextPaint.textSize = fsSp(JiibType.caption.baseSp, t.fs) * density
+        chromeTextPaint.typeface = JiibType.caption.typeface(context, t)
 
         cardTitlePaint.color = t.text.toArgb()
         cardTitlePaint.textSize = fsSp(JiibType.focusHeader.baseSp, t.fs) * density
+        cardTitlePaint.typeface = JiibType.focusHeader.typeface(context, t)
 
         chromeBodyPaint.color = t.text2.toArgb()
         chromeBodyPaint.textSize = fsSp(JiibType.caption.baseSp, t.fs) * density
+        chromeBodyPaint.typeface = JiibType.caption.typeface(context, t)
 
         glyphPaint.color = t.accent2.toArgb()
         glyphPaint.strokeWidth = 1.5f * density

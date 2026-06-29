@@ -1,5 +1,6 @@
 package works.mees.jiib.ui.console
 
+import android.graphics.Typeface
 import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.TextView
@@ -35,6 +36,8 @@ data class ConsoleRowPalette(
      * previously pinned at 14sp, below the 15sp floor and blind to the S/M/L setting).
      */
     val fs: Float,
+    /** The resolved consoleLine [Typeface] (Geist Mono), bridged down so a font-family change live-applies. */
+    val typeface: Typeface,
 )
 
 /**
@@ -167,6 +170,7 @@ class ConsoleRowView(context: android.content.Context) : TextView(context) {
             // Honor the active S/M/L --fs (WR-04): consoleLine base * fs, matching fsSp() on Compose surfaces.
             // The glyph below is sized off this scaled textSize, so it tracks --fs too.
             textSize = fsSp(JiibType.consoleLine.baseSp, p.fs)
+            typeface = p.typeface
             setBackgroundColor(p.background)
             setTextColor(
                 when (line.severity) {
