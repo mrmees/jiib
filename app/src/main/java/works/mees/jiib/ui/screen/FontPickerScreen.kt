@@ -32,8 +32,10 @@ import works.mees.jiib.state.PrinterState
 import works.mees.jiib.theme.AppFont
 import works.mees.jiib.theme.FontCatalog
 import works.mees.jiib.theme.FontKind
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.previewTextStyle
+import works.mees.jiib.theme.compose.toTextStyle
 
 /**
  * ONE parameterized screen for both the interface-font and data-font pickers (DRY).
@@ -55,6 +57,7 @@ fun FontPickerScreen(
         .collectAsStateWithLifecycle(if (kind == FontKind.Ui) FontCatalog.DEFAULT_UI else FontCatalog.DEFAULT_DATA)
     val fonts = if (kind == FontKind.Ui) FontCatalog.ui else FontCatalog.data
     val titleRes = if (kind == FontKind.Ui) R.string.settings_interface_font else R.string.settings_data_font
+    val focusDescRes = if (kind == FontKind.Ui) R.string.settings_interface_font_focus else R.string.settings_data_font_focus
     val icon: JiibIcon = if (kind == FontKind.Ui) JiibIcons.Serif else JiibIcons.DataFont
     val onSelect: (AppFont) -> Unit = if (kind == FontKind.Ui) container::setInterfaceFont else container::setDataFont
 
@@ -69,6 +72,7 @@ fun FontPickerScreen(
         icon = icon,
         fonts = fonts,
         selected = selected,
+        focusCaption = stringResource(focusDescRes),
         onSelect = onSelect,
         onBack = onBack,
         isPrinting = isPrinting,
@@ -87,6 +91,7 @@ internal fun FontPickerContent(
     icon: JiibIcon,
     fonts: List<AppFont>,
     selected: AppFont,
+    focusCaption: String,
     onSelect: (AppFont) -> Unit,
     onBack: () -> Unit,
     isPrinting: Boolean = false,
@@ -107,6 +112,12 @@ internal fun FontPickerContent(
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
                 ) {
+                    // Explainer caption — which kind of font this picker controls.
+                    Text(
+                        text = focusCaption,
+                        style = JiibType.caption.toTextStyle(t),
+                        color = t.text2,
+                    )
                     // The Focus body IS the live preview: the selected font's name, rendered in its own
                     // face. Selection updates the whole app immediately (tokenized fonts) so the chrome
                     // re-renders too — no separate preview block needed.

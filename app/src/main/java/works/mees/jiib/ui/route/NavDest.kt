@@ -67,11 +67,12 @@ sealed interface NavDest {
 }
 
 /**
- * All 26 [NavDest] members in declaration order (17 original + 4 new calibration sub-routes D-07
+ * All 28 [NavDest] members in declaration order (17 original + 4 new calibration sub-routes D-07
  * [CalibrationProbe retired in R1] + 1 System page hub D-01/Phase 28
  * + 3 settings-split routes AppSettings/PrinterSettings/ManagePrinters
  * − 2 retired routes Settings/Devices removed in task 7.1 − About retired 2026-06-19
- * + HeatPresets + IncrementValues + Power + Probe [R1: single probe screen]).
+ * + HeatPresets + IncrementValues + Power + Probe [R1: single probe screen]
+ * + InterfaceFont + DataFont [Task 9: font picker screens]).
  *
  * Sealed interfaces have no `.entries` — use this list for round-trip testing ([parseStartDest]),
  * verification coverage, and any place that previously iterated [Dest.entries].

@@ -8,12 +8,12 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
-import works.mees.jiib.theme.JiibType
-import works.mees.jiib.theme.views.typeface
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import works.mees.jiib.state.ConsoleScrollback
+import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
+import works.mees.jiib.theme.views.typeface
 
 /**
  * The console scrollback — the 3rd Views-in-Compose scroll surface (CONS-02 / D-05). It reuses the
