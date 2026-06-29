@@ -1,6 +1,5 @@
 package works.mees.jiib.theme
 
-import androidx.compose.ui.text.font.FontWeight
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
