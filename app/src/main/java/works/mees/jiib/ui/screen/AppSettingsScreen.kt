@@ -51,10 +51,14 @@ import works.mees.jiib.designsystem.layout.rememberUnitGrid
 import works.mees.jiib.di.AppContainer
 import works.mees.jiib.state.PrintState
 import works.mees.jiib.state.PrinterState
+import works.mees.jiib.theme.AppFont
+import works.mees.jiib.theme.FontCatalog
 import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.FontScale
 import works.mees.jiib.theme.compose.LocalTokens
+import works.mees.jiib.theme.compose.previewTextStyle
 import works.mees.jiib.theme.compose.toTextStyle
+import androidx.compose.ui.text.TextStyle
 import works.mees.jiib.ui.settings.TextSizeSelector
 
 /** Which App Settings row is selected; null = no selection (Focus shows the overview placeholder). */
@@ -79,6 +83,8 @@ enum class AppSetting { TextSize, KeepAwake, Webcam, Babystep, Battery, DevWidge
 fun AppSettingsScreen(
     container: AppContainer,
     onBack: () -> Unit,
+    onOpenInterfaceFont: () -> Unit,
+    onOpenDataFont: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val printerState by container.printerState.collectAsStateWithLifecycle(initialValue = PrinterState())
@@ -105,6 +111,10 @@ fun AppSettingsScreen(
     // Show unsupported tools toggle (probe-section Task 1) — process-scoped, durable.
     val showUnsupportedTools by container.showUnsupportedTools.collectAsStateWithLifecycle(false)
 
+    // Selected fonts — drive the row indicators + pass to content seam.
+    val interfaceFont by container.interfaceFont.collectAsStateWithLifecycle(FontCatalog.DEFAULT_UI)
+    val dataFont by container.dataFont.collectAsStateWithLifecycle(FontCatalog.DEFAULT_DATA)
+
     // Theme dev-widget cyclers (moved here from the retired About screen, 2026-06-19) — process-scoped,
     // durable writeScope intent (never a composition scope, T-28-07-02).
     val devEnabled by container.devCyclerEnabled.collectAsStateWithLifecycle(initialValue = false)
@@ -129,6 +139,10 @@ fun AppSettingsScreen(
     AppSettingsContent(
         fontScale = fontScale,
         onFontScale = { container.setFontScale(it) },
+        interfaceFont = interfaceFont,
+        dataFont = dataFont,
+        onOpenInterfaceFont = onOpenInterfaceFont,
+        onOpenDataFont = onOpenDataFont,
         keepScreenOn = keepScreenOn,
         onKeepScreenOnToggle = { container.setKeepScreenOn(it) },
         webcamEnabled = webcamEnabled,
@@ -172,6 +186,10 @@ fun AppSettingsScreen(
 fun AppSettingsContent(
     fontScale: FontScale,
     onFontScale: (FontScale) -> Unit,
+    interfaceFont: AppFont = FontCatalog.DEFAULT_UI,
+    dataFont: AppFont = FontCatalog.DEFAULT_DATA,
+    onOpenInterfaceFont: () -> Unit = {},
+    onOpenDataFont: () -> Unit = {},
     keepScreenOn: Boolean,
     onKeepScreenOnToggle: (Boolean) -> Unit,
     webcamEnabled: Boolean,
@@ -233,6 +251,28 @@ fun AppSettingsContent(
                             icon = JiibIcons.TextSize,
                             label = stringResource(R.string.settings_text_size),
                             indicator = stringResource(textSizeIndicatorRes(fontScale)),
+                            uDp = grid.uDp,
+                        )
+                    }
+                    item {
+                        AppSettingRow(
+                            selected = false,
+                            onClick = onOpenInterfaceFont,
+                            icon = JiibIcons.Serif,
+                            label = stringResource(R.string.settings_interface_font),
+                            indicator = interfaceFont.displayName,
+                            indicatorStyle = interfaceFont.previewTextStyle(t),
+                            uDp = grid.uDp,
+                        )
+                    }
+                    item {
+                        AppSettingRow(
+                            selected = false,
+                            onClick = onOpenDataFont,
+                            icon = JiibIcons.DataFont,
+                            label = stringResource(R.string.settings_data_font),
+                            indicator = dataFont.displayName,
+                            indicatorStyle = dataFont.previewTextStyle(t),
                             uDp = grid.uDp,
                         )
                     }
@@ -344,6 +384,7 @@ private fun AppSettingRow(
     indicator: String,
     uDp: Dp,
     indicatorColor: Color? = null,
+    indicatorStyle: TextStyle? = null,
 ) {
     val t = LocalTokens.current
     ListRow(
@@ -355,7 +396,7 @@ private fun AppSettingRow(
             Text(
                 text = indicator,
                 color = indicatorColor ?: t.text2,
-                style = JiibType.caption.toTextStyle(t),
+                style = indicatorStyle ?: JiibType.caption.toTextStyle(t),
             )
         },
     ) {

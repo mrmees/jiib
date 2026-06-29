@@ -61,6 +61,9 @@ sealed interface NavDest {
     @Serializable data object IncrementValues        : NavDest
     // Single Probe screen (R1): replaces the old ProbeHub + 5 tool-route sub-tree.
     @Serializable data object Probe                  : NavDest
+    // Font picker screens (Task 9)
+    @Serializable data object InterfaceFont          : NavDest
+    @Serializable data object DataFont               : NavDest
 }
 
 /**
@@ -102,6 +105,9 @@ val knownNavDests: List<NavDest> = listOf(
     NavDest.IncrementValues,
     // R1: single Focus-centric Probe screen (replaces ProbeHub + 5 tool routes)
     NavDest.Probe,
+    // Task 9: font picker screens
+    NavDest.InterfaceFont,
+    NavDest.DataFont,
 )
 
 // ---------------------------------------------------------------------------
