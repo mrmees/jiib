@@ -85,13 +85,19 @@ fun BoxScope.FocusHeroText(
  * replacement for raw `Text(..., style = role.toTextStyle(t))` in a Focus body.
  *
  * **Mechanism:** Uses [BoxWithConstraints] to read the bounded pixel height, then derives a line-count
- * budget (`maxLines`) from the max font size using a conservative line-height factor of 1.5×. This
+ * budget (`maxLines`) from the max font size using a conservative line-height factor of 2.0×. This
  * lets [TextAutoSize.StepBased] shrink via `didExceedMaxLines` — the mechanism that actually works for
  * soft-wrapped text (`didOverflowHeight` alone does NOT trigger autosize shrinkage in Compose
  * foundation 1.11.x). With `maxLines` computed at the MAX font size and rendered at any SMALLER
  * auto-chosen size, the rendered line height is always ≤ the estimated budget, so `didOverflowHeight`
  * stays false. When text is too long to fit fully (very long strings in small boxes), the composable
  * displays as many lines as the height allows at the smallest readable size.
+ *
+ * The factor is 2.0× (rather than a tighter Geist-specific 1.5×) because this app exposes a
+ * user-selectable font library (16 UI + 10 Data faces). Latin faces with taller natural metrics can
+ * carry line-height ratios above 1.5×; a face that exceeds the factor would force mid-line clipping
+ * instead of a clean line boundary. 2.0× is a safe upper bound for the full bundled library — the
+ * `heightIn(max = this.maxHeight)` safety net below remains as a visual backstop regardless.
  *
  * Vertical budget (use one): [maxHeightU] caps at N unit-grid heights (U from [LocalUnitDp]); or pass
  * `Modifier.weight(1f)`/`fillMaxSize()` in [modifier] to fill the leftover slot.
@@ -119,13 +125,14 @@ fun FocusText(
     BoxWithConstraints(modifier = boxMod, contentAlignment = Alignment.Center) {
         val density = LocalDensity.current
         val maxFontSizeSp = fsSp(maxSp ?: role.baseSp, t.fs)
-        // Compute a line-count budget from the height constraint. Factor 1.5 is a conservative
-        // estimate of the line-height-to-font-size ratio (Geist actual ≈ 1.4). Using a factor ≥
-        // the actual ratio guarantees that N rendered lines at ANY font ≤ maxSp will not exceed
-        // the box height — because rendered_height ≤ N × actual_lineHeight ≤ N × factor × maxSp_px
+        // Compute a line-count budget from the height constraint. Factor 2.0 is a safe upper bound
+        // for the line-height-to-font-size ratio across the full user-selectable font library (16 UI
+        // + 10 Data faces). Geist actual ≈ 1.4×, but faces with taller metrics can exceed 1.5×;
+        // using 2.0× ensures that N rendered lines at ANY bundled font ≤ maxSp will not exceed the
+        // box height — because rendered_height ≤ N × actual_lineHeight ≤ N × factor × maxSp_px
         // ≤ floor(maxHeight / (factor × maxSp_px)) × factor × maxSp_px ≤ maxHeight.
         val maxLines = if (constraints.hasBoundedHeight) {
-            val lineHeightPx = with(density) { (maxFontSizeSp * 1.5f).sp.toPx() }
+            val lineHeightPx = with(density) { (maxFontSizeSp * 2.0f).sp.toPx() }
             (constraints.maxHeight.toFloat() / lineHeightPx).toInt().coerceAtLeast(1)
         } else Int.MAX_VALUE
 
