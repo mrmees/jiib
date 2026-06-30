@@ -36,6 +36,7 @@ import works.mees.jiib.di.AppContainer
 import works.mees.jiib.state.PrintState
 import works.mees.jiib.state.PrinterState
 import works.mees.jiib.theme.JiibType
+import works.mees.jiib.theme.compose.FocusText
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 
@@ -154,7 +155,7 @@ fun PrinterFindContent(
                         scanned && discovered.isEmpty() -> stringResource(R.string.printers_scan_none_found)
                         else -> stringResource(R.string.printers_pick_found)
                     }
-                    Text(text = status, color = t.text2, style = JiibType.body.toTextStyle(t))
+                    FocusText(text = status, role = JiibType.body, t = t, color = t.text2, modifier = Modifier.fillMaxWidth())
                 }
             },
             field = {

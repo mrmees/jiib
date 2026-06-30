@@ -61,8 +61,10 @@ import works.mees.jiib.theme.ThemeResolver
 import works.mees.jiib.theme.ThemePrefs
 import works.mees.jiib.theme.ThemeTokens
 import works.mees.jiib.theme.toComposeColor
+import works.mees.jiib.theme.compose.FocusText
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
+import androidx.compose.ui.text.style.TextOverflow
 
 /** Which Theme row is selected (null = resting overview). */
 enum class ThemeRow { DarkLight, PaletteMode, Seed, Colors }
@@ -242,7 +244,7 @@ private fun ThemeSelectorRow(
         uDp = uDp,
         leadingContent = { ListRowIcon(icon = icon, uDp = uDp, tint = t.text) },
         trailingContent = if (indicator.isBlank()) null else {
-            { Text(indicator, color = t.text2, style = JiibType.caption.toTextStyle(t)) }
+            { Text(indicator, color = t.text2, style = JiibType.caption.toTextStyle(t), maxLines = 1, overflow = TextOverflow.Ellipsis) }
         },
     ) { ListRowLabel(label) }
 }
@@ -266,9 +268,7 @@ private fun ThemeFocus(
 
     @Composable
     fun explainer(text: String) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(text, color = t.text2, style = JiibType.body.toTextStyle(t))
-        }
+        FocusText(text = text, role = JiibType.body, t = t, color = t.text2, modifier = Modifier.fillMaxSize())
     }
 
     when (selected) {
@@ -279,9 +279,7 @@ private fun ThemeFocus(
             explainer(stringResource(R.string.theme_dark_light_focus))
         }
         ThemeRow.PaletteMode -> frame(stringResource(R.string.theme_row_palette_mode), JiibIcons.InvertColors) {
-            Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                Text(stringResource(R.string.theme_palette_mode_focus), color = t.text2, style = JiibType.body.toTextStyle(t))
-            }
+            FocusText(text = stringResource(R.string.theme_palette_mode_focus), role = JiibType.body, t = t, color = t.text2, modifier = Modifier.fillMaxWidth().weight(1f))
             PaletteModeSegment(working.paletteMode, onPaletteMode, uDp)
         }
         ThemeRow.Seed -> frame(stringResource(R.string.theme_row_seed), JiibIcons.Colors) {
@@ -433,7 +431,7 @@ private fun SwatchCell(
     Box(modifier.height(uDp).clip(shape).background(fill)
         .border(BorderStroke(2.dp, t.outline), shape)
         .clickable(onClick = onClick), contentAlignment = Alignment.Center) {
-        if (number != null) Text(number.toString(), color = ink, style = JiibType.dataInline.toTextStyle(t))
+        if (number != null) Text(number.toString(), color = ink, style = JiibType.dataInline.toTextStyle(t), maxLines = 1)
         if (symbol != null) JiibIconView(icon = symbol, tint = ink,
             sizeDp = (uDp * 0.45f), contentDescription = null)
     }
@@ -475,8 +473,8 @@ private fun ThemeSwatchEditor(
                 PaletteMode.HighContrast -> R.string.theme_mode_high_contrast
                 else -> R.string.theme_mode_colorful
             })
-            Text(stringResource(R.string.theme_status_saved_for_colorful, modeLabel),
-                color = t.text3, style = JiibType.caption.toTextStyle(t))
+            FocusText(text = stringResource(R.string.theme_status_saved_for_colorful, modeLabel),
+                role = JiibType.caption, t = t, color = t.text3, modifier = Modifier.fillMaxWidth())
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedControl(stringResource(R.string.theme_cancel), onClick = onCancel, modifier = Modifier.weight(1f), intent = Intent.Danger)

@@ -44,6 +44,7 @@ import works.mees.jiib.state.ConnectionState
 import works.mees.jiib.state.PrintState
 import works.mees.jiib.state.PrinterState
 import works.mees.jiib.theme.JiibType
+import works.mees.jiib.theme.compose.FocusText
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 import works.mees.jiib.ui.route.NavDest
@@ -191,11 +192,15 @@ fun PrinterSettingsContent(
                             text = "${activeProfile.host}:${activeProfile.port}",
                             color = t.text2,
                             style = JiibType.dataMeta.toTextStyle(t),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
                         Text(
                             text = stringResource(connectionState.printerSettingsLabelRes()),
                             color = ringColor ?: t.text2,
                             style = JiibType.caption.toTextStyle(t),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                 } else {
@@ -218,13 +223,15 @@ fun PrinterSettingsContent(
                                     color = t.text,
                                     style = JiibType.focusHeader.toTextStyle(t),
                                     textAlign = TextAlign.Center,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
                                 )
-                                Text(
+                                FocusText(
                                     text = stringResource(R.string.printers_empty_body),
+                                    role = JiibType.caption,
+                                    t = t,
                                     color = t.text2,
-                                    style = JiibType.caption.toTextStyle(t),
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.padding(top = 4.dp),
+                                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                                 )
                             }
                         }

@@ -57,8 +57,11 @@ import works.mees.jiib.net.ProbeResult
 import works.mees.jiib.state.PrintState
 import works.mees.jiib.state.PrinterState
 import works.mees.jiib.theme.JiibType
+import works.mees.jiib.theme.compose.FocusText
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 
 /** The tappable Field rows; selecting one swaps the Focus into that field's editor. */
 private enum class ConnRow { Name, Host, Port, ApiKey, Advanced }
@@ -585,10 +588,13 @@ private fun ConnTextEditor(
         )
         if (warning != null) {
             Spacer(Modifier.height(8.dp))
-            Text(
+            FocusText(
                 text = warning,
+                role = JiibType.caption,
+                t = t,
                 color = if (isError) t.stop else t.text2,
-                style = JiibType.caption.toTextStyle(t),
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Start,
             )
         }
         secondaryAction?.let {
@@ -625,8 +631,8 @@ private fun ConnSummary(
         )
         Spacer(Modifier.height(12.dp))
         when {
-            probing -> Text(text = stringResource(R.string.conn_test), color = t.text2, style = JiibType.caption.toTextStyle(t))
-            probe == null -> Text(text = stringResource(R.string.conn_test_untested), color = t.text2, style = JiibType.caption.toTextStyle(t))
+            probing -> Text(text = stringResource(R.string.conn_test), color = t.text2, style = JiibType.caption.toTextStyle(t), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            probe == null -> Text(text = stringResource(R.string.conn_test_untested), color = t.text2, style = JiibType.caption.toTextStyle(t), maxLines = 1, overflow = TextOverflow.Ellipsis)
             else -> {
                 ProbeLine(stringResource(R.string.conn_test_http), probe.http.ok, probe.http.failure, uDp)
                 ProbeLine(stringResource(R.string.conn_test_ws), probe.ws.ok, probe.ws.failure, uDp)
