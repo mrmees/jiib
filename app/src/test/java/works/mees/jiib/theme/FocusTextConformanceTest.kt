@@ -15,7 +15,7 @@ import java.io.File
  * Detection uses a balanced-paren scan over the STRIPPED source (comments + string literals
  * blanked) so `maxLines` inside a comment or `Text(` inside a string literal don't count.
  *
- * REPORTING MODE until the sweep completes (Task 9 flips [ENFORCE]).  Mirrors FontConformanceTest.
+ * ENFORCE mode: build-fails on any unbounded Focus text (no maxLines or no TextOverflow.Ellipsis).  Mirrors FontConformanceTest.
  */
 class FocusTextConformanceTest {
     private val enforce = ENFORCE
@@ -108,7 +108,7 @@ class FocusTextConformanceTest {
         error("main source dir not found from $userDir")
     }
 
-    private companion object { const val ENFORCE = false }
+    private companion object { const val ENFORCE = true }
 }
 
 /**

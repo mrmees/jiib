@@ -624,6 +624,7 @@ internal fun MoveHubContent(
                                                 color = t.text,
                                                 textAlign = TextAlign.Center,
                                                 maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
                                             )
                                         },
                                     )
@@ -835,6 +836,7 @@ internal fun MoveHubContent(
                                             color = t.text3,
                                             textAlign = TextAlign.Center,
                                             maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
                                             modifier = Modifier.fillMaxWidth(),
                                         )
                                         current.forEach { es -> EndstopRow(es, grid.uDp) }
@@ -1101,6 +1103,7 @@ private fun EndstopRow(status: EndstopStatus, uDp: Dp) {
             style = JiibType.statValue.toTextStyle(t),
             color = color,
             maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }

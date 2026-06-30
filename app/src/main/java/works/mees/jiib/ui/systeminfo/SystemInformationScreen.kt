@@ -236,7 +236,7 @@ private fun DeviceRow(device: Device, selected: Boolean, onClick: () -> Unit, uD
     ) {
         Text(device.displayName, color = t.text, style = JiibType.listLabel.toTextStyle(t), maxLines = 1, overflow = TextOverflow.Ellipsis)
         Spacer(Modifier.weight(1f))
-        Text(deviceGlance(device), color = t.text2, style = JiibType.dataMeta.toTextStyle(t), maxLines = 1)
+        Text(deviceGlance(device), color = t.text2, style = JiibType.dataMeta.toTextStyle(t), maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
