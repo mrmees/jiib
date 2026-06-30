@@ -216,6 +216,7 @@ fun HeatPresetWizard(
                         color = t.text2,
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                         textAlign = TextAlign.Start,
+                        maxHeightU = 2f,
                     )
                 }
             }

@@ -155,7 +155,7 @@ fun PrinterFindContent(
                         scanned && discovered.isEmpty() -> stringResource(R.string.printers_scan_none_found)
                         else -> stringResource(R.string.printers_pick_found)
                     }
-                    FocusText(text = status, role = JiibType.body, t = t, color = t.text2, modifier = Modifier.fillMaxWidth())
+                    FocusText(text = status, role = JiibType.body, t = t, color = t.text2, modifier = Modifier.fillMaxWidth(), maxHeightU = 2f)
                 }
             },
             field = {

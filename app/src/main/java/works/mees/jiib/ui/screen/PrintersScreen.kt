@@ -126,13 +126,13 @@ fun PrintersContent(
                     onPanic = onEmergencyStop,
                 ) {
                     Column(Modifier.fillMaxSize()) {
-                        FocusText(text = stringResource(R.string.printers_help_add),    role = JiibType.body, t = t, color = t.text2, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start)
+                        FocusText(text = stringResource(R.string.printers_help_add),    role = JiibType.body, t = t, color = t.text2, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start, maxHeightU = 2f)
                         Spacer(Modifier.height(8.dp))
-                        FocusText(text = stringResource(R.string.printers_help_switch), role = JiibType.body, t = t, color = t.text2, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start)
+                        FocusText(text = stringResource(R.string.printers_help_switch), role = JiibType.body, t = t, color = t.text2, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start, maxHeightU = 2f)
                         Spacer(Modifier.height(8.dp))
-                        FocusText(text = stringResource(R.string.printers_help_edit),   role = JiibType.body, t = t, color = t.text2, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start)
+                        FocusText(text = stringResource(R.string.printers_help_edit),   role = JiibType.body, t = t, color = t.text2, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start, maxHeightU = 2f)
                         Spacer(Modifier.height(8.dp))
-                        FocusText(text = stringResource(R.string.printers_help_delete), role = JiibType.body, t = t, color = t.text2, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start)
+                        FocusText(text = stringResource(R.string.printers_help_delete), role = JiibType.body, t = t, color = t.text2, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start, maxHeightU = 2f)
                     }
                 }
             },

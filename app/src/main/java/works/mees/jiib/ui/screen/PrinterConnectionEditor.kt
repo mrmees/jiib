@@ -595,6 +595,7 @@ private fun ConnTextEditor(
                 color = if (isError) t.stop else t.text2,
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Start,
+                maxHeightU = 2f,
             )
         }
         secondaryAction?.let {

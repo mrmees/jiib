@@ -300,6 +300,7 @@ fun PowerResetContent(
                         t = t,
                         color = t.text2,
                         modifier = Modifier.fillMaxWidth(),
+                        maxHeightU = 3f,
                     )
                 }
             },

@@ -902,7 +902,7 @@ internal fun ZOffsetBody(
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         when (vm.state) {
             ProbePageState.Idle -> {
-                FocusText(stringResource(R.string.zoffset_idle_blurb), JiibType.body, t, t.text2, modifier = Modifier.fillMaxWidth().padding(vertical = fsSp(8f, t.fs).dp))
+                FocusText(stringResource(R.string.zoffset_idle_blurb), JiibType.body, t, t.text2, modifier = Modifier.fillMaxWidth().padding(vertical = fsSp(8f, t.fs).dp), maxHeightU = 3f)
                 Spacer(Modifier.weight(1f))
                 ZHero(text = vm.savedZOffset?.let { fmtZOffset(-it) } ?: "—")
                 Spacer(Modifier.weight(1f))
@@ -994,7 +994,7 @@ private fun HeroReadoutRow(label: String, value: String) {
 @Composable
 private fun InvertedValuesNote(modifier: Modifier = Modifier) {
     val t = LocalTokens.current
-    FocusText(stringResource(R.string.probe_calibrate_inverted_note), JiibType.body, t, t.text3, modifier = modifier.fillMaxWidth().padding(bottom = fsSp(4f, t.fs).dp))
+    FocusText(stringResource(R.string.probe_calibrate_inverted_note), JiibType.body, t, t.text3, modifier = modifier.fillMaxWidth().padding(bottom = fsSp(4f, t.fs).dp), maxHeightU = 2f)
 }
 
 /** Idle action button: Starting… (disabled) / Home All (not homed) / Start (homed). */
@@ -1094,7 +1094,7 @@ internal fun EddyCalibrateBody(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            FocusText(stringResource(R.string.probe_tool_eddy_calibrate_desc), JiibType.body, t, t.text2, modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp))
+            FocusText(stringResource(R.string.probe_tool_eddy_calibrate_desc), JiibType.body, t, t.text2, modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp), maxHeightU = 3f)
             // Build-blind caution: amber t.heat text; NO glyph (icon-law).
             // The ⚠ is a unicode character embedded in the string resource.
             FocusText(stringResource(R.string.calibration_run_build_blind_note), JiibType.caption, t, t.heat, modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp))
@@ -1190,7 +1190,7 @@ internal fun EddyCalibrateBody(
         ProbePageState.Accepted -> Column(
             modifier = modifier,
         ) {
-            FocusText(stringResource(R.string.eddy_calibrate_sweep_running), JiibType.caption, t, t.text2, modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp))
+            FocusText(stringResource(R.string.eddy_calibrate_sweep_running), JiibType.caption, t, t.text2, modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp), maxHeightU = 2f)
             ConsoleTail(
                 lines = lines,
                 uDp = uDp,
@@ -1533,7 +1533,7 @@ internal fun EddyRunBody(
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         // ── Row1: description + build-blind caution ──────────────────────────────
-        FocusText(description, JiibType.body, t, t.text2, modifier = Modifier.fillMaxWidth())
+        FocusText(description, JiibType.body, t, t.text2, modifier = Modifier.fillMaxWidth(), maxHeightU = 3f)
         // Build-blind note: amber caption (t.heat) — text-only caution.
         // NO new glyph added (icon-law: never pick a glyph without owner approval).
         // The ⚠ is a unicode character embedded in the string resource.
