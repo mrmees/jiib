@@ -64,6 +64,7 @@ import works.mees.jiib.theme.toComposeColor
 import works.mees.jiib.theme.compose.FocusText
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 
 /** Which Theme row is selected (null = resting overview). */
@@ -474,7 +475,8 @@ private fun ThemeSwatchEditor(
                 else -> R.string.theme_mode_colorful
             })
             FocusText(text = stringResource(R.string.theme_status_saved_for_colorful, modeLabel),
-                role = JiibType.caption, t = t, color = t.text3, modifier = Modifier.fillMaxWidth())
+                role = JiibType.caption, t = t, color = t.text3, modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Start)
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedControl(stringResource(R.string.theme_cancel), onClick = onCancel, modifier = Modifier.weight(1f), intent = Intent.Danger)

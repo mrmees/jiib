@@ -11,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import works.mees.jiib.R
@@ -118,7 +119,7 @@ internal fun FontPickerContent(
                     onPanic = onEmergencyStop,
                 ) {
                     // Explainer caption — which kind of font this picker controls.
-                    FocusText(text = focusCaption, role = JiibType.caption, t = t, color = t.text2, modifier = Modifier.fillMaxWidth())
+                    FocusText(text = focusCaption, role = JiibType.caption, t = t, color = t.text2, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start)
                     // The Focus body IS the live preview: the selected font's name, rendered in its own
                     // face. Selection updates the whole app immediately (tokenized fonts) so the chrome
                     // re-renders too — no separate preview block needed.

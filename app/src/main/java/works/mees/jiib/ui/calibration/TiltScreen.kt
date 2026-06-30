@@ -50,6 +50,7 @@ import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.ScreenScaffold
 import works.mees.jiib.designsystem.layout.rememberUnitGrid
 import works.mees.jiib.di.AppContainer
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.FocusText
@@ -409,6 +410,7 @@ private fun TiltBodyText(text: String) {
         t = t,
         color = t.text2,
         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+        textAlign = TextAlign.Start,
         maxHeightU = 2f,
     )
 }
