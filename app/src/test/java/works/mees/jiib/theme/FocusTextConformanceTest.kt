@@ -4,11 +4,18 @@ import org.junit.Test
 import java.io.File
 
 /**
- * Focus-text conformance guard (Focus-text law, 2026-06-29). In the Focus-screen files, Focus-body
- * text must route through FocusText / FocusHeroText / FocusHeroValueText — raw Text(/BasicText( is
- * banned unless tagged `// focus-text-exempt: <reason>` (Field/list/dialog text in the same file).
+ * Focus-text conformance guard (Focus-text law, 2026-06-29). In the Focus-screen files, UNBOUNDED
+ * raw Text(/BasicText( is banned — calls that carry neither `maxLines` nor `autoSize` in their
+ * argument span must route through FocusText / FocusHeroText / FocusHeroValueText.
  *
- * REPORTING MODE until the sweep completes (Task 9 flips [ENFORCE]). Mirrors FontConformanceTest.
+ * Already-bounded raw Text( (has `maxLines` and/or `autoSize`) passes untouched — these are
+ * Field/list/dialog sites where overflow is already controlled.  Callers tagged with
+ * `// focus-text-exempt: <reason>` on the opening-paren line are also skipped.
+ *
+ * Detection uses a balanced-paren scan over the STRIPPED source (comments + string literals
+ * blanked) so `maxLines` inside a comment or `Text(` inside a string literal don't count.
+ *
+ * REPORTING MODE until the sweep completes (Task 9 flips [ENFORCE]).  Mirrors FontConformanceTest.
  */
 class FocusTextConformanceTest {
     private val enforce = ENFORCE
@@ -44,22 +51,48 @@ class FocusTextConformanceTest {
             val f = File(base, rel)
             if (!f.exists()) return@flatMap emptyList<String>()
             val original = f.readLines()
-            strip(f.readText()).lines().withIndex()
-                .filter { (i, stripped) ->
-                    // Match raw Text(/BasicText( in CODE (comments+strings already blanked), and
-                    // skip lines the author tagged exempt (check the ORIGINAL line — strip blanks comments).
-                    rawText.containsMatchIn(stripped) &&
-                        !(original.getOrNull(i)?.contains(exempt) ?: false)
+            val stripped = strip(f.readText())
+
+            val fileOffenders = mutableListOf<String>()
+            for (match in rawText.findAll(stripped)) {
+                // The last character of the regex match is always `(`.
+                val openParen = match.range.last
+
+                // Line index (0-based) of the Text(/BasicText( token.
+                val lineIdx = stripped.substring(0, openParen).count { it == '\n' }
+
+                // Honor the exempt marker on the ORIGINAL source line (strip blanks comments).
+                if (original.getOrNull(lineIdx)?.contains(exempt) == true) continue
+
+                // Balanced-paren scan over the STRIPPED text to find the matching `)`.
+                // Strings are already blanked so stray `)` inside them can't unbalance the count.
+                var depth = 1
+                var pos = openParen + 1
+                while (pos < stripped.length && depth > 0) {
+                    when (stripped[pos]) {
+                        '(' -> depth++
+                        ')' -> depth--
+                    }
+                    if (depth > 0) pos++
                 }
-                .map { (i, _) -> "$rel:${i + 1}" }
+                // stripped[pos] is now the closing `)` (or pos == length if source is malformed).
+                val argSpan = stripped.substring(openParen + 1, pos)
+
+                // Flag ONLY if the call is UNBOUNDED: neither `maxLines` nor `autoSize` found in
+                // the argument span.  Either keyword in the span means overflow is already controlled.
+                if (!argSpan.contains("maxLines") && !argSpan.contains("autoSize")) {
+                    fileOffenders += "$rel:${lineIdx + 1}"
+                }
+            }
+            fileOffenders
         }
 
         if (offenders.isNotEmpty()) {
-            println("FOCUS-TEXT CONFORMANCE: ${offenders.size} raw Text/BasicText in Focus files:")
+            println("FOCUS-TEXT CONFORMANCE (unbounded): ${offenders.size} raw Text/BasicText in Focus files:")
             offenders.forEach { println("  $it") }
         }
         if (enforce) assert(offenders.isEmpty()) {
-            "Focus-body text must use FocusText/FocusHeroText/FocusHeroValueText (or tag " +
+            "Unbounded Focus-body text must use FocusText/FocusHeroText/FocusHeroValueText (or tag " +
                 "`// focus-text-exempt:`):\n${offenders.joinToString("\n")}"
         }
     }
