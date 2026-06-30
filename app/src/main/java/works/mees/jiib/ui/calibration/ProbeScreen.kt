@@ -43,6 +43,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -733,11 +734,14 @@ internal fun ProbeContent(
                                     text = stringResource(probeToolTitleRes(effectiveSelected)),
                                     style = JiibType.body.toTextStyle(t),
                                     color = t.text,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
                                 )
                                 Text(
                                     text = "—",
                                     style = JiibType.caption.toTextStyle(t),
                                     color = t.text2,
+                                    maxLines = 1,
                                 )
                             }
                         }
@@ -802,6 +806,7 @@ internal fun ProbeContent(
                                                 ?.let { babystepFmt(it) } ?: "—",
                                             style = JiibType.dataInline.toTextStyle(t),
                                             color = t.text2,
+                                            maxLines = 1,
                                         )
                                     })
                                     // Trailing readout: PERSISTED saved z_offset (negated) across ALL
@@ -814,6 +819,7 @@ internal fun ProbeContent(
                                             text = zTrailing ?: "—",
                                             style = JiibType.dataInline.toTextStyle(t),
                                             color = t.text2,
+                                            maxLines = 1,
                                         )
                                     })
                                     else -> null
@@ -900,7 +906,9 @@ internal fun ZOffsetBody(
                     style = JiibType.body.toTextStyle(t),
                     color = t.text2,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(vertical = fsSp(8f, t.fs).dp),
+                    maxLines = 4,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = fsSp(8f, t.fs).dp),
                 )
                 Spacer(Modifier.weight(1f))
                 ZHero(text = vm.savedZOffset?.let { fmtZOffset(-it) } ?: "—")
@@ -951,8 +959,8 @@ internal fun ZOffsetBody(
 private fun ZHero(text: String) {
     val t = LocalTokens.current
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = text, style = JiibType.focusHero.toTextStyle(t), color = t.accent2)
-        Text(text = "mm", style = JiibType.caption.toTextStyle(t), color = t.text3)
+        Text(text = text, style = JiibType.focusHero.toTextStyle(t), color = t.accent2, maxLines = 1)
+        Text(text = "mm", style = JiibType.caption.toTextStyle(t), color = t.text3, maxLines = 1)
     }
 }
 
@@ -961,9 +969,11 @@ private fun ZHero(text: String) {
 private fun ReadoutRow(label: String, value: String) {
     val t = LocalTokens.current
     Row(Modifier.fillMaxWidth().padding(horizontal = fsSp(12f, t.fs).dp, vertical = fsSp(2f, t.fs).dp)) {
-        Text(text = label, style = JiibType.body.toTextStyle(t), color = t.text2)
+        Text(text = label, style = JiibType.body.toTextStyle(t), color = t.text2,
+            maxLines = 1, overflow = TextOverflow.Ellipsis)
         Spacer(Modifier.weight(1f))
-        Text(text = "$value mm", style = JiibType.dataInline.toTextStyle(t), color = t.text)
+        Text(text = "$value mm", style = JiibType.dataInline.toTextStyle(t), color = t.text,
+            maxLines = 1)
     }
 }
 
@@ -975,9 +985,11 @@ private fun HeroReadoutRow(label: String, value: String) {
         Modifier.fillMaxWidth().padding(horizontal = fsSp(12f, t.fs).dp, vertical = fsSp(2f, t.fs).dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(text = label, style = JiibType.body.toTextStyle(t), color = t.text2)
+        Text(text = label, style = JiibType.body.toTextStyle(t), color = t.text2,
+            maxLines = 1, overflow = TextOverflow.Ellipsis)
         Spacer(Modifier.weight(1f))
-        Text(text = "$value mm", style = JiibType.statValue.toTextStyle(t), color = t.accent2)
+        Text(text = "$value mm", style = JiibType.statValue.toTextStyle(t), color = t.accent2,
+            maxLines = 1)
     }
 }
 
@@ -994,6 +1006,8 @@ private fun InvertedValuesNote(modifier: Modifier = Modifier) {
         style = JiibType.body.toTextStyle(t),
         color = t.text3,
         textAlign = TextAlign.Center,
+        maxLines = 3,
+        overflow = TextOverflow.Ellipsis,
         modifier = modifier.fillMaxWidth().padding(bottom = fsSp(4f, t.fs).dp),
     )
 }
@@ -1099,6 +1113,8 @@ internal fun EddyCalibrateBody(
                 text = stringResource(R.string.probe_tool_eddy_calibrate_desc),
                 style = JiibType.body.toTextStyle(t),
                 color = t.text2,
+                maxLines = 4,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(horizontal = 8.dp),
             )
             // Build-blind caution: amber t.heat text; NO glyph (icon-law).
@@ -1107,6 +1123,8 @@ internal fun EddyCalibrateBody(
                 text = stringResource(R.string.calibration_run_build_blind_note),
                 style = JiibType.caption.toTextStyle(t),
                 color = t.heat,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
             )
             if (starting) {
@@ -1150,11 +1168,13 @@ internal fun EddyCalibrateBody(
                     text = zText,
                     style = JiibType.focusHero.toTextStyle(t),
                     color = t.accent2,
+                    maxLines = 1,
                 )
                 Text(
                     text = "mm",
                     style = JiibType.caption.toTextStyle(t),
                     color = t.text3,
+                    maxLines = 1,
                 )
             }
             // ManualProbeJog fills available space (D-08 two-column motif).
@@ -1203,6 +1223,8 @@ internal fun EddyCalibrateBody(
                 text = stringResource(R.string.eddy_calibrate_sweep_running),
                 style = JiibType.caption.toTextStyle(t),
                 color = t.text2,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(bottom = 4.dp),
             )
             ConsoleTail(
@@ -1385,12 +1407,15 @@ internal fun ProbeTestBody(
                     text = stringResource(R.string.probe_test_last_z_label),
                     style = JiibType.body.toTextStyle(t),
                     color = t.text2,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Spacer(Modifier.weight(1f))
                 Text(
                     text = vm.lastZ?.let { probeTestFmtZ(it) } ?: "—",
                     style = JiibType.statValue.toTextStyle(t),
                     color = t.text,
+                    maxLines = 1,
                 )
                 if (vm.lastZ != null) {
                     Spacer(Modifier.width(4.dp))
@@ -1398,6 +1423,7 @@ internal fun ProbeTestBody(
                         text = "mm",
                         style = JiibType.caption.toTextStyle(t),
                         color = t.text3,
+                        maxLines = 1,
                     )
                 }
             }
@@ -1411,6 +1437,7 @@ internal fun ProbeTestBody(
                     text = "—",
                     style = JiibType.statValue.toTextStyle(t),
                     color = t.text3,
+                    maxLines = 1,
                 )
             }
             Spacer(Modifier.weight(1f))
@@ -1546,6 +1573,8 @@ internal fun EddyRunBody(
             text = description,
             style = JiibType.body.toTextStyle(t),
             color = t.text2,
+            maxLines = 4,
+            overflow = TextOverflow.Ellipsis,
         )
         // Build-blind note: amber caption (t.heat) — text-only caution.
         // NO new glyph added (icon-law: never pick a glyph without owner approval).
@@ -1554,6 +1583,8 @@ internal fun EddyRunBody(
             text = buildBlindNote,
             style = JiibType.caption.toTextStyle(t),
             color = t.heat,
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis,
         )
 
         // ── Row2: ConsoleTail — fills available space ─────────────────────────────
@@ -1630,12 +1661,15 @@ private fun BabystepOffsetRow(label: String, value: String, modifier: Modifier =
             text = label,
             color = t.text2,
             style = JiibType.body.toTextStyle(t),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
         Spacer(Modifier.weight(1f))
         Text(
             text = value,
             color = t.text,
             style = JiibType.statValue.toTextStyle(t),
+            maxLines = 1,
         )
     }
 }
@@ -1750,11 +1784,13 @@ private fun ProbeTestSamplesDisplay(samples: Int, modifier: Modifier = Modifier)
                 text = samples.toString(),
                 style = JiibType.statValue.toTextStyle(t),
                 color = t.text,
+                maxLines = 1,
             )
             Text(
                 text = stringResource(R.string.probe_test_samples_label),
                 style = JiibType.caption.toTextStyle(t),
                 color = t.text3,
+                maxLines = 1,
             )
         }
     }
@@ -2073,11 +2109,13 @@ private fun ZReadoutDisplay(zValue: Double?, modifier: Modifier = Modifier) {
                 text = zValue?.let { fmtZ(it) } ?: "—",
                 color = t.text,
                 style = JiibType.statValue.toTextStyle(t),
+                maxLines = 1,
             )
             Text(
                 text = "mm",
                 color = t.text3,
                 style = JiibType.caption.toTextStyle(t),
+                maxLines = 1,
             )
         }
     }
@@ -2097,11 +2135,13 @@ private fun StepDisplay(value: Double, modifier: Modifier = Modifier) {
                 text = fmtStep(value),
                 color = t.text,
                 style = JiibType.statValue.toTextStyle(t),
+                maxLines = 1,
             )
             Text(
                 text = "mm",
                 color = t.text3,
                 style = JiibType.caption.toTextStyle(t),
+                maxLines = 1,
             )
         }
     }
