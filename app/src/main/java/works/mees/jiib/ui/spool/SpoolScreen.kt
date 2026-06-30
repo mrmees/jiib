@@ -719,6 +719,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolMeasureWeightFie
                 color = t.text2,
                 style = JiibType.caption.toTextStyle(t),
                 maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }

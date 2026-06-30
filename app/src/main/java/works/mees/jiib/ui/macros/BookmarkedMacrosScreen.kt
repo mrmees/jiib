@@ -453,6 +453,7 @@ private fun ColumnScope.MacroDetailFocusBody(
                 color = t.text3,
                 style = JiibType.caption.toTextStyle(t),
                 maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             )
         }
@@ -718,6 +719,7 @@ private fun MacrosEmptyNotice(modifier: Modifier = Modifier) {
             color = t.text2,
             style = JiibType.caption.toTextStyle(t),
             maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 8.dp),
@@ -728,14 +730,13 @@ private fun MacrosEmptyNotice(modifier: Modifier = Modifier) {
 @Composable
 internal fun MacrosUnavailable(modifier: Modifier = Modifier) {
     val t = LocalTokens.current
-    Column(modifier, verticalArrangement = Arrangement.Center) {
-        Text(
-            text = stringResource(R.string.macros_unavailable),
-            color = t.text2,
-            style = JiibType.body.toTextStyle(t),
-            maxLines = 1,
-        )
-    }
+    FocusText(
+        text = stringResource(R.string.macros_unavailable),
+        role = JiibType.body,
+        t = t,
+        color = t.text2,
+        modifier = modifier,
+    )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
