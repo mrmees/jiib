@@ -34,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -85,6 +86,7 @@ import works.mees.jiib.ui.screen.TokenTextField
 import works.mees.jiib.designsystem.components.ListRowIcon
 import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.ThemeTokens
+import works.mees.jiib.theme.compose.FocusText
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 import works.mees.jiib.theme.fsSp
@@ -571,6 +573,8 @@ internal fun BedMeshContent(
                                                         text = String.format(Locale.US, "%.3f mm", span),
                                                         color = t.text2,
                                                         style = JiibType.dataMeta.toTextStyle(t),
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis,
                                                     )
                                                 }
                                                 if (isActive) {
@@ -610,6 +614,8 @@ internal fun BedMeshContent(
                                                 text = vm.scaleMode.displayLabel(),
                                                 color = t.accent2,
                                                 style = JiibType.dataMeta.toTextStyle(t),
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
                                             )
                                         },
                                     ) { ListRowLabel("Color Scale") }
@@ -685,6 +691,8 @@ internal fun BedMeshContent(
                                     color = t.text,
                                     style = JiibType.listLabel.toTextStyle(t),
                                     modifier = Modifier.padding(bottom = 4.dp),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
                                 )
                                 TokenTextField(
                                     value = saveName,
@@ -694,10 +702,14 @@ internal fun BedMeshContent(
                                     modifier = Modifier.fillMaxWidth(),
                                 )
                                 if (saveName.isNotEmpty() && !valid) {
-                                    Text(
+                                    FocusText(
                                         text = stringResource(R.string.mesh_save_name_invalid),
+                                        role = JiibType.caption,
+                                        t = t,
                                         color = t.stop,
-                                        style = JiibType.caption.toTextStyle(t),
+                                        modifier = Modifier.fillMaxWidth(),
+                                        maxHeightU = 2f,
+                                        textAlign = TextAlign.Start,
                                     )
                                 }
                             }
@@ -973,19 +985,23 @@ private fun BedMeshFocusRegion(
                 ) {
                     // 27-review WR-04: registry-backed empty-state glyph (same grid_off, promoted verbatim).
                     JiibIconView(icon = JiibIcons.MeshEmpty, tint = t.text3, sizeDp = fsSp(48f, t.fs).dp)
-                    Text(
+                    FocusText(
                         text = stringResource(R.string.mesh_no_active_mesh),
+                        role = JiibType.focusHeader,
+                        t = t,
                         color = t.text,
-                        style = JiibType.focusHeader.toTextStyle(t),
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                        maxHeightU = 2f,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(top = 8.dp),
                     )
-                    Text(
+                    FocusText(
                         text = stringResource(R.string.mesh_no_active_mesh_hint),
+                        role = JiibType.caption,
+                        t = t,
                         color = t.text2,
-                        style = JiibType.caption.toTextStyle(t),
+                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                        maxHeightU = 2f,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(top = 4.dp),
                     )
                 }
             } else {
@@ -1090,9 +1106,23 @@ private fun ViewTypeSelector(
             modifier = Modifier.weight(1f).fillMaxWidth(),
             verticalArrangement = Arrangement.Center,
         ) {
-            Text(text = name, color = t.text, style = JiibType.focusHeroLabel.toTextStyle(t))
+            FocusText(
+                text = name,
+                role = JiibType.focusHeroLabel,
+                t = t,
+                color = t.text,
+                modifier = Modifier.fillMaxWidth(),
+                maxHeightU = 1f,
+            )
             Spacer(Modifier.height(8.dp))
-            Text(text = description, color = t.text2, style = JiibType.body.toTextStyle(t))
+            FocusText(
+                text = description,
+                role = JiibType.body,
+                t = t,
+                color = t.text2,
+                modifier = Modifier.fillMaxWidth(),
+                maxHeightU = 2f,
+            )
         }
         // Three icon-only foot buttons (count-driven); the active view's button gets a soft accent fill.
         FootButtonBar(
@@ -1173,6 +1203,8 @@ private fun MeshNameField(
             color = t.text,
             style = JiibType.listLabel.toTextStyle(t),
             modifier = Modifier.padding(bottom = 4.dp),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
         TokenTextField(
             value = value,
@@ -1182,10 +1214,14 @@ private fun MeshNameField(
             modifier = Modifier.fillMaxWidth(),
         )
         if (value.isNotEmpty() && !valid && !readOnly) {
-            Text(
+            FocusText(
                 text = stringResource(R.string.mesh_save_name_invalid),
+                role = JiibType.caption,
+                t = t,
                 color = t.stop,
-                style = JiibType.caption.toTextStyle(t),
+                modifier = Modifier.fillMaxWidth(),
+                maxHeightU = 2f,
+                textAlign = TextAlign.Start,
             )
         }
     }
