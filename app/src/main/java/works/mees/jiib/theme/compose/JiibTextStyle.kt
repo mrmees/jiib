@@ -7,6 +7,9 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import kotlin.math.ceil
+import kotlin.math.roundToInt
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -127,22 +130,19 @@ fun BoxScope.FocusHeroValueText(
         // Step down from max to min (up to 26 steps at 1sp intervals), pick the largest that fits.
         // Falls back to minSp if nothing fits — the caller's container should prevent
         // genuinely impossible constraints (text wider than the available box at minSp).
-        var chosenSp = minSpScaled
-        for (sp in maxSpScaled.toInt() downTo minSpScaled.toInt()) {
-            val layout = textMeasurer.measure(
-                text = textForMeasure,
-                style = TextStyle(
-                    fontFamily = t.dataFont.family,
-                    fontWeight = role.weight,
-                    fontSize = sp.sp,
-                ),
-                maxLines = 1,
-                softWrap = false,
-            )
-            if (layout.size.width <= maxWidthPx) {
-                chosenSp = sp.toFloat()
-                break
+        // Cached: re-measure only when measurement-affecting inputs change, not on every
+        // color/token recomposition (hero values fire every 100–500 ms on live Moonraker data).
+        val chosenSp = remember(value, unit, maxWidthPx, t.fs, t.dataFont) {
+            var result = minSpScaled
+            for (sp in maxSpScaled.roundToInt() downTo ceil(minSpScaled.toDouble()).toInt()) {
+                val layout = textMeasurer.measure(
+                    text = textForMeasure,
+                    style = TextStyle(fontFamily = t.dataFont.family, fontWeight = role.weight, fontSize = sp.sp),
+                    maxLines = 1, softWrap = false,
+                )
+                if (layout.size.width <= maxWidthPx) { result = sp.toFloat(); break }
             }
+            result
         }
 
         val annotated = buildAnnotatedString {
