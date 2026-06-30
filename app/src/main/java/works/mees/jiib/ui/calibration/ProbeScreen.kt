@@ -105,6 +105,7 @@ import works.mees.jiib.state.PrintState
 import works.mees.jiib.state.PrinterState
 import works.mees.jiib.theme.TextRole
 import works.mees.jiib.theme.JiibType
+import works.mees.jiib.theme.compose.FocusText
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 import works.mees.jiib.theme.fsSp
@@ -901,15 +902,7 @@ internal fun ZOffsetBody(
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         when (vm.state) {
             ProbePageState.Idle -> {
-                Text(
-                    text = stringResource(R.string.zoffset_idle_blurb),
-                    style = JiibType.body.toTextStyle(t),
-                    color = t.text2,
-                    textAlign = TextAlign.Center,
-                    maxLines = 4,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.fillMaxWidth().padding(vertical = fsSp(8f, t.fs).dp),
-                )
+                FocusText(stringResource(R.string.zoffset_idle_blurb), JiibType.body, t, t.text2, modifier = Modifier.fillMaxWidth().padding(vertical = fsSp(8f, t.fs).dp))
                 Spacer(Modifier.weight(1f))
                 ZHero(text = vm.savedZOffset?.let { fmtZOffset(-it) } ?: "—")
                 Spacer(Modifier.weight(1f))
@@ -1001,15 +994,7 @@ private fun HeroReadoutRow(label: String, value: String) {
 @Composable
 private fun InvertedValuesNote(modifier: Modifier = Modifier) {
     val t = LocalTokens.current
-    Text(
-        text = stringResource(R.string.probe_calibrate_inverted_note),
-        style = JiibType.body.toTextStyle(t),
-        color = t.text3,
-        textAlign = TextAlign.Center,
-        maxLines = 3,
-        overflow = TextOverflow.Ellipsis,
-        modifier = modifier.fillMaxWidth().padding(bottom = fsSp(4f, t.fs).dp),
-    )
+    FocusText(stringResource(R.string.probe_calibrate_inverted_note), JiibType.body, t, t.text3, modifier = modifier.fillMaxWidth().padding(bottom = fsSp(4f, t.fs).dp))
 }
 
 /** Idle action button: Starting… (disabled) / Home All (not homed) / Start (homed). */
@@ -1109,24 +1094,10 @@ internal fun EddyCalibrateBody(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            Text(
-                text = stringResource(R.string.probe_tool_eddy_calibrate_desc),
-                style = JiibType.body.toTextStyle(t),
-                color = t.text2,
-                maxLines = 4,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(horizontal = 8.dp),
-            )
+            FocusText(stringResource(R.string.probe_tool_eddy_calibrate_desc), JiibType.body, t, t.text2, modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp))
             // Build-blind caution: amber t.heat text; NO glyph (icon-law).
             // The ⚠ is a unicode character embedded in the string resource.
-            Text(
-                text = stringResource(R.string.calibration_run_build_blind_note),
-                style = JiibType.caption.toTextStyle(t),
-                color = t.heat,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
-            )
+            FocusText(stringResource(R.string.calibration_run_build_blind_note), JiibType.caption, t, t.heat, modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp))
             if (starting) {
                 // eddy_calibrate in inFlight — disabled "Starting…" feedback.
                 OutlinedControl(
@@ -1219,14 +1190,7 @@ internal fun EddyCalibrateBody(
         ProbePageState.Accepted -> Column(
             modifier = modifier,
         ) {
-            Text(
-                text = stringResource(R.string.eddy_calibrate_sweep_running),
-                style = JiibType.caption.toTextStyle(t),
-                color = t.text2,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(bottom = 4.dp),
-            )
+            FocusText(stringResource(R.string.eddy_calibrate_sweep_running), JiibType.caption, t, t.text2, modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp))
             ConsoleTail(
                 lines = lines,
                 uDp = uDp,
@@ -1569,23 +1533,11 @@ internal fun EddyRunBody(
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         // ── Row1: description + build-blind caution ──────────────────────────────
-        Text(
-            text = description,
-            style = JiibType.body.toTextStyle(t),
-            color = t.text2,
-            maxLines = 4,
-            overflow = TextOverflow.Ellipsis,
-        )
+        FocusText(description, JiibType.body, t, t.text2, modifier = Modifier.fillMaxWidth())
         // Build-blind note: amber caption (t.heat) — text-only caution.
         // NO new glyph added (icon-law: never pick a glyph without owner approval).
         // The ⚠ is a unicode character embedded in the string resource.
-        Text(
-            text = buildBlindNote,
-            style = JiibType.caption.toTextStyle(t),
-            color = t.heat,
-            maxLines = 3,
-            overflow = TextOverflow.Ellipsis,
-        )
+        FocusText(buildBlindNote, JiibType.caption, t, t.heat, modifier = Modifier.fillMaxWidth())
 
         // ── Row2: ConsoleTail — fills available space ─────────────────────────────
         ConsoleTail(
