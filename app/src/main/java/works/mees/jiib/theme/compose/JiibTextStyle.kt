@@ -11,9 +11,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import works.mees.jiib.designsystem.layout.LocalUnitDp
 import works.mees.jiib.theme.AppFont
@@ -76,6 +81,90 @@ fun BoxScope.FocusHeroText(
         ),
         modifier = modifier,
     )
+}
+
+/**
+ * The Focus value+unit hero (Focus-text law, 2026-06-29). Renders [value] at [JiibType.focusHero]
+ * size and [unit] at a RELATIVE [unitEm] of that size, baseline-shared, as ONE line that shrinks
+ * both together to fit the available width. The two-size sibling of [FocusHeroText] for the
+ * adjuster/readout "120mm/s²" form (preserves the as-built value/unit size ratio).
+ *
+ * **Mechanism (width shrink):** `TextAutoSize.StepBased` does NOT shrink single-line AnnotatedString
+ * on width overflow in Compose foundation 1.11.x (verified on-device 2026-06-29). Instead, uses
+ * [BoxWithConstraints] to read the available pixel width, then steps down from [JiibType.focusHero]
+ * maxSp to minSp via [rememberTextMeasurer], picking the largest size whose measured width fits.
+ *
+ * The `em`-relative [unitEm] span scales correctly with the chosen base [fontSize] because
+ * `em` is resolved against the enclosing [TextStyle.fontSize] at render time — the unit scales
+ * proportionally with the value for every chosen size in the step-down range.
+ */
+@Composable
+fun BoxScope.FocusHeroValueText(
+    value: String,
+    unit: String,
+    t: ThemeTokens,
+    valueColor: Color,
+    unitColor: Color,
+    modifier: Modifier = Modifier,
+    unitEm: Float = 0.65f,   // statValue(26)/focusHero(40) ≈ 0.65 — keeps the as-built size ratio
+) {
+    val role = JiibType.focusHero
+    val maxSpScaled = fsSp(role.maxSp ?: role.baseSp, t.fs)
+    val minSpScaled = fsSp(role.minSp ?: role.baseSp, t.fs)
+    val textMeasurer = rememberTextMeasurer()
+
+    BoxWithConstraints(modifier = modifier, contentAlignment = Alignment.Center) {
+        val maxWidthPx = if (constraints.hasBoundedWidth) constraints.maxWidth.toFloat() else Float.MAX_VALUE
+
+        // Annotation for measurement: colors don't affect layout, omit them for a clean measure pass.
+        val textForMeasure = buildAnnotatedString {
+            append(value)
+            if (unit.isNotBlank()) {
+                withStyle(SpanStyle(fontSize = unitEm.em)) { append(unit) }
+            }
+        }
+
+        // Step down from max to min (up to 26 steps at 1sp intervals), pick the largest that fits.
+        // Falls back to minSp if nothing fits — the caller's container should prevent
+        // genuinely impossible constraints (text wider than the available box at minSp).
+        var chosenSp = minSpScaled
+        for (sp in maxSpScaled.toInt() downTo minSpScaled.toInt()) {
+            val layout = textMeasurer.measure(
+                text = textForMeasure,
+                style = TextStyle(
+                    fontFamily = t.dataFont.family,
+                    fontWeight = role.weight,
+                    fontSize = sp.sp,
+                ),
+                maxLines = 1,
+                softWrap = false,
+            )
+            if (layout.size.width <= maxWidthPx) {
+                chosenSp = sp.toFloat()
+                break
+            }
+        }
+
+        val annotated = buildAnnotatedString {
+            withStyle(SpanStyle(color = valueColor)) { append(value) }
+            if (unit.isNotBlank()) {
+                withStyle(SpanStyle(color = unitColor, fontSize = unitEm.em)) { append(unit) }
+            }
+        }
+
+        BasicText(
+            text = annotated,
+            style = TextStyle(
+                fontFamily = t.dataFont.family,
+                fontWeight = role.weight,
+                fontSize = chosenSp.sp,
+                textAlign = TextAlign.Center,
+            ),
+            maxLines = 1,
+            softWrap = false,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
 }
 
 /**
