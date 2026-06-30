@@ -59,6 +59,7 @@ import works.mees.jiib.state.PrinterState
 import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
+import androidx.compose.ui.text.style.TextOverflow
 
 /**
  * Fine-Tune flat-list screen — the canonical sketch-003 adjustment archetype (D-01).
@@ -407,6 +408,8 @@ private fun FineTuneContent(
                                            else fmtValue(displayValue, param.decimals) + param.unit.trim(),
                                     style = JiibType.dataInline.toTextStyle(t),
                                     color = t.text2,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
                                 )
                             },
                         ) {

@@ -79,8 +79,10 @@ import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.Palette
 import works.mees.jiib.theme.ThemePrefs
 import works.mees.jiib.theme.ThemeTokens
+import works.mees.jiib.theme.compose.FocusHeroValueText
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
+import androidx.compose.ui.text.style.TextOverflow
 import works.mees.jiib.theme.seriesColor
 import works.mees.jiib.state.Capabilities
 import works.mees.jiib.state.HeaterLimits
@@ -624,12 +626,16 @@ private fun TemperatureContent(
                                                 text = "${fmt(sensor.current)}°",
                                                 style = JiibType.dataInline.toTextStyle(t),
                                                 color = t.text,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
                                             )
                                             sensor.target?.let { tgt ->
                                                 Text(
                                                     text = "→ ${fmt(tgt)}°",
                                                     style = JiibType.dataMeta.toTextStyle(t),
                                                     color = rowTint,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis,
                                                 )
                                             }
                                         }
@@ -896,21 +902,15 @@ private fun HeaterControlFocus(
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         // ── Value display (live scrubber position while dragging, else the working target) ──
+        // FocusHeroValueText renders value+unit as a single shrink-to-fit layout (Focus-text law 2026-06-29).
         Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-            Row {
-                Text(
-                    text = shown.toString(),
-                    style = JiibType.focusHero.toTextStyle(t),
-                    color = t.text,
-                    modifier = Modifier.alignByBaseline(),
-                )
-                Text(
-                    text = "°C",
-                    style = JiibType.statValue.toTextStyle(t),
-                    color = t.text2,
-                    modifier = Modifier.alignByBaseline(),
-                )
-            }
+            FocusHeroValueText(
+                value = shown.toString(),
+                unit = "°C",
+                t = t,
+                valueColor = t.text,
+                unitColor = t.text2,
+            )
         }
         // ── Scrubber (coarse) — bare track; preview on drag, commit on release ──
         Scrubber(

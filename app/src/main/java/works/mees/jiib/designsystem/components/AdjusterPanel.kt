@@ -5,7 +5,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -20,9 +19,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.Text
+import androidx.compose.ui.text.style.TextOverflow
 import works.mees.jiib.R
 import works.mees.jiib.designsystem.control.Intent
 import works.mees.jiib.theme.JiibType
+import works.mees.jiib.theme.compose.FocusHeroValueText
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 import works.mees.jiib.ui.finetune.DASH
@@ -131,29 +132,22 @@ fun AdjusterPanel(
                 .weight(1f),
             contentAlignment = Alignment.Center,
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                // Hero value + unit. The unit is rendered smaller + lighter than the number and with
-                // NO separating space (owner UAT 2026-06-13) — a compact "120mm/s²" form that keeps
-                // the value on one line without a shrink-to-fit rule. Numeric part carries the R10
-                // rejection flash (valueColor); the unit stays the calmer text2.
-                // alignByBaseline (NOT verticalAlignment=Bottom): align the text BASELINES so the
-                // smaller unit sits on the same line as the value instead of dropping to a subscript
-                // (box-bottom alignment looked like a subscript — owner UAT 2026-06-13).
-                Row {
-                    Text(
-                        text = if (value == null) DASH else fmtValue(value, decimals),
-                        style = JiibType.focusHero.toTextStyle(t),
-                        color = valueColor,
-                        modifier = Modifier.alignByBaseline(),
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                // Hero value + unit rendered as a single shrink-to-fit layout via FocusHeroValueText
+                // (Focus-text law 2026-06-29). Null → DASH with empty unit (FocusHeroValueText drops
+                // blank units). Numeric part carries the R10 rejection flash (valueColor); unit stays
+                // the calmer text2.
+                Box(Modifier.fillMaxWidth()) {
+                    FocusHeroValueText(
+                        value = if (value == null) DASH else fmtValue(value, decimals),
+                        unit = if (value == null) "" else unit.trim(),
+                        t = t,
+                        valueColor = valueColor,
+                        unitColor = t.text2,
                     )
-                    if (value != null && unit.isNotBlank()) {
-                        Text(
-                            text = unit.trim(),
-                            style = JiibType.statValue.toTextStyle(t),
-                            color = t.text2,
-                            modifier = Modifier.alignByBaseline(),
-                        )
-                    }
                 }
                 // "was X" STACKED directly below the value (owner UAT 2026-06-13): some units make
                 // the inline form too long to share the line. The weight(1f) value zone absorbs the
@@ -166,6 +160,8 @@ fun AdjusterPanel(
                         ),
                         color = t.text3,
                         style = JiibType.dataMeta.toTextStyle(t),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
