@@ -42,6 +42,7 @@ import works.mees.jiib.di.AppContainer
 import works.mees.jiib.outputs.OutputRowVm
 import works.mees.jiib.outputs.OutputsHolder
 import works.mees.jiib.theme.JiibType
+import works.mees.jiib.theme.compose.FocusText
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 
@@ -197,13 +198,13 @@ private fun OutputsContent(
                         onEmergencyStop = onEmergencyStop,
                         onPanic = onEmergencyStop,
                     ) {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text(
-                                text = stringResource(R.string.outputs_select_prompt),
-                                color = t.text3,
-                                style = JiibType.body.toTextStyle(t),
-                            )
-                        }
+                        FocusText(
+                            text = stringResource(R.string.outputs_select_prompt),
+                            role = JiibType.body,
+                            t = t,
+                            color = t.text3,
+                            modifier = Modifier.fillMaxSize(),
+                        )
                     }
                 }
             },
@@ -232,6 +233,7 @@ private fun OutputsContent(
                                         text = row.displayValue,
                                         color = t.text2,
                                         style = JiibType.dataInline.toTextStyle(t),
+                                        maxLines = 1,
                                     )
                                 }
                             } else null,

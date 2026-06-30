@@ -7,6 +7,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import works.mees.jiib.R
 import works.mees.jiib.command.ApplyHeatPresetArgs
@@ -63,7 +64,7 @@ fun HeatersList(
                     uDp = uDp,
                     leadingContent = { ListRowIcon(icon = row.icon, uDp = uDp, tint = tint) },
                     trailingContent = row.summary?.let { s ->
-                        { Text(text = s, style = JiibType.dataInline.toTextStyle(t), color = t.text2) }
+                        { Text(text = s, style = JiibType.dataInline.toTextStyle(t), color = t.text2, maxLines = 1, overflow = TextOverflow.Ellipsis) }
                     },
                 ) {
                     ListRowLabel(row.label)

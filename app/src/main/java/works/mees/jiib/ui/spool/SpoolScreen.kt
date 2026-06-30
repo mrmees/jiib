@@ -453,6 +453,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolListField(
                 },
                 color = t.text2,
                 style = JiibType.caption.toTextStyle(t),
+                maxLines = 2,
                 modifier = Modifier.padding(16.dp),
             )
         }
@@ -517,6 +518,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolFilterPickerFiel
                         text = stringResource(R.string.spool_type_empty),
                         color = t.text2,
                         style = JiibType.body.toTextStyle(t),
+                        maxLines = 1,
                         modifier = Modifier.padding(8.dp),
                     )
                 }
@@ -573,6 +575,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolFilterPickerFiel
                         text = stringResource(R.string.spool_mfg_empty),
                         color = t.text2,
                         style = JiibType.body.toTextStyle(t),
+                        maxLines = 1,
                         modifier = Modifier.padding(8.dp),
                     )
                 }
@@ -695,6 +698,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolMeasureWeightFie
                     text = stringResource(R.string.spool_measure_placeholder),
                     color = t.text3,
                     style = JiibType.focusHero.toTextStyle(t),
+                    maxLines = 1,
                 )
             }
         }
@@ -714,6 +718,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpoolMeasureWeightFie
                 text = stringResource(R.string.spool_measure_hint),
                 color = t.text2,
                 style = JiibType.caption.toTextStyle(t),
+                maxLines = 2,
             )
         }
     }
@@ -753,6 +758,7 @@ private fun SpoolMeasureWeightStat(label: String, grams: Double?, t: ThemeTokens
             text = label,
             color = t.text2,
             style = JiibType.caption.toTextStyle(t),
+            maxLines = 1,
             modifier = Modifier.weight(1f),
         )
         Text(
@@ -967,12 +973,14 @@ private fun SpoolRowTrailing(spool: SpoolmanSpool, activeId: Int?, t: ThemeToken
                 text = stringResource(R.string.spool_row_badge_loaded),
                 color = t.go,
                 style = JiibType.caption.toTextStyle(t),
+                maxLines = 1,
             )
         } else if (spool.archived) {
             Text(
                 text = stringResource(R.string.spool_row_badge_archived),
                 color = t.heat,
                 style = JiibType.caption.toTextStyle(t),
+                maxLines = 1,
             )
         }
     }
@@ -1002,7 +1010,7 @@ private fun DetailBadge(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         JiibIconView(icon, tint = color, sizeDp = iconSp.dp, contentDescription = contentDescription)
-        Text(text, color = color, style = JiibType.body.toTextStyle(t))
+        Text(text, color = color, style = JiibType.body.toTextStyle(t), maxLines = 1)
     }
 }
 

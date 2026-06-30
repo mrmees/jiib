@@ -73,6 +73,7 @@ fun OutputToggleControl(
                 text = stringResource(R.string.output_read_only),
                 color = t.text3,
                 style = JiibType.caption.toTextStyle(t),
+                maxLines = 1,
                 modifier = Modifier.align(Alignment.CenterHorizontally),
             )
         }

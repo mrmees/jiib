@@ -27,8 +27,11 @@ import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.ScreenScaffold
 import works.mees.jiib.state.SettableHeater
 import works.mees.jiib.theme.JiibType
+import works.mees.jiib.theme.compose.FocusText
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import works.mees.jiib.ui.screen.TokenTextField
 
 /** One heater step in the wizard: identity + label + clamp bounds + the prefilled text value. */
@@ -178,6 +181,7 @@ fun HeatPresetWizard(
                         text = stringResource(R.string.heat_presets_name_label),
                         color = t.text,
                         style = JiibType.listLabel.toTextStyle(t),
+                        maxLines = 1,
                         modifier = Modifier.padding(bottom = 4.dp),
                     )
                     TokenTextField(
@@ -193,6 +197,8 @@ fun HeatPresetWizard(
                         text = field.displayName,
                         color = t.text,
                         style = JiibType.focusHeader.toTextStyle(t),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(bottom = 4.dp),
                     )
                     TokenTextField(
@@ -203,11 +209,13 @@ fun HeatPresetWizard(
                         keyboardType = KeyboardType.Number,
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    Text(
+                    FocusText(
                         text = stringResource(R.string.heat_presets_skip_hint),
+                        role = JiibType.caption,
+                        t = t,
                         color = t.text2,
-                        style = JiibType.caption.toTextStyle(t),
-                        modifier = Modifier.padding(top = 8.dp),
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                        textAlign = TextAlign.Start,
                     )
                 }
             }
