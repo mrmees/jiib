@@ -1097,7 +1097,7 @@ internal fun EddyCalibrateBody(
             FocusText(stringResource(R.string.probe_tool_eddy_calibrate_desc), JiibType.body, t, t.text2, modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp), maxHeightU = 3f)
             // Build-blind caution: amber t.heat text; NO glyph (icon-law).
             // The ⚠ is a unicode character embedded in the string resource.
-            FocusText(stringResource(R.string.calibration_run_build_blind_note), JiibType.caption, t, t.heat, modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp))
+            FocusText(stringResource(R.string.calibration_run_build_blind_note), JiibType.caption, t, t.heat, modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp), maxHeightU = 2f)
             if (starting) {
                 // eddy_calibrate in inFlight — disabled "Starting…" feedback.
                 OutlinedControl(
@@ -1537,7 +1537,7 @@ internal fun EddyRunBody(
         // Build-blind note: amber caption (t.heat) — text-only caution.
         // NO new glyph added (icon-law: never pick a glyph without owner approval).
         // The ⚠ is a unicode character embedded in the string resource.
-        FocusText(buildBlindNote, JiibType.caption, t, t.heat, modifier = Modifier.fillMaxWidth())
+        FocusText(buildBlindNote, JiibType.caption, t, t.heat, modifier = Modifier.fillMaxWidth(), maxHeightU = 2f)
 
         // ── Row2: ConsoleTail — fills available space ─────────────────────────────
         ConsoleTail(
