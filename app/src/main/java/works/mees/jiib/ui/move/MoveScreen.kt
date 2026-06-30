@@ -33,6 +33,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -88,6 +89,7 @@ import works.mees.jiib.di.AppContainer
 import works.mees.jiib.state.PrintState
 import works.mees.jiib.state.PrinterState
 import works.mees.jiib.theme.JiibType
+import works.mees.jiib.theme.compose.FocusText
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 import works.mees.jiib.theme.fsSp
@@ -320,6 +322,8 @@ internal fun MoveHubContent(
                                     style = JiibType.statValue.toTextStyle(t),
                                     color = t.text,
                                     textAlign = TextAlign.Center,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(bottom = 8.dp),
@@ -357,11 +361,11 @@ internal fun MoveHubContent(
                                     }
                                 }
                                 // Instruction line — below the bed map, centered.
-                                Text(
+                                FocusText(
                                     text = "Tap to move, hold to refine",
+                                    role = JiibType.caption,
+                                    t = t,
                                     color = t.text2,
-                                    style = JiibType.caption.toTextStyle(t),
-                                    textAlign = TextAlign.Center,
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(top = 8.dp),
@@ -397,6 +401,8 @@ internal fun MoveHubContent(
                                         style = JiibType.statValue.toTextStyle(t),
                                         color = t.text,
                                         textAlign = TextAlign.Center,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(bottom = 8.dp),
@@ -617,6 +623,7 @@ internal fun MoveHubContent(
                                                 style = JiibType.dataInline.toTextStyle(t),
                                                 color = t.text,
                                                 textAlign = TextAlign.Center,
+                                                maxLines = 1,
                                             )
                                         },
                                     )
@@ -827,6 +834,7 @@ internal fun MoveHubContent(
                                             style = JiibType.caption.toTextStyle(t),
                                             color = t.text3,
                                             textAlign = TextAlign.Center,
+                                            maxLines = 1,
                                             modifier = Modifier.fillMaxWidth(),
                                         )
                                         current.forEach { es -> EndstopRow(es, grid.uDp) }
@@ -1026,9 +1034,9 @@ private fun ZRangeLabels(top: String, bottom: String) {
         modifier = Modifier.fillMaxHeight().padding(horizontal = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(text = top, style = JiibType.dataInline.toTextStyle(t), color = t.text2)
+        Text(text = top, style = JiibType.dataInline.toTextStyle(t), color = t.text2, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Spacer(Modifier.weight(1f))
-        Text(text = bottom, style = JiibType.dataInline.toTextStyle(t), color = t.text2)
+        Text(text = bottom, style = JiibType.dataInline.toTextStyle(t), color = t.text2, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -1084,12 +1092,15 @@ private fun EndstopRow(status: EndstopStatus, uDp: Dp) {
             text = endstopLabel(status.name),
             style = JiibType.listLabel.toTextStyle(t),
             color = t.text,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
         Text(
             text = if (status.triggered) "TRIGGERED" else "OPEN",
             style = JiibType.statValue.toTextStyle(t),
             color = color,
+            maxLines = 1,
         )
     }
 }
@@ -1098,7 +1109,7 @@ private fun EndstopRow(status: EndstopStatus, uDp: Dp) {
 private fun FocusCenteredHint(text: String) {
     val t = LocalTokens.current
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text, style = JiibType.body.toTextStyle(t), color = t.text3)
+        Text(text, style = JiibType.body.toTextStyle(t), color = t.text3, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -1120,6 +1131,8 @@ private fun FocusHint(text: String, modifier: Modifier = Modifier) {
             color = t.text2,
             style = JiibType.body.toTextStyle(t),
             textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }

@@ -7,6 +7,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import works.mees.jiib.systeminfo.HostDevice
@@ -50,6 +51,8 @@ fun ColumnScope.HostDetail(
                 text = line,
                 style = JiibType.dataInline.toTextStyle(t),
                 color = t.text,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
@@ -86,6 +89,8 @@ fun ColumnScope.McuDetail(
                 text = line,
                 style = JiibType.dataInline.toTextStyle(t),
                 color = t.text,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
