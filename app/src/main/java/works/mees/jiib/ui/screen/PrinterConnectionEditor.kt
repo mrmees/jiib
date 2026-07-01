@@ -598,11 +598,11 @@ private fun ConnTextEditor(
                 maxHeightU = 2f,
             )
         }
-        secondaryAction?.let {
-            Spacer(Modifier.height(8.dp))
-            it()
-        }
         Spacer(Modifier.weight(1f))
+        secondaryAction?.let {
+            it()
+            Spacer(Modifier.height(8.dp))
+        }
         OutlinedControl(
             label = stringResource(R.string.common_done),
             onClick = onDone,

@@ -21,7 +21,7 @@ fun TextSizeSelector(
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
-    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         FontScale.entries.forEach { choice ->
             val isSel = choice == selected
             OutlinedControl(

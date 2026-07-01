@@ -302,6 +302,7 @@ object JiibIcons {
     val SaveLocation = JiibIcon(IconRef.Ligature("bookmark_add"), alternate = "save_location")
     val MoveHomeAll = JiibIcon(IconRef.Ligature("home_app_logo"), alternate = "move_home_all")
     val MoveDisableMotors = JiibIcon(IconRef.Ligature("stack_off"), alternate = "move_disable_motors")
+    val MoveToBookmark = JiibIcon(IconRef.Ligature("place"), alternate = "move_to_bookmark")
 
     /** Move → Endstops: inactive/open endstop state (owner-assigned 2026-06-18). */
     val CropFree = JiibIcon(IconRef.Ligature("crop_free"), alternate = "crop_free")

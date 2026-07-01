@@ -466,7 +466,7 @@ private fun AppSettingsFocus(
             if (control != null) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                     content = control,
                 )
             }

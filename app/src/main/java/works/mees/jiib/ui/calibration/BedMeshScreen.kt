@@ -69,6 +69,8 @@ import works.mees.jiib.control.ControlSpecs
 import works.mees.jiib.designsystem.control.Intent
 import works.mees.jiib.designsystem.icons.JiibIconView
 import works.mees.jiib.designsystem.icons.JiibIcons
+import works.mees.jiib.designsystem.layout.controlHeight
+import works.mees.jiib.designsystem.layout.FocusInset
 import works.mees.jiib.designsystem.layout.ListBlock
 import works.mees.jiib.designsystem.layout.ScreenScaffold
 import works.mees.jiib.designsystem.layout.rememberUnitGrid
@@ -465,6 +467,7 @@ internal fun BedMeshContent(
                         safetyActive = gating !is GatingState.Idle,
                         onEmergencyStop = onEmergencyStop,
                         onPanic = onEmergencyStop,
+                        contentInset = FocusInset / 2,
                         trailingActionIcon = if (!isPrinting && !isLocked && fieldMode !is MeshFieldMode.MeshConfig && fieldMode !is MeshFieldMode.MeshConfigEditor) JiibIcons.Edit else null,
                         onTrailingAction = if (!isPrinting && !isLocked && fieldMode !is MeshFieldMode.MeshConfig && fieldMode !is MeshFieldMode.MeshConfigEditor) onEditOpen else null,
                         trailingActionContentDescription = "Edit mesh profile",
@@ -1273,7 +1276,7 @@ private fun MeshEditForm(
         // Primary action row: Apply (preview) or Save (active unsaved/saved) — 1U docked buttons.
         CompositionLocalProvider(LocalUnitDp provides uDp) {
             Row(
-                modifier = Modifier.fillMaxWidth().height(uDp),
+                modifier = Modifier.fillMaxWidth().controlHeight(uDp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 when (kind) {
@@ -1325,7 +1328,7 @@ private fun MeshEditForm(
         if (kind != MeshEditKind.ACTIVE_UNSAVED) {
             CompositionLocalProvider(LocalUnitDp provides uDp) {
                 Row(
-                    modifier = Modifier.fillMaxWidth().height(uDp),
+                    modifier = Modifier.fillMaxWidth().controlHeight(uDp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     OutlinedControl(

@@ -619,7 +619,7 @@
     <string name="settings_keep_screen_on">Keep screen awake</string>
     <string name="settings_keep_screen_on_sub_on">Screen stays on while jiib is open</string>
     <string name="settings_keep_screen_on_sub_off">System screen timeout applies</string>
-    <string name="settings_battery_optimization">Battery optimization</string>
+    <string name="settings_battery_optimization">Android Battery</string>
     <string name="settings_battery_exempt">Exempt — the connection survives Doze</string>
     <string name="settings_battery_optimized">Optimized — tap to let jiib stay connected with the screen off</string>
 

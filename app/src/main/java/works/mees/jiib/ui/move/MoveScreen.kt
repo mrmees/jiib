@@ -704,19 +704,23 @@ internal fun MoveHubContent(
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .controlHeight(grid.uDp),
-                                            horizontalArrangement = Arrangement.spacedBy(gapS(grid.uDp)),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                                         ) {
                                             OutlinedControl(
                                                 label = "Move",
                                                 onClick = { onMoveTo(loc.x, loc.y, loc.z) },
                                                 modifier = Modifier.weight(1f),
                                                 intent = Intent.Go,
+                                                icon = JiibIcons.MoveToBookmark,
+                                                contentDescription = "Move",
                                             )
                                             OutlinedControl(
                                                 label = "Delete",
                                                 onClick = { deleteConfirm = loc.name },
                                                 modifier = Modifier.weight(1f),
                                                 intent = Intent.Danger,
+                                                icon = JiibIcons.Delete,
+                                                contentDescription = "Delete",
                                             )
                                         }
                                     }
@@ -758,8 +762,9 @@ internal fun MoveHubContent(
                                 // ActionButton sweep; this is ONLY the vertical docking.)
                                 Spacer(Modifier.weight(1f))
                                 // Save / Cancel button row.
+                                CompositionLocalProvider(LocalUnitDp provides grid.uDp) {
                                 Row(
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier = Modifier.fillMaxWidth().controlHeight(grid.uDp),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
                                     OutlinedControl(
@@ -767,6 +772,8 @@ internal fun MoveHubContent(
                                         onClick = { mode = MoveMode.TouchMove },
                                         modifier = Modifier.weight(1f),
                                         intent = Intent.Accent,
+                                        icon = JiibIcons.DialogClose,
+                                        contentDescription = "Cancel",
                                     )
                                     OutlinedControl(
                                         label = "Save",
@@ -788,7 +795,10 @@ internal fun MoveHubContent(
                                         modifier = Modifier.weight(1f),
                                         intent = Intent.Go,
                                         enabled = name.isNotBlank() && vm.x != null && vm.y != null,
+                                        icon = JiibIcons.Save,
+                                        contentDescription = "Save",
                                     )
+                                }
                                 }
                             }
                         }

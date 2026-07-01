@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -97,6 +96,8 @@ import works.mees.jiib.designsystem.icons.JiibIconView
 import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.FocusInset
 import works.mees.jiib.designsystem.layout.ListBlock
+import works.mees.jiib.designsystem.layout.LocalUnitDp
+import works.mees.jiib.designsystem.layout.controlHeight
 import works.mees.jiib.designsystem.layout.ScreenScaffold
 import works.mees.jiib.designsystem.layout.rememberUnitGrid
 import works.mees.jiib.di.AppContainer
@@ -1555,7 +1556,7 @@ internal fun EddyRunBody(
         if (tapStages != null && selectedStage != null) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 tapStages.forEach { stage ->
                     val isSelected = stage == selectedStage
@@ -2120,7 +2121,7 @@ private fun ProbeIconButton(
     val shape = RoundedCornerShape(t.rCtrl)
     val outline = intentColor(intent, t)
     val base = modifier
-        .heightIn(min = 64.dp)
+        .controlHeight(LocalUnitDp.current ?: 64.dp)
         .clip(shape)
         .border(BorderStroke(2.dp, if (enabled) outline else t.hair), shape)
         .background(if (enabled) Color.Transparent else t.surface)
