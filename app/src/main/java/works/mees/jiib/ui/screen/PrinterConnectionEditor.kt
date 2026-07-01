@@ -2,6 +2,7 @@ package works.mees.jiib.ui.screen
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -622,7 +623,8 @@ private fun ConnSummary(
     uDp: Dp,
 ) {
     val t = LocalTokens.current
-    Column(Modifier.fillMaxSize()) {
+    // Left-anchored label/status rows, centered vertically within the Focus region.
+    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center) {
         Text(
             text = urls.wsUrl.ifBlank { "-" },
             color = t.text,

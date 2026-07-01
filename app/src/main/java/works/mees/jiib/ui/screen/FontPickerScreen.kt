@@ -118,8 +118,8 @@ internal fun FontPickerContent(
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
                 ) {
-                    // Explainer caption — which kind of font this picker controls.
-                    FocusText(text = focusCaption, role = JiibType.caption, t = t, color = t.text2, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start, maxHeightU = 1f)
+                    // Explainer caption — centered to sit symmetrically above the centered preview.
+                    FocusText(text = focusCaption, role = JiibType.caption, t = t, color = t.text2, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center, maxHeightU = 1f)
                     // The Focus body IS the live preview: the selected font's name, rendered in its own
                     // face. Selection updates the whole app immediately (tokenized fonts) so the chrome
                     // re-renders too — no separate preview block needed.
