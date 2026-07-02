@@ -27,7 +27,9 @@ import works.mees.jiib.R
 import works.mees.jiib.designsystem.control.OutlinedControl
 import works.mees.jiib.designsystem.focus.FocusDigest
 import works.mees.jiib.designsystem.focus.FocusExplainer
+import works.mees.jiib.designsystem.focus.FocusInfoCard
 import works.mees.jiib.designsystem.focus.FocusPlaceholder
+import works.mees.jiib.designsystem.focus.InfoStat
 import works.mees.jiib.designsystem.components.DigestColumn
 import works.mees.jiib.designsystem.components.DigestEmphasis
 import works.mees.jiib.designsystem.components.DigestRow
@@ -350,6 +352,22 @@ private fun DesignKitComponentDemo(modifier: Modifier = Modifier) {
                             DigestRow.Custom(heightU = 0.5f) {
                                 Box(Modifier.fillMaxSize())
                             },
+                        ),
+                    )
+                }
+
+                // FocusInfoCard: archetype #4 — fill-to-fit stat rows (IconRows, icons null).
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(grid.uDp * 4),
+                ) {
+                    FocusInfoCard(
+                        stats = listOf(
+                            InfoStat(icon = null, label = "File", value = "benchy.gcode"),
+                            InfoStat(icon = null, label = "Size", value = "2.4 MB"),
+                            InfoStat(icon = null, label = "Est.", value = "1h 23m"),
+                            InfoStat(icon = null, label = "Layer", value = "0.2 mm"),
                         ),
                     )
                 }
