@@ -95,10 +95,12 @@ fun infoCardScale(
  * @param headline    CenteredBlock only — optional title line, marqueed when it overflows.
  * @param background  Optional background layer drawn behind the stat block (e.g. thumbnail).
  * @param scrim       When true, draws a ~50 % surface scrim over [background] for legibility.
- * @param minFrac     Minimum allowed scale — stat block never shrinks below this fraction
- *                    of the reference size. Applies to [InfoCardStyle.IconRows].
- * @param maxFrac     Maximum allowed scale — stat block never grows beyond this fraction
- *                    of the reference size. Applies to [InfoCardStyle.IconRows].
+ * @param rowsMinFrac IconRows only — minimum allowed scale; the stat block never shrinks below
+ *                    this fraction of the reference size. CenteredBlock ignores these; its
+ *                    bounds are fixed from the ported ActivePrint source's sp constraints.
+ * @param rowsMaxFrac IconRows only — maximum allowed scale; the stat block never grows beyond
+ *                    this fraction of the reference size. CenteredBlock ignores these; its
+ *                    bounds are fixed from the ported ActivePrint source's sp constraints.
  */
 @Composable
 fun FocusInfoCard(
@@ -108,8 +110,8 @@ fun FocusInfoCard(
     headline: String? = null,
     background: (@Composable BoxScope.() -> Unit)? = null,
     scrim: Boolean = false,
-    minFrac: Float = 0.7f,
-    maxFrac: Float = 2.4f,
+    rowsMinFrac: Float = 0.7f,
+    rowsMaxFrac: Float = 2.4f,
 ) {
     val t = LocalTokens.current
     FocusZones(
@@ -122,7 +124,7 @@ fun FocusInfoCard(
                     Box(Modifier.fillMaxSize().background(t.surface.copy(alpha = 0.5f)))
                 }
                 when (style) {
-                    InfoCardStyle.IconRows -> IconRowsContent(stats, t, minFrac, maxFrac)
+                    InfoCardStyle.IconRows -> IconRowsContent(stats, t, rowsMinFrac, rowsMaxFrac)
                     InfoCardStyle.CenteredBlock -> CenteredBlockContent(stats, headline, t)
                 }
             }
@@ -251,9 +253,10 @@ private val BLOCK_LINE_GAP = 4.dp
 /**
  * Centred text tower: optional [headline] (marqueed) + one Text per stat, uniformly scaled.
  *
- * The min/max fracs map the original sp-level coerce bounds to [infoCardScale] fractions:
- * - minFrac = minData (15sp) / maxData (26sp) ≈ 0.577
- * - maxFrac = maxCap  (46sp) / maxData (26sp) ≈ 1.769
+ * Sizing is source-faithful to ActivePrintFocus: the RAW (unclamped) fill fraction comes from
+ * [infoCardScale], then the data and headline sizes are coerced INDEPENDENTLY in sp terms —
+ * dataSp ∈ [minData (15sp), maxCap (46sp)]; nameSp ∈ [minData (15sp), maxCap × FILENAME_FACTOR].
+ * The headline floor is 15sp FLAT (not 15sp × FILENAME_FACTOR).
  *
  * When [stat.label] is blank, only [InfoStat.value] is rendered; otherwise "${label}: ${value}".
  * The [InfoStat.icon] field is unused in this style.
@@ -267,6 +270,8 @@ private fun CenteredBlockContent(
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
     val maxDataSp = fsSp(26f, t.fs)
+    val minDataSp = fsSp(15f, t.fs)
+    val maxCapSp = fsSp(46f, t.fs)
     val nameStyleBase = JiibType.screenTitle.toTextStyle(t, maxDataSp * FILENAME_FACTOR)
     val dataStyleBase = JiibType.screenTitle.toTextStyle(t, maxDataSp)
     val gapPx = with(density) { BLOCK_LINE_GAP.toPx() }
@@ -302,16 +307,19 @@ private fun CenteredBlockContent(
             }
             val nameH = nameLayout?.size?.height?.toFloat() ?: 0f
             val textHPx = nameH + dataLayouts.sumOf { it.size.height }.toFloat()
-            // Bounds map to fracs: minFrac = minData/maxData = 15/26; maxFrac = maxCap/maxData = 46/26.
+            // RAW fill fraction — unclamped (wide-open bounds) so the source's INDEPENDENT sp-level
+            // coerces below stay faithful (headline floor = 15sp flat, not 15sp × FILENAME_FACTOR).
             infoCardScale(
                 availW, availH, widestPx, textHPx, gapPx, gapCount,
-                minFrac = 15f / 26f,
-                maxFrac = 46f / 26f,
+                minFrac = 0f,
+                maxFrac = Float.MAX_VALUE,
             )
         }
 
-        val dataSp = maxDataSp * sizeFrac
-        val nameSp = maxDataSp * FILENAME_FACTOR * sizeFrac
+        // Source-faithful coerce bounds (PrintStatusFocus.kt:259-260): data and headline clamp
+        // independently — dataSp ∈ [minData, maxCap]; nameSp ∈ [minData, maxCap × FILENAME_FACTOR].
+        val dataSp = (maxDataSp * sizeFrac).coerceIn(minDataSp, maxCapSp)
+        val nameSp = (maxDataSp * FILENAME_FACTOR * sizeFrac).coerceIn(minDataSp, maxCapSp * FILENAME_FACTOR)
         val shadow = remember(t.surface, density) {
             Shadow(
                 color = t.surface,
