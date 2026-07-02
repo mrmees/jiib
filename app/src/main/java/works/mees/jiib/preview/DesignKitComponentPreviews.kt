@@ -27,8 +27,10 @@ import works.mees.jiib.R
 import works.mees.jiib.designsystem.control.OutlinedControl
 import works.mees.jiib.designsystem.focus.FocusDigest
 import works.mees.jiib.designsystem.focus.FocusExplainer
+import works.mees.jiib.designsystem.focus.FocusForm
 import works.mees.jiib.designsystem.focus.FocusInfoCard
 import works.mees.jiib.designsystem.focus.FocusPlaceholder
+import works.mees.jiib.designsystem.focus.FocusStage
 import works.mees.jiib.designsystem.focus.InfoStat
 import works.mees.jiib.designsystem.components.DigestColumn
 import works.mees.jiib.designsystem.components.DigestEmphasis
@@ -369,6 +371,62 @@ private fun DesignKitComponentDemo(modifier: Modifier = Modifier) {
                             InfoStat(icon = null, label = "Est.", value = "1h 23m"),
                             InfoStat(icon = null, label = "Layer", value = "0.2 mm"),
                         ),
+                    )
+                }
+
+                // FocusStage: archetype #7 — spatial surface with cap readout + stepper dock.
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(grid.uDp * 4),
+                ) {
+                    FocusStage(
+                        cap = {
+                            Text(
+                                text = "215.0°",
+                                color = t.text2,
+                                fontFamily = GeistMono,
+                                fontSize = fsSp(15f, t.fs).sp,
+                            )
+                        },
+                        dock = {
+                            StepperRow(onDecrement = {}, onIncrement = {}, uDp = grid.uDp)
+                        },
+                        body = {
+                            Text(
+                                text = "Ready",
+                                color = t.text3,
+                                fontFamily = Geist,
+                                fontSize = fsSp(26f, t.fs).sp,
+                            )
+                        },
+                    )
+                }
+
+                // FocusForm: archetype #8 — top-flow control rows (LAW-1 named exception) + Done dock.
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(grid.uDp * 4),
+                ) {
+                    FocusForm(
+                        body = {
+                            // TokenTextField-like placeholder row
+                            OutlinedControl(
+                                label = "printer.local",
+                                onClick = {},
+                                intent = Intent.Accent,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        },
+                        dock = {
+                            OutlinedControl(
+                                label = "Done",
+                                onClick = {},
+                                intent = Intent.Go,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        },
                     )
                 }
             }
