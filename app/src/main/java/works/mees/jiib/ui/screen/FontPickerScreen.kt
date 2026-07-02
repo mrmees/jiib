@@ -116,7 +116,6 @@ internal fun FontPickerContent(
                     icon = icon,
                     uDp = grid.uDp,
                     modifier = Modifier.fillMaxSize(),
-                    contentInset = 0.dp,
                     isPrinting = isPrinting,
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,

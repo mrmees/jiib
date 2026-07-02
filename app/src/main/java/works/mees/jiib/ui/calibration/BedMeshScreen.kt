@@ -466,7 +466,6 @@ internal fun BedMeshContent(
                         safetyActive = gating !is GatingState.Idle,
                         onEmergencyStop = onEmergencyStop,
                         onPanic = onEmergencyStop,
-                        contentInset = 0.dp,
                         trailingActionIcon = if (!isPrinting && !isLocked && fieldMode !is MeshFieldMode.MeshConfig && fieldMode !is MeshFieldMode.MeshConfigEditor) JiibIcons.Edit else null,
                         onTrailingAction = if (!isPrinting && !isLocked && fieldMode !is MeshFieldMode.MeshConfig && fieldMode !is MeshFieldMode.MeshConfigEditor) onEditOpen else null,
                         trailingActionContentDescription = "Edit mesh profile",

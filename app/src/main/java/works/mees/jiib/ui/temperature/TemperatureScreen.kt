@@ -513,7 +513,6 @@ private fun TemperatureContent(
                                 isPrinting = isPrinting,
                                 onEmergencyStop = onEmergencyStop,
                                 onPanic = onEmergencyStop,
-                                contentInset = 0.dp, // graph fills to the rounded frame edge (owner 2026-06-17)
                             ) {
                                 FocusMedia {
                                     GraphViewHost(
@@ -540,7 +539,6 @@ private fun TemperatureContent(
                                 isPrinting = isPrinting,
                                 onEmergencyStop = onEmergencyStop,
                                 onPanic = onEmergencyStop,
-                                contentInset = 0.dp,
                             ) {
                                 SensorAppearanceFocus(
                                     traceColor = traceColors[sensor.name],
@@ -566,7 +564,6 @@ private fun TemperatureContent(
                                 isPrinting = isPrinting,
                                 onEmergencyStop = onEmergencyStop,
                                 onPanic = onEmergencyStop,
-                                contentInset = 0.dp,
                             ) {
                                 HeaterControlFocus(
                                     sensor = sensor,
@@ -750,7 +747,6 @@ private fun SensorPickerFocus(
         isPrinting = isPrinting,
         onEmergencyStop = onEmergencyStop,
         onPanic = onEmergencyStop,
-        contentInset = 0.dp,
     ) {
         FocusForm(
             body = {

@@ -302,7 +302,6 @@ private fun MacrosContent(
                     icon = JiibIcons.LauncherMacros,
                     uDp = grid.uDp,
                     modifier = Modifier.fillMaxSize(),
-                    contentInset = 0.dp,
                     isPrinting = isPrinting,
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,

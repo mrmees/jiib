@@ -293,7 +293,6 @@ internal fun MoveHubContent(
                     safetyActive = gating !is GatingState.Idle,
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
-                    contentInset = 0.dp, // Focus archetypes own their inset (FocusZones); no double-inset.
                 ) {
                     // Unknown Focus morph (precedence: Unknown > Locked > normal content): when the
                     // link or firmware can't confirm the HardLock completed, replace the Focus body

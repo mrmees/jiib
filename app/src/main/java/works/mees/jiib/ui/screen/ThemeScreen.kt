@@ -264,7 +264,7 @@ private fun ThemeFocus(
     fun frame(title: String, icon: JiibIcon, body: @Composable ColumnScope.() -> Unit) {
         FocusFrame(title = title, icon = icon, uDp = uDp, modifier = modifier,
             isPrinting = isPrinting, onEmergencyStop = onEmergencyStop, onPanic = onEmergencyStop,
-            contentInset = 0.dp) { body() }
+        ) { body() }
     }
 
     @Composable
@@ -462,7 +462,6 @@ private fun ThemeSwatchEditor(
         isPrinting = isPrinting, onEmergencyStop = onEmergencyStop, onPanic = onEmergencyStop,
         // FIX A: the header edge reads out the LIVE picked color (recomputes as the sliders move).
         edge = FocusEdge.Data(Color(hsvToArgbLong(h, s, v).toInt())),
-        contentInset = 0.dp,
     ) {
         FocusStage(
             body = {

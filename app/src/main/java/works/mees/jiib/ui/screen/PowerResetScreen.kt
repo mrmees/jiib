@@ -293,7 +293,6 @@ fun PowerResetContent(
                     isPrinting = isPrinting,
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
-                    contentInset = 0.dp,
                 ) {
                     FocusExplainer(text = stringResource(R.string.power_reset_blurb))
                 }

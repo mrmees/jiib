@@ -352,7 +352,6 @@ private fun SpoolContent(
                     trailingStatusIcon = if (isSelectedLoaded) JiibIcons.CheckCircle else null,
                     trailingStatusTint = t.go,
                     trailingStatusContentDescription = stringResource(R.string.cd_spool_loaded),
-                    contentInset = 0.dp,
                 ) {
                     SpoolDetailContent(
                         spool = selected,

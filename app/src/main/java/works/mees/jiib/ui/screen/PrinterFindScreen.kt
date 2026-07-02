@@ -147,7 +147,6 @@ fun PrinterFindContent(
                     isPrinting = isPrinting,
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
-                    contentInset = 0.dp,
                 ) {
                     // Auto-scan on open means the pre-scan hint is never the initial state; the
                     // first emission is "Scanning…". Status order: probing > scanning > result.

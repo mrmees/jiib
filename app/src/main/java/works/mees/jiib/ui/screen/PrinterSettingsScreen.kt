@@ -171,7 +171,6 @@ fun PrinterSettingsContent(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f),
-                        contentInset = 0.dp,
                         edge = ringColor?.let { FocusEdge.Data(it) } ?: FocusEdge.Neutral,
                         isPrinting = isPrinting,
                         onEmergencyStop = onEmergencyStop,
@@ -195,7 +194,6 @@ fun PrinterSettingsContent(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f),
-                        contentInset = 0.dp,
                         isPrinting = isPrinting,
                         onEmergencyStop = onEmergencyStop,
                         onPanic = onEmergencyStop,

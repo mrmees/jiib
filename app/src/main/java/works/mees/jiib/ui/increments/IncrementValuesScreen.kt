@@ -84,7 +84,6 @@ fun IncrementValuesScreen(
                     icon = selectedSpec?.icon ?: JiibIcons.FineTune,
                     uDp = grid.uDp,
                     modifier = Modifier.fillMaxWidth().weight(1f),
-                    contentInset = 0.dp,
                     isPrinting = isPrinting,
                     onEmergencyStop = estop,
                     onPanic = estop,

@@ -131,7 +131,6 @@ fun HeatPresetsScreen(
                                 isPrinting = isPrinting,
                                 onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
                                 onPanic = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
-                                contentInset = 0.dp,
                             ) {
                                 HeatPresetDetail(
                                     preset = selected,

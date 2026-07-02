@@ -405,7 +405,6 @@ private fun FilesContent(
                     isPrinting = isPrinting,
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
-                    contentInset = 0.dp,
                 ) {
                     FilesDetailContent(
                         state = state,

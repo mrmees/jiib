@@ -455,7 +455,6 @@ private fun AppSettingsFocus(
             isPrinting = isPrinting,
             onEmergencyStop = onEmergencyStop,
             onPanic = onEmergencyStop,
-            contentInset = 0.dp,
         ) {
             FocusExplainer(text = description, dock = control)
         }

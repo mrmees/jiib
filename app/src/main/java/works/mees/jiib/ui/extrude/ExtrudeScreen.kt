@@ -319,7 +319,6 @@ private fun ExtrudeContent(
                     safetyActive = gating !is GatingState.Idle,
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
-                    contentInset = 0.dp,
                 ) {
                     FocusGrid(
                         vm = vm,

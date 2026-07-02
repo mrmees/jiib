@@ -167,7 +167,6 @@ fun SystemInformationContent(
                     icon = deviceIcon(selected),
                     uDp = grid.uDp,
                     modifier = Modifier.fillMaxSize(),
-                    contentInset = 0.dp,
                     isPrinting = isPrinting,
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,

@@ -121,7 +121,6 @@ fun PrintersContent(
                     isPrinting = isPrinting,
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
-                    contentInset = 0.dp,
                 ) {
                     FocusExplainer(
                         text = listOf(

@@ -122,7 +122,6 @@ fun SystemPageContent(
                     isPrinting = isPrinting,
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
-                    contentInset = 0.dp,
                 ) {
                     val jibNote = stringResource(R.string.system_focus_jib_note)
                     val jiibNote = stringResource(R.string.system_focus_jiib_note)

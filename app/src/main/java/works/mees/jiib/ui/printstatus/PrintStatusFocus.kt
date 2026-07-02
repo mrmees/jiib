@@ -102,7 +102,6 @@ internal fun HomeFocus(
         isPrinting = isPrinting,
         onEmergencyStop = onEmergencyStop,
         onPanic = onEmergencyStop,
-        contentInset = 0.dp,
     ) {
         if (showDataBlock) {
             ActivePrintFocus(state = state, printMetadata = printMetadata, httpBase = httpBase)

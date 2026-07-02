@@ -505,7 +505,6 @@ private fun ConnFocus(
         icon = JiibIcons.SystemRowPrinters,
         uDp = uDp,
         modifier = Modifier.fillMaxSize(),
-        contentInset = 0.dp,
         isPrinting = isPrinting,
         onEmergencyStop = estop,
         onPanic = estop,

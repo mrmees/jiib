@@ -608,7 +608,6 @@ internal fun ProbeContent(
                     safetyActive = gating !is GatingState.Idle,
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
-                    contentInset = 0.dp,
                     trailingStatusDotColor = probeTestDotColor,
                     trailingStatusContentDescription = probeTestDotCd,
                 ) {

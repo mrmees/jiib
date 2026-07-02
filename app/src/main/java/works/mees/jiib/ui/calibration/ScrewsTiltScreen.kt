@@ -211,7 +211,6 @@ fun ScrewsTiltContent(
                         safetyActive = gating !is GatingState.Idle,
                         onEmergencyStop = onEmergencyStop,
                         onPanic = onEmergencyStop,
-                        contentInset = 0.dp,
                     ) {
                         // Unknown Focus morph (precedence: Unknown > Locked > normal content): when
                         // the link or firmware can't confirm the HardLock completed, show "Still

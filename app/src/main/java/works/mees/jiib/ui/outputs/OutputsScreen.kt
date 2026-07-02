@@ -160,7 +160,6 @@ private fun OutputsContent(
                             isPrinting = isPrinting,
                             onEmergencyStop = onEmergencyStop,
                             onPanic = onEmergencyStop,
-                            contentInset = 0.dp,
                         ) {
                             // CR-04 (26-rev): key on the selected output's IDENTITY so switching between two
                             // same-family outputs (identical range/step) tears down the previous control's
@@ -192,7 +191,6 @@ private fun OutputsContent(
                         isPrinting = isPrinting,
                         onEmergencyStop = onEmergencyStop,
                         onPanic = onEmergencyStop,
-                        contentInset = 0.dp,
                     ) {
                         FocusExplainer(
                             text = stringResource(R.string.outputs_select_prompt),

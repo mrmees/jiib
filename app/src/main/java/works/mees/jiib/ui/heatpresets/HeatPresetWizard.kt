@@ -172,7 +172,6 @@ fun HeatPresetWizard(
                 icon = JiibIcons.TempPresets,
                 uDp = uDp,
                 modifier = Modifier.fillMaxWidth().weight(1f),
-                contentInset = 0.dp,
                 isPrinting = isPrinting,
                 onEmergencyStop = onEmergencyStop,
                 onPanic = onEmergencyStop,

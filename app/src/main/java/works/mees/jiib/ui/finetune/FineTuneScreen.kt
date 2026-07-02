@@ -332,7 +332,6 @@ private fun FineTuneContent(
                     isPrinting = isPrinting,
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
-                    contentInset = 0.dp, // FocusZones.Dense inside AdjusterPanel supplies the 8dp
                     trailingActionIcon = run {
                         val v = working[selectedTuner.name] ?: vm.valueForTuner(selectedTuner)
                         val base = vm.baselineForTuner(selectedTuner)

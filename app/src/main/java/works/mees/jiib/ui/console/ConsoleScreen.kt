@@ -42,7 +42,7 @@ import works.mees.jiib.theme.compose.toTextStyle
 /**
  * The read-only Console screen (CONS-02 / D-01..D-05). A SINGLE Focus pane: one [FocusFrame]
  * (outline + mandatory 1U header carrying the e-stop morph) whose content IS the console feed
- * ([ConsoleListView], edge-to-edge via `contentInset = 0`), with a [FootButtonBar] (Back + the three
+ * ([ConsoleListView], edge-to-edge — FocusFrame adds no insets), with a [FootButtonBar] (Back + the three
  * noise-filter toggles) beneath it. Built as a plain `Column`, NOT a two-region `ScreenScaffold`:
  * the console is a single-pane special-use screen, so it renders the same stacked layout in portrait
  * and landscape (the old `ScreenScaffold(focus, field)` split it side-by-side in landscape).
@@ -202,7 +202,6 @@ private fun ConsoleContent(
                     isPrinting = isPrinting,
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
-                    contentInset = 0.dp, // feed fills the frame edge-to-edge (rows carry their own padding)
                 ) {
                     FocusMedia(
                         overlay = {

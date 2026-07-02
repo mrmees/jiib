@@ -130,7 +130,6 @@ fun CalibrationHubContent(
                         isPrinting = isPrinting,
                         onEmergencyStop = onEmergencyStop,
                         onPanic = onEmergencyStop,
-                        contentInset = 0.dp,
                     ) {
                         if (selected != null) {
                             FocusExplainer(
