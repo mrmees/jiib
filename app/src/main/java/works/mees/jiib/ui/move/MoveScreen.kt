@@ -15,8 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.BasicText
-import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -37,7 +35,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -64,7 +61,6 @@ import works.mees.jiib.designsystem.components.AxisSelectorRow
 import works.mees.jiib.designsystem.components.FocusFrame
 import works.mees.jiib.designsystem.components.HardLockStatusCard
 import works.mees.jiib.designsystem.components.UnknownStatusCard
-import works.mees.jiib.designsystem.layout.FocusInset
 import works.mees.jiib.designsystem.components.FootAction
 import works.mees.jiib.designsystem.components.FootButtonBar
 import works.mees.jiib.designsystem.components.ListRow
@@ -76,6 +72,9 @@ import works.mees.jiib.designsystem.components.StepperRow
 import works.mees.jiib.designsystem.components.ToggleRow
 import works.mees.jiib.designsystem.control.Intent
 import works.mees.jiib.designsystem.control.OutlinedControl
+import works.mees.jiib.designsystem.focus.FocusExplainer
+import works.mees.jiib.designsystem.focus.FocusForm
+import works.mees.jiib.designsystem.focus.FocusStage
 import works.mees.jiib.designsystem.icons.JiibIcon
 import works.mees.jiib.designsystem.icons.JiibIconView
 import works.mees.jiib.designsystem.icons.JiibIcons
@@ -89,10 +88,10 @@ import works.mees.jiib.di.AppContainer
 import works.mees.jiib.state.PrintState
 import works.mees.jiib.state.PrinterState
 import works.mees.jiib.theme.JiibType
+import works.mees.jiib.theme.compose.FocusHeroText
 import works.mees.jiib.theme.compose.FocusText
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
-import works.mees.jiib.theme.fsSp
 import works.mees.jiib.ui.increments.IncrementControls
 import works.mees.jiib.ui.screen.TokenTextField
 
@@ -294,7 +293,7 @@ internal fun MoveHubContent(
                     safetyActive = gating !is GatingState.Idle,
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
-                    contentInset = FocusInset / 2, // match FineTuneScreen's focus rhythm (8dp, not 16dp)
+                    contentInset = 0.dp, // Focus archetypes own their inset (FocusZones); no double-inset.
                 ) {
                     // Unknown Focus morph (precedence: Unknown > Locked > normal content): when the
                     // link or firmware can't confirm the HardLock completed, replace the Focus body
@@ -312,69 +311,62 @@ internal fun MoveHubContent(
 
                     when (mode) {
                         MoveMode.TouchMove -> {
-                            Column(modifier = Modifier.fillMaxSize()) {
-                                // X / Y coordinate readout — staged while gesturing, else current.
-                                // Shown at the TOP so the position is always visible above the bed map.
-                                val shownX = staged?.first ?: vm.x
-                                val shownY = staged?.second ?: vm.y
-                                Text(
-                                    text = "X ${fmt1(shownX)}   Y ${fmt1(shownY)}",
-                                    style = JiibType.statValue.toTextStyle(t),
-                                    color = t.text,
-                                    textAlign = TextAlign.Center,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(bottom = 8.dp),
-                                )
-                                // Bed map or waiting-for-bounds hint.
-                                if (bed != null) {
-                                    val cx = vm.x
-                                    val cy = vm.y
-                                    val ct = committedTarget
-                                    // travelPending = bed-map travel VISUALIZATION only. Busy authority is gatingState (B1).
-                                    // TODO(gating): consider removing travelPending after on-device confirms fenced inFlight
-                                    // matches real toolhead arrivals (Codex Finding 8 — keep until that evidence exists).
-                                    val travelling = ct != null && cx != null && cy != null &&
-                                        travelPending(cx, cy, ct.first, ct.second)
-                                    BedMapView(
-                                        bed = bed,
-                                        current = if (cx != null && cy != null) cx to cy else null,
-                                        target = staged ?: committedTarget,
-                                        travel = travelling,
-                                        modifier = Modifier.fillMaxWidth().weight(1f),
-                                        onTapBed = { x, y -> staged = x to y },
-                                        onDragBed = { x, y -> staged = x to y },
-                                        onDragEnd = {
-                                            staged?.let { (x, y) ->
-                                                onMoveTo(x, y, null)
-                                                committedTarget = x to y
-                                            }
-                                        },
+                            // X / Y coordinate readout — staged while gesturing, else current.
+                            val shownX = staged?.first ?: vm.x
+                            val shownY = staged?.second ?: vm.y
+                            FocusStage(
+                                cap = {
+                                    FocusHeroText(
+                                        text = "X ${fmt1(shownX)}   Y ${fmt1(shownY)}",
+                                        role = JiibType.focusHero,
+                                        t = t,
+                                        color = t.text,
                                     )
-                                } else {
-                                    Box(
-                                        modifier = Modifier.fillMaxWidth().weight(1f),
-                                    ) {
-                                        FocusHint("Waiting for printer bounds…")
+                                },
+                                dock = {
+                                    FocusText(
+                                        text = "Tap to move, hold to refine",
+                                        role = JiibType.caption,
+                                        t = t,
+                                        color = t.text2,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        maxHeightU = 1f,
+                                    )
+                                },
+                                body = {
+                                    if (bed != null) {
+                                        val cx = vm.x
+                                        val cy = vm.y
+                                        val ct = committedTarget
+                                        // travelPending = bed-map travel VISUALIZATION only. Busy authority is gatingState (B1).
+                                        // TODO(gating): consider removing travelPending after on-device confirms fenced inFlight
+                                        // matches real toolhead arrivals (Codex Finding 8 — keep until that evidence exists).
+                                        val travelling = ct != null && cx != null && cy != null &&
+                                            travelPending(cx, cy, ct.first, ct.second)
+                                        BedMapView(
+                                            bed = bed,
+                                            current = if (cx != null && cy != null) cx to cy else null,
+                                            target = staged ?: committedTarget,
+                                            travel = travelling,
+                                            modifier = Modifier.fillMaxSize(),
+                                            onTapBed = { x, y -> staged = x to y },
+                                            onDragBed = { x, y -> staged = x to y },
+                                            onDragEnd = {
+                                                staged?.let { (x, y) ->
+                                                    onMoveTo(x, y, null)
+                                                    committedTarget = x to y
+                                                }
+                                            },
+                                        )
+                                    } else {
+                                        FocusExplainer(text = "Waiting for printer bounds…")
                                     }
-                                }
-                                // Instruction line — below the bed map, centered.
-                                FocusText(
-                                    text = "Tap to move, hold to refine",
-                                    role = JiibType.caption,
-                                    t = t,
-                                    color = t.text2,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(top = 8.dp),
-                                )
-                            }
+                                },
+                            )
                         }
                         MoveMode.XY -> {
                             if (bed == null) {
-                                FocusHint("Waiting for printer bounds…")
+                                FocusExplainer(text = "Waiting for printer bounds…")
                             } else {
                                 val xMinF = bed.xMin.toFloat()
                                 val xMaxF = bed.xMax.toFloat()
@@ -394,26 +386,24 @@ internal fun MoveHubContent(
                                 val cy = vm.y
                                 val currentPair = if (cx != null && cy != null) cx to cy else null
 
-                                Column(modifier = Modifier.fillMaxSize()) {
-                                    // TOP: centered X/Y coordinate readout showing the working target.
-                                    Text(
-                                        text = "X ${fmt1(workingX.toDouble())}   Y ${fmt1(workingY.toDouble())}",
-                                        style = JiibType.statValue.toTextStyle(t),
-                                        color = t.text,
-                                        textAlign = TextAlign.Center,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(bottom = 8.dp),
-                                    )
+                                FocusStage(
+                                    cap = {
+                                        // TOP: centered X/Y coordinate readout showing the working target.
+                                        FocusHeroText(
+                                            text = "X ${fmt1(workingX.toDouble())}   Y ${fmt1(workingY.toDouble())}",
+                                            role = JiibType.focusHero,
+                                            t = t,
+                                            color = t.text,
+                                        )
+                                    },
+                                    body = {
                                     // BELOW: bed map + sliders (both bare — track only, no steppers).
                                     // The BED SQUARE itself is horizontally CENTERED in the focus; the
                                     // Y scrubber lives in the right padding (it no longer hugs the plate),
                                     // but keeps the plate's height so its thumb tracks the marker vertically.
                                     val bedAspect = (bed.width / bed.height).toFloat()
                                     val control = minOf(grid.uDp, 74.dp) // scrubber track thickness
-                                    BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
+                                    BoxWithConstraints(Modifier.fillMaxSize()) {
                                         // Reserve 2*control of width (symmetric padding so the Y scrubber
                                         // fits in the right padding without overlapping the centered plate)
                                         // and control of height (for the X scrubber below).
@@ -481,13 +471,14 @@ internal fun MoveHubContent(
                                             }
                                         }
                                     }
-                                }
+                                    },
+                                )
                             }
                         }
                         MoveMode.Z -> {
                             val zMax = vm.axisMax?.getOrNull(2)?.toFloat()
                             if (zMax == null) {
-                                FocusHint("Waiting for printer bounds…")
+                                FocusExplainer(text = "Waiting for printer bounds…")
                             } else {
                                 var workingZ by remember(mode) {
                                     mutableFloatStateOf((vm.z?.toFloat() ?: 0f).coerceIn(0f, zMax))
@@ -495,10 +486,10 @@ internal fun MoveHubContent(
                                 // Five columns: [fine labels] [fine slider] [Z value] [full slider]
                                 // [full labels]. Range labels flank each slider as their own columns
                                 // (owner 2026-06-17). Center Z value matches the X/Y coordinate text.
+                                FocusStage(
+                                    body = {
                                 Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .weight(1f),
+                                    modifier = Modifier.fillMaxSize(),
                                 ) {
                                     // Col 1 — Fine range labels: 50 (top) / 0 (bottom).
                                     ZRangeLabels(top = "50", bottom = "0")
@@ -547,12 +538,14 @@ internal fun MoveHubContent(
                                     // Col 5 — Full range labels: floor(Zmax) (top) / 0 (bottom).
                                     ZRangeLabels(top = floor(zMax).toInt().toString(), bottom = "0")
                                 }
+                                    },
+                                )
                             }
                         }
                         MoveMode.Microstep -> {
                             val anyHomed = vm.xHomed || vm.yHomed || vm.zHomed
                             if (!anyHomed) {
-                                FocusHint("Home an axis to micro-step")
+                                FocusExplainer(text = "Home an axis to micro-step")
                             } else {
                                 val steps: ImmutableList<Double> = microstepSteps
                                 var stepIndex by remember(mode) {
@@ -578,35 +571,19 @@ internal fun MoveHubContent(
                                 }
 
                                 // BOTTOM-DOCK (master-list §f#7): the XYZ coordinate readout is the
-                                // weighted body (absorbs the slack above via weight(1f)); the three
-                                // control rows (step-size / jog / axis-select) are pinned to the
-                                // BOTTOM of the Focus content. Was top-aligned spacedBy(8.dp).
-                                Column(
-                                    Modifier.fillMaxSize(),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                                ) {
-                                    // XYZ coordinate readout — weighted body, centered, shrinks to fit
-                                    // one line via TextAutoSize.
-                                    Box(
-                                        modifier = Modifier.fillMaxWidth().weight(1f),
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        BasicText(
+                                // centered Stage body; the three control rows (step-size / jog /
+                                // axis-select) are the Dock, pinned to the BOTTOM of the Focus content.
+                                FocusStage(
+                                    body = {
+                                        // XYZ coordinate readout — centered, shrinks to fit one line.
+                                        FocusHeroText(
                                             text = "X ${fmt1(vm.x)}   Y ${fmt1(vm.y)}   Z ${fmt1(vm.z)}",
-                                            style = JiibType.focusHero.toTextStyle(t).copy(
-                                                color = t.text,
-                                                textAlign = TextAlign.Center,
-                                            ),
-                                            maxLines = 1,
-                                            softWrap = false,
-                                            autoSize = TextAutoSize.StepBased(
-                                                minFontSize = fsSp(15f, t.fs).sp,
-                                                maxFontSize = fsSp(40f, t.fs).sp,
-                                                stepSize = 1.sp,
-                                            ),
-                                            modifier = Modifier.fillMaxWidth(),
+                                            role = JiibType.focusHero,
+                                            t = t,
+                                            color = t.text,
                                         )
-                                    }
+                                    },
+                                    dock = {
                                     // Step-size cycler — [−][value][+] via StepperRow (kills the literal
                                     // −/+; Decrease/Increase icon tokens). 7 magnitudes don't fit as
                                     // tiles, so it stays a cycler with the step value in the center slot.
@@ -648,83 +625,73 @@ internal fun MoveHubContent(
                                         onSelect = { selectedAxis = it },
                                         uDp = grid.uDp,
                                     )
-                                }
+                                    },
+                                )
                             }
                         }
                         is MoveMode.Bookmark -> {
                             val bookmarkMode = mode as MoveMode.Bookmark
                             val loc = savedLocations.firstOrNull { it.name == bookmarkMode.name }
                             if (loc == null) {
-                                FocusHint("Bookmark not found")
+                                FocusExplainer(text = "Bookmark not found")
                             } else {
-                                Column(Modifier.fillMaxSize()) {
-                                    // TOP: centered destination coordinate readout — shrink-to-fit
-                                    // via TextAutoSize so the full X/Y/Z line fits on narrow screens.
-                                    BasicText(
-                                        text = "X ${fmt1(loc.x)}   Y ${fmt1(loc.y)}" +
-                                            if (loc.z != null) "   Z ${fmt1(loc.z)}" else "",
-                                        style = JiibType.focusHero.toTextStyle(t).copy(
+                                FocusStage(
+                                    cap = {
+                                        // Centered destination coordinate readout — shrink-to-fit
+                                        // so the full X/Y/Z line fits on narrow screens.
+                                        FocusHeroText(
+                                            text = "X ${fmt1(loc.x)}   Y ${fmt1(loc.y)}" +
+                                                if (loc.z != null) "   Z ${fmt1(loc.z)}" else "",
+                                            role = JiibType.focusHero,
+                                            t = t,
                                             color = t.text,
-                                            textAlign = TextAlign.Center,
-                                        ),
-                                        maxLines = 1,
-                                        softWrap = false,
-                                        autoSize = TextAutoSize.StepBased(
-                                            minFontSize = fsSp(15f, t.fs).sp,
-                                            maxFontSize = fsSp(40f, t.fs).sp,
-                                            stepSize = 1.sp,
-                                        ),
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(bottom = 8.dp),
-                                    )
-                                    // Bed map: current toolhead + bookmark destination + travel line.
-                                    if (bed != null) {
-                                        val cx = vm.x
-                                        val cy = vm.y
-                                        BedMapView(
-                                            bed = bed,
-                                            current = if (cx != null && cy != null) cx to cy else null,
-                                            target = loc.x to loc.y,
-                                            travel = (vm.x != null && vm.y != null),
-                                            modifier = Modifier.fillMaxWidth().weight(1f),
                                         )
-                                    } else {
-                                        Box(
-                                            modifier = Modifier.fillMaxWidth().weight(1f),
-                                        ) {
-                                            FocusHint("Waiting for printer bounds…")
-                                        }
-                                    }
-                                    // Breathing room so the bed map doesn't crowd the action row.
-                                    Spacer(Modifier.height(12.dp))
-                                    // Move / Delete action row — canonical 1U button pattern.
-                                    CompositionLocalProvider(LocalUnitDp provides grid.uDp) {
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .controlHeight(grid.uDp),
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        ) {
-                                            OutlinedControl(
-                                                label = "Move",
-                                                onClick = { onMoveTo(loc.x, loc.y, loc.z) },
-                                                modifier = Modifier.weight(1f),
-                                                intent = Intent.Go,
-                                                icon = JiibIcons.MoveToBookmark,
-                                                contentDescription = "Move",
+                                    },
+                                    body = {
+                                        // Bed map: current toolhead + bookmark destination + travel line.
+                                        if (bed != null) {
+                                            val cx = vm.x
+                                            val cy = vm.y
+                                            BedMapView(
+                                                bed = bed,
+                                                current = if (cx != null && cy != null) cx to cy else null,
+                                                target = loc.x to loc.y,
+                                                travel = (vm.x != null && vm.y != null),
+                                                modifier = Modifier.fillMaxSize(),
                                             )
-                                            OutlinedControl(
-                                                label = "Delete",
-                                                onClick = { deleteConfirm = loc.name },
-                                                modifier = Modifier.weight(1f),
-                                                intent = Intent.Danger,
-                                                icon = JiibIcons.Delete,
-                                                contentDescription = "Delete",
-                                            )
+                                        } else {
+                                            FocusExplainer(text = "Waiting for printer bounds…")
                                         }
-                                    }
-                                }
+                                    },
+                                    dock = {
+                                        // Move / Delete action row — canonical 1U button pattern.
+                                        CompositionLocalProvider(LocalUnitDp provides grid.uDp) {
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .controlHeight(grid.uDp),
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            ) {
+                                                OutlinedControl(
+                                                    label = "Move",
+                                                    onClick = { onMoveTo(loc.x, loc.y, loc.z) },
+                                                    modifier = Modifier.weight(1f),
+                                                    intent = Intent.Go,
+                                                    icon = JiibIcons.MoveToBookmark,
+                                                    contentDescription = "Move",
+                                                )
+                                                OutlinedControl(
+                                                    label = "Delete",
+                                                    onClick = { deleteConfirm = loc.name },
+                                                    modifier = Modifier.weight(1f),
+                                                    intent = Intent.Danger,
+                                                    icon = JiibIcons.Delete,
+                                                    contentDescription = "Delete",
+                                                )
+                                            }
+                                        }
+                                    },
+                                )
                             }
                         }
                         MoveMode.SaveDialog -> {
@@ -733,76 +700,74 @@ internal fun MoveHubContent(
                             var name by remember(mode) { mutableStateOf("") }
                             var includeZ by remember(mode) { mutableStateOf(true) }
 
-                            Column(
-                                Modifier.fillMaxSize(),
-                                verticalArrangement = Arrangement.spacedBy(12.dp),
-                            ) {
-                                // Name field: alphanumeric keyboard — sanctioned save-name exception.
-                                TokenTextField(
-                                    value = name,
-                                    onValueChange = { name = it },
-                                    label = "Name",
-                                    modifier = Modifier.fillMaxWidth(),
-                                    keyboardType = KeyboardType.Text,
-                                )
-                                // Include-Z toggle: the canonical full-width 1U switch ToggleRow
-                                // (control baseline audit, Phase 5 — kills the Material MUI tick-box
-                                // rogue). includeZ stays INTENTIONALLY ephemeral (reset per dialog
-                                // open) — render-only swap, no persistence.
-                                ToggleRow(
-                                    label = stringResource(R.string.move_include_z, fmt1(vm.z)),
-                                    checked = includeZ,
-                                    onToggle = { includeZ = it },
-                                    uDp = grid.uDp,
-                                    modifier = Modifier.fillMaxWidth(),
-                                )
-                                // BOTTOM-DOCK (master-list §f#7): weighted spacer pushes the Cancel/Save
-                                // button group to the BOTTOM of the Focus; the name field + include-Z
-                                // toggle form the body above. (Intents/labels unchanged — that's a later
-                                // ActionButton sweep; this is ONLY the vertical docking.)
-                                Spacer(Modifier.weight(1f))
-                                // Save / Cancel button row.
-                                CompositionLocalProvider(LocalUnitDp provides grid.uDp) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().controlHeight(grid.uDp),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                ) {
-                                    OutlinedControl(
-                                        label = "Cancel",
-                                        onClick = { mode = MoveMode.TouchMove },
-                                        modifier = Modifier.weight(1f),
-                                        intent = Intent.Danger, // C7: discards the typed name + Z toggle = cancel-with-loss.
-                                        icon = JiibIcons.DialogClose,
-                                        contentDescription = "Cancel",
+                            FocusForm(
+                                body = {
+                                    // Name field: alphanumeric keyboard — sanctioned save-name exception.
+                                    TokenTextField(
+                                        value = name,
+                                        onValueChange = { name = it },
+                                        label = "Name",
+                                        modifier = Modifier.fillMaxWidth(),
+                                        keyboardType = KeyboardType.Text,
                                     )
-                                    OutlinedControl(
-                                        label = "Save",
-                                        onClick = {
-                                            val sx = vm.x
-                                            val sy = vm.y
-                                            if (sx != null && sy != null && name.isNotBlank()) {
-                                                onSaveLocation(
-                                                    SavedLocation(
-                                                        name = name.trim(),
-                                                        x = sx,
-                                                        y = sy,
-                                                        z = if (includeZ) vm.z else null,
-                                                    ),
-                                                )
-                                                mode = MoveMode.TouchMove
-                                            }
-                                        },
-                                        modifier = Modifier.weight(1f),
-                                        intent = Intent.Go,
-                                        enabled = name.isNotBlank() && vm.x != null && vm.y != null,
-                                        icon = JiibIcons.Save,
-                                        contentDescription = "Save",
+                                    // Include-Z toggle: the canonical full-width 1U switch ToggleRow
+                                    // (control baseline audit, Phase 5 — kills the Material MUI tick-box
+                                    // rogue). includeZ stays INTENTIONALLY ephemeral (reset per dialog
+                                    // open) — render-only swap, no persistence.
+                                    ToggleRow(
+                                        label = stringResource(R.string.move_include_z, fmt1(vm.z)),
+                                        checked = includeZ,
+                                        onToggle = { includeZ = it },
+                                        uDp = grid.uDp,
+                                        modifier = Modifier.fillMaxWidth(),
                                     )
-                                }
-                                }
-                            }
+                                },
+                                dock = {
+                                    // Save / Cancel button row.
+                                    CompositionLocalProvider(LocalUnitDp provides grid.uDp) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth().controlHeight(grid.uDp),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        ) {
+                                            OutlinedControl(
+                                                label = "Cancel",
+                                                onClick = { mode = MoveMode.TouchMove },
+                                                modifier = Modifier.weight(1f),
+                                                intent = Intent.Danger, // C7: discards the typed name + Z toggle = cancel-with-loss.
+                                                icon = JiibIcons.DialogClose,
+                                                contentDescription = "Cancel",
+                                            )
+                                            OutlinedControl(
+                                                label = "Save",
+                                                onClick = {
+                                                    val sx = vm.x
+                                                    val sy = vm.y
+                                                    if (sx != null && sy != null && name.isNotBlank()) {
+                                                        onSaveLocation(
+                                                            SavedLocation(
+                                                                name = name.trim(),
+                                                                x = sx,
+                                                                y = sy,
+                                                                z = if (includeZ) vm.z else null,
+                                                            ),
+                                                        )
+                                                        mode = MoveMode.TouchMove
+                                                    }
+                                                },
+                                                modifier = Modifier.weight(1f),
+                                                intent = Intent.Go,
+                                                enabled = name.isNotBlank() && vm.x != null && vm.y != null,
+                                                icon = JiibIcons.Save,
+                                                contentDescription = "Save",
+                                            )
+                                        }
+                                    }
+                                },
+                            )
                         }
                         MoveMode.Endstops -> {
+                            FocusStage(
+                                body = {
                             // null = no result yet (Querying). errored = last poll threw before any data.
                             var endstops by remember { mutableStateOf<List<EndstopStatus>?>(null) }
                             var errored by remember { mutableStateOf(false) }
@@ -852,9 +817,11 @@ internal fun MoveHubContent(
                                         current.forEach { es -> EndstopRow(es, grid.uDp) }
                                     }
                                 }
-                                errored -> FocusCenteredHint("Endstops unavailable")
-                                else -> FocusCenteredHint("Querying…")
+                                errored -> FocusExplainer(text = "Endstops unavailable")
+                                else -> FocusExplainer(text = "Querying…")
                             }
+                                },
+                            )
                         }
                         // All seven MoveMode cases (TouchMove/XY/Z/Microstep/Bookmark/SaveDialog/Endstops) handled — no else needed.
                     }
@@ -1118,14 +1085,6 @@ private fun EndstopRow(status: EndstopStatus, uDp: Dp) {
     }
 }
 
-@Composable
-private fun FocusCenteredHint(text: String) {
-    val t = LocalTokens.current
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text, style = JiibType.body.toTextStyle(t), color = t.text3, maxLines = 1, overflow = TextOverflow.Ellipsis)
-    }
-}
-
 /** One-decimal mm formatting for the TouchMove X/Y readout. Null values render as "—". */
 private fun fmt1(v: Double?): String =
     if (v == null) "—" else String.format(java.util.Locale.US, "%.1f", v)
@@ -1133,19 +1092,3 @@ private fun fmt1(v: Double?): String =
 /** Formats a microstep increment value as a signed label (e.g. 0.1 → "±0.1", 10.0 → "±10"). */
 private fun fmtStep(v: Double): String =
     "±" + v.toBigDecimal().stripTrailingZeros().toPlainString()
-
-/** A centered Focus-body hint/placeholder string (homing hint + sub-mode hints). */
-@Composable
-private fun FocusHint(text: String, modifier: Modifier = Modifier) {
-    val t = LocalTokens.current
-    Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(
-            text = text,
-            color = t.text2,
-            style = JiibType.body.toTextStyle(t),
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
-}
