@@ -1,25 +1,18 @@
 package works.mees.jiib.ui.screen
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -27,8 +20,11 @@ import works.mees.jiib.R
 import works.mees.jiib.command.CommandRegistry
 import works.mees.jiib.command.dispatch
 import works.mees.jiib.config.Profile
+import works.mees.jiib.designsystem.components.DigestRow
 import works.mees.jiib.designsystem.components.FocusEdge
 import works.mees.jiib.designsystem.components.FocusFrame
+import works.mees.jiib.designsystem.focus.FocusDigest
+import works.mees.jiib.designsystem.focus.FocusPlaceholder
 import works.mees.jiib.designsystem.components.FootAction
 import works.mees.jiib.designsystem.components.FootButtonBar
 import works.mees.jiib.designsystem.components.ListRow
@@ -45,9 +41,7 @@ import works.mees.jiib.state.ConnectionState
 import works.mees.jiib.state.PrintState
 import works.mees.jiib.state.PrinterState
 import works.mees.jiib.theme.JiibType
-import works.mees.jiib.theme.compose.FocusText
 import works.mees.jiib.theme.compose.LocalTokens
-import works.mees.jiib.theme.compose.toTextStyle
 import works.mees.jiib.ui.route.NavDest
 
 // =============================================================================
@@ -177,42 +171,17 @@ fun PrinterSettingsContent(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f),
+                        contentInset = 0.dp,
                         edge = ringColor?.let { FocusEdge.Data(it) } ?: FocusEdge.Neutral,
                         isPrinting = isPrinting,
                         onEmergencyStop = onEmergencyStop,
                         onPanic = onEmergencyStop,
                     ) {
-                        // Identity block centered both axes as a clean standalone Focus header.
-                        Column(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
-                            Text(
-                                text = activeProfile.displayName(),
-                                color = t.text,
-                                style = JiibType.focusHeader.toTextStyle(t),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                textAlign = TextAlign.Center,
-                            )
-                            Text(
-                                text = "${activeProfile.host}:${activeProfile.port}",
-                                color = t.text2,
-                                style = JiibType.dataMeta.toTextStyle(t),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                textAlign = TextAlign.Center,
-                            )
-                            Text(
-                                text = stringResource(connectionState.printerSettingsLabelRes()),
-                                color = ringColor ?: t.text2,
-                                style = JiibType.caption.toTextStyle(t),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                textAlign = TextAlign.Center,
-                            )
-                        }
+                        FocusDigest(rows = listOf(
+                            DigestRow.Note(activeProfile.displayName(), role = JiibType.focusHeader, color = t.text, textAlign = TextAlign.Center),
+                            DigestRow.Note("${activeProfile.host}:${activeProfile.port}", role = JiibType.dataMeta, color = t.text2, textAlign = TextAlign.Center),
+                            DigestRow.Note(stringResource(connectionState.printerSettingsLabelRes()), role = JiibType.caption, color = ringColor ?: t.text2, textAlign = TextAlign.Center),
+                        ))
                     }
                 } else {
                     // Empty-state card: mirrors PrintersContent's empty FocusFrame branch.
@@ -223,29 +192,15 @@ fun PrinterSettingsContent(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f),
+                        contentInset = 0.dp,
                         isPrinting = isPrinting,
                         onEmergencyStop = onEmergencyStop,
                         onPanic = onEmergencyStop,
                     ) {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    text = stringResource(R.string.printers_empty_headline),
-                                    color = t.text,
-                                    style = JiibType.focusHeader.toTextStyle(t),
-                                    textAlign = TextAlign.Center,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                                FocusText(
-                                    text = stringResource(R.string.printers_empty_body),
-                                    role = JiibType.caption,
-                                    t = t,
-                                    color = t.text2,
-                                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                                )
-                            }
-                        }
+                        FocusPlaceholder(
+                            headline = stringResource(R.string.printers_empty_headline),
+                            text = stringResource(R.string.printers_empty_body),
+                        )
                     }
                 }
             },
