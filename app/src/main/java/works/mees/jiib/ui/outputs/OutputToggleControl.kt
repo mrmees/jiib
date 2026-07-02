@@ -1,7 +1,5 @@
 package works.mees.jiib.ui.outputs
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -58,16 +56,15 @@ fun OutputToggleControl(
     FocusStage(
         modifier = modifier,
         body = {
-            // Body: the current On/Off state, color-coded, filling the space (no duplicate name — the
-            // FocusFrame header carries identity).
-            Box(Modifier.fillMaxSize()) {
-                FocusHeroText(
-                    text = if (isOn == true) stringResource(R.string.output_on) else stringResource(R.string.output_off),
-                    role = JiibType.focusHero,
-                    t = t,
-                    color = if (isOn == true) t.go else t.text3,
-                )
-            }
+            // Body: the current On/Off state, color-coded, centered by the Stage's body zone (no
+            // duplicate name — the FocusFrame header carries identity). No wrapper Box: the body
+            // slot IS BoxScope with Center alignment.
+            FocusHeroText(
+                text = if (isOn == true) stringResource(R.string.output_on) else stringResource(R.string.output_off),
+                role = JiibType.focusHero,
+                t = t,
+                color = if (isOn == true) t.go else t.text3,
+            )
         },
         dock = {
             if (readOnly) {
