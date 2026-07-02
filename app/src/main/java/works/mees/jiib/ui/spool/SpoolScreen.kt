@@ -843,19 +843,23 @@ private fun SpoolDetailContent(
                 label = fillLabel,
             )
         })
-        // Temp fields: 2-per-row Duo grid (nozzle left, bed right).
+        // Temp fields: 2-per-row Duo grid (nozzle left, bed right); packed = start-aligned clusters.
         add(DigestRow.Duo(
-            left = DigestRow.Line(icon = JiibIcons.Nozzle, label = "", value = tempText(filament?.settingsExtruderTemp)),
-            right = DigestRow.Line(icon = JiibIcons.HeatBed, label = "", value = tempText(filament?.settingsBedTemp)),
+            left = DigestRow.Line(icon = JiibIcons.Nozzle, label = "", value = tempText(filament?.settingsExtruderTemp), packed = true),
+            right = DigestRow.Line(icon = JiibIcons.HeatBed, label = "", value = tempText(filament?.settingsBedTemp), packed = true),
         ))
         // Date + optional archived: Duo grid (registered left, archived right when present).
+        // Registered date renders YY-MM-DD (owner re-gate: drop century digits from YYYY-MM-DD).
         add(DigestRow.Duo(
             left = DigestRow.Line(
                 icon = JiibIcons.CalendarAddOn,
                 label = "",
-                value = spool.registered?.substringBefore('T')?.ifBlank { null } ?: stringResource(R.string.spool_value_unset),
+                value = spool.registered?.substringBefore('T')?.ifBlank { null }
+                    ?.let { if (it.length >= 10) it.substring(2) else it }
+                    ?: stringResource(R.string.spool_value_unset),
+                packed = true,
             ),
-            right = if (spool.archived) DigestRow.Line(icon = JiibIcons.Archive, label = "", value = stringResource(R.string.spool_badge_archived), valueColor = t.heat) else null,
+            right = if (spool.archived) DigestRow.Line(icon = JiibIcons.Archive, label = "", value = stringResource(R.string.spool_badge_archived), valueColor = t.heat, packed = true) else null,
         ))
     }
     FocusDigest(rows = rows, horizontalAlignment = Alignment.Start)

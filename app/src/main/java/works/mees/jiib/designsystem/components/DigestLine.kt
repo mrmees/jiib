@@ -36,6 +36,11 @@ fun digestScaledSp(baseSp: Float, scale: Float): Float = (baseSp * scale).coerce
  * label (WEIGHTED — long labels ellipsize so the value never loses width; HomeDigest precedent,
  * Codex F4), end-aligned value at intrinsic width, Geist Mono tabular value via the Data roles.
  * Text never wraps; the DigestColumn scale shrinks it instead (15sp floor).
+ *
+ * [packed] = true (Duo-grid cells) start-aligns everything as one cluster: icon → label (if
+ * non-empty) → value immediately after (8dp gaps), then a trailing weighted spacer fills the
+ * remainder — so a Duo cell's value never crowds the next column's icon. False = default
+ * end-aligned value behavior, unchanged.
  */
 @Composable
 fun DigestLine(
@@ -48,6 +53,7 @@ fun DigestLine(
     valueColor: Color? = null,
     labelColor: Color? = null,
     scale: Float = 1f,
+    packed: Boolean = false,
 ) {
     val t = LocalTokens.current
     val uDp = LocalUnitDp.current ?: 64.dp
@@ -60,21 +66,43 @@ fun DigestLine(
             ListRowIcon(icon = icon, uDp = uDp, tint = iconTint ?: t.text2)
             Spacer(Modifier.width(8.dp))
         }
-        Text(
-            text = label,
-            style = labelRole.toTextStyle(t, sizeSp = fsSp(digestScaledSp(labelRole.baseSp, scale), t.fs)),
-            color = labelColor ?: t.text2,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
-        Spacer(Modifier.width(8.dp))
-        Text(
-            text = value,
-            style = valueRole.toTextStyle(t, sizeSp = fsSp(digestScaledSp(valueRole.baseSp, scale), t.fs)),
-            color = valueColor ?: t.text,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        if (packed) {
+            // Packed cluster: label (if any) → value right after; trailing spacer eats the rest.
+            if (label.isNotEmpty()) {
+                Text(
+                    text = label,
+                    style = labelRole.toTextStyle(t, sizeSp = fsSp(digestScaledSp(labelRole.baseSp, scale), t.fs)),
+                    color = labelColor ?: t.text2,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(Modifier.width(8.dp))
+            }
+            Text(
+                text = value,
+                style = valueRole.toTextStyle(t, sizeSp = fsSp(digestScaledSp(valueRole.baseSp, scale), t.fs)),
+                color = valueColor ?: t.text,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(Modifier.weight(1f))
+        } else {
+            Text(
+                text = label,
+                style = labelRole.toTextStyle(t, sizeSp = fsSp(digestScaledSp(labelRole.baseSp, scale), t.fs)),
+                color = labelColor ?: t.text2,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = value,
+                style = valueRole.toTextStyle(t, sizeSp = fsSp(digestScaledSp(valueRole.baseSp, scale), t.fs)),
+                color = valueColor ?: t.text,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }

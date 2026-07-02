@@ -39,6 +39,8 @@ sealed interface DigestRow {
         val emphasis: DigestEmphasis = DigestEmphasis.Standard,
         val valueColor: Color? = null,
         val labelColor: Color? = null,
+        /** true = start-aligned icon→label→value cluster + trailing spacer (Duo-grid cells); false = end-aligned value. */
+        val packed: Boolean = false,
     ) : DigestRow
 
     /**
@@ -230,6 +232,7 @@ fun DigestColumn(
                         valueColor = row.valueColor,
                         labelColor = row.labelColor,
                         scale = scale,
+                        packed = row.packed,
                     )
                     is DigestRow.Note -> Text(
                         text = row.text,
@@ -253,6 +256,7 @@ fun DigestColumn(
                             valueColor = row.left.valueColor,
                             labelColor = row.left.labelColor,
                             scale = scale,
+                            packed = row.left.packed,
                             modifier = Modifier.weight(1f),
                         )
                         if (row.right != null) {
@@ -265,6 +269,7 @@ fun DigestColumn(
                                 valueColor = row.right.valueColor,
                                 labelColor = row.right.labelColor,
                                 scale = scale,
+                                packed = row.right.packed,
                                 modifier = Modifier.weight(1f),
                             )
                         } else {
