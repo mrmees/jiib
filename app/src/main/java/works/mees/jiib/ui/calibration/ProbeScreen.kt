@@ -90,11 +90,12 @@ import works.mees.jiib.designsystem.components.ListRowIcon
 import works.mees.jiib.designsystem.components.ListRowLabel
 import works.mees.jiib.designsystem.control.Intent
 import works.mees.jiib.designsystem.control.OutlinedControl
+import works.mees.jiib.designsystem.focus.FocusExplainer
+import works.mees.jiib.designsystem.focus.FocusStage
 import works.mees.jiib.designsystem.icons.IconRef
 import works.mees.jiib.designsystem.icons.JiibIcon
 import works.mees.jiib.designsystem.icons.JiibIconView
 import works.mees.jiib.designsystem.icons.JiibIcons
-import works.mees.jiib.designsystem.layout.FocusInset
 import works.mees.jiib.designsystem.layout.ListBlock
 import works.mees.jiib.designsystem.layout.LocalUnitDp
 import works.mees.jiib.designsystem.layout.controlHeight
@@ -606,7 +607,7 @@ internal fun ProbeContent(
                     safetyActive = gating !is GatingState.Idle,
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
-                    contentInset = FocusInset / 2,
+                    contentInset = 0.dp,
                     trailingStatusDotColor = probeTestDotColor,
                     trailingStatusContentDescription = probeTestDotCd,
                 ) {
@@ -732,19 +733,7 @@ internal fun ProbeContent(
                             // Null-selected guard (all enum values handled above).
                             // Kept for future-proofing (new ProbeTool values before wiring).
                             if (effectiveSelected != null) {
-                                Text(
-                                    text = stringResource(probeToolTitleRes(effectiveSelected)),
-                                    style = JiibType.body.toTextStyle(t),
-                                    color = t.text,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                                Text(
-                                    text = "—",
-                                    style = JiibType.caption.toTextStyle(t),
-                                    color = t.text2,
-                                    maxLines = 1,
-                                )
+                                FocusExplainer(text = stringResource(probeToolTitleRes(effectiveSelected)))
                             }
                         }
                     }
@@ -900,51 +889,70 @@ internal fun ZOffsetBody(
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
-    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        when (vm.state) {
-            ProbePageState.Idle -> {
-                FocusText(stringResource(R.string.zoffset_idle_blurb), JiibType.body, t, t.text2, modifier = Modifier.fillMaxWidth().padding(vertical = fsSp(8f, t.fs).dp), maxHeightU = 3f)
-                Spacer(Modifier.weight(1f))
-                ZHero(text = vm.savedZOffset?.let { fmtZOffset(-it) } ?: "—")
-                Spacer(Modifier.weight(1f))
-                // Negated-convention explainer, shown before the routine starts (above the button).
-                InvertedValuesNote()
+    when (vm.state) {
+        // Idle: blurb + saved-Z hero + negated-convention note (body) / action button (dock).
+        ProbePageState.Idle -> FocusStage(
+            modifier = modifier,
+            body = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    FocusText(stringResource(R.string.zoffset_idle_blurb), JiibType.body, t, t.text2, modifier = Modifier.fillMaxWidth(), maxHeightU = 3f)
+                    ZHero(text = vm.savedZOffset?.let { fmtZOffset(-it) } ?: "—")
+                    InvertedValuesNote()
+                }
+            },
+            dock = {
                 IdleActionButton(vm = vm, starting = starting, onStart = onStart, onHomeAll = onHomeAll)
-            }
-            ProbePageState.Active -> {
+            },
+        )
+        // Active: readout rows + negated-convention note (body) / Accept (dock).
+        ProbePageState.Active -> FocusStage(
+            modifier = modifier,
+            body = {
                 val r = zOffsetActiveReadouts(vm, step)
-                Spacer(Modifier.weight(1f))
-                HeroReadoutRow(label = stringResource(R.string.calibration_current_offset), value = r.currentOffset)
-                ReadoutRow(label = stringResource(R.string.calibration_saved_offset), value = r.saved)
-                ReadoutRow(label = stringResource(R.string.calibration_difference), value = r.difference)
-                ReadoutRow(label = stringResource(R.string.calibration_increment), value = r.stepSize)
-                Spacer(Modifier.weight(1f))
-                // Footnote (above the buttons): explains the negated readout convention.
-                InvertedValuesNote()
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    HeroReadoutRow(label = stringResource(R.string.calibration_current_offset), value = r.currentOffset)
+                    ReadoutRow(label = stringResource(R.string.calibration_saved_offset), value = r.saved)
+                    ReadoutRow(label = stringResource(R.string.calibration_difference), value = r.difference)
+                    ReadoutRow(label = stringResource(R.string.calibration_increment), value = r.stepSize)
+                    InvertedValuesNote()
+                }
+            },
+            dock = {
                 OutlinedControl(
                     label = stringResource(R.string.calibration_accept),
                     icon = JiibIcons.CheckCircle,
                     onClick = onAccept,
                     intent = Intent.Go,
-                    modifier = Modifier.fillMaxWidth().padding(top = fsSp(8f, t.fs).dp),
+                    modifier = Modifier.fillMaxWidth(),
                 )
-            }
-            ProbePageState.Accepted -> {
+            },
+        )
+        // Accepted: captured delta hero (body) / Save (dock).
+        ProbePageState.Accepted -> FocusStage(
+            modifier = modifier,
+            body = {
                 val saved = vm.savedZOffset
                 val captured = vm.capturedOffset
                 val deltaText = if (saved != null && captured != null) fmtZOffset(captured - saved) else "—"
-                Spacer(Modifier.weight(1f))
                 ZHero(text = deltaText)
-                Spacer(Modifier.weight(1f))
+            },
+            dock = {
                 OutlinedControl(
                     label = stringResource(R.string.calibration_reboot_to_save),
                     icon = JiibIcons.Save,
                     onClick = onSaveConfig,
                     intent = Intent.Warn,
-                    modifier = Modifier.fillMaxWidth().padding(top = fsSp(8f, t.fs).dp),
+                    modifier = Modifier.fillMaxWidth(),
                 )
-            }
-        }
+            },
+        )
     }
 }
 
@@ -962,7 +970,8 @@ private fun ZHero(text: String) {
 @Composable
 private fun ReadoutRow(label: String, value: String) {
     val t = LocalTokens.current
-    Row(Modifier.fillMaxWidth().padding(horizontal = fsSp(12f, t.fs).dp, vertical = fsSp(2f, t.fs).dp)) {
+    // Horizontal inset now owned by the FocusStage Dense zone inset; keep only row rhythm.
+    Row(Modifier.fillMaxWidth().padding(vertical = fsSp(2f, t.fs).dp)) {
         Text(text = label, style = JiibType.body.toTextStyle(t), color = t.text2,
             maxLines = 1, overflow = TextOverflow.Ellipsis)
         Spacer(Modifier.weight(1f))
@@ -975,8 +984,9 @@ private fun ReadoutRow(label: String, value: String) {
 @Composable
 private fun HeroReadoutRow(label: String, value: String) {
     val t = LocalTokens.current
+    // Horizontal inset now owned by the FocusStage Dense zone inset; keep only row rhythm.
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = fsSp(12f, t.fs).dp, vertical = fsSp(2f, t.fs).dp),
+        Modifier.fillMaxWidth().padding(vertical = fsSp(2f, t.fs).dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(text = label, style = JiibType.body.toTextStyle(t), color = t.text2,
@@ -995,7 +1005,7 @@ private fun HeroReadoutRow(label: String, value: String) {
 @Composable
 private fun InvertedValuesNote(modifier: Modifier = Modifier) {
     val t = LocalTokens.current
-    FocusText(stringResource(R.string.probe_calibrate_inverted_note), JiibType.body, t, t.text3, modifier = modifier.fillMaxWidth().padding(bottom = fsSp(4f, t.fs).dp), maxHeightU = 2f)
+    FocusText(stringResource(R.string.probe_calibrate_inverted_note), JiibType.body, t, t.text3, modifier = modifier.fillMaxWidth(), maxHeightU = 2f)
 }
 
 /** Idle action button: Starting… (disabled) / Home All (not homed) / Start (homed). */
@@ -1003,8 +1013,7 @@ private fun InvertedValuesNote(modifier: Modifier = Modifier) {
 private fun IdleActionButton(
     vm: ProbeCalibrateVm, starting: Boolean, onStart: () -> Unit, onHomeAll: () -> Unit,
 ) {
-    val t = LocalTokens.current
-    val mod = Modifier.fillMaxWidth().padding(top = fsSp(8f, t.fs).dp)
+    val mod = Modifier.fillMaxWidth()
     when {
         starting -> OutlinedControl(
             label = stringResource(R.string.probe_starting), icon = JiibIcons.CalibrationWait,
@@ -1089,128 +1098,140 @@ internal fun EddyCalibrateBody(
     }
 
     when (vm.state) {
-        // ── Idle: description + build-blind caution + Start button ──────────────────
-        ProbePageState.Idle -> Column(
+        // ── Idle: description + build-blind caution (body) / Start button (dock) ──────
+        ProbePageState.Idle -> FocusStage(
             modifier = modifier,
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            FocusText(stringResource(R.string.probe_tool_eddy_calibrate_desc), JiibType.body, t, t.text2, modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp), maxHeightU = 3f)
-            // Build-blind caution: amber t.heat text; NO glyph (icon-law).
-            // The ⚠ is a unicode character embedded in the string resource.
-            FocusText(stringResource(R.string.calibration_run_build_blind_note), JiibType.caption, t, t.heat, modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp), maxHeightU = 2f)
-            if (starting) {
-                // eddy_calibrate in inFlight — disabled "Starting…" feedback.
-                OutlinedControl(
-                    label = stringResource(R.string.probe_starting),
-                    icon = JiibIcons.CalibrationWait,
-                    onClick = {},
-                    intent = Intent.Neutral,
-                    enabled = false,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = fsSp(8f, t.fs).dp)
-                        .alpha(0.38f)
-                        .semantics { disabled() },
-                )
-            } else {
-                OutlinedControl(
-                    label = stringResource(R.string.calibration_start),
-                    icon = JiibIcons.CalibrationRun,
-                    onClick = onStart,
-                    intent = Intent.Go,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = fsSp(8f, t.fs).dp),
-                )
-            }
-        }
+            body = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    FocusText(stringResource(R.string.probe_tool_eddy_calibrate_desc), JiibType.body, t, t.text2, modifier = Modifier.fillMaxWidth(), maxHeightU = 3f)
+                    // Build-blind caution: amber t.heat text; NO glyph (icon-law).
+                    // The ⚠ is a unicode character embedded in the string resource.
+                    FocusText(stringResource(R.string.calibration_run_build_blind_note), JiibType.caption, t, t.heat, modifier = Modifier.fillMaxWidth(), maxHeightU = 2f)
+                }
+            },
+            dock = {
+                if (starting) {
+                    // eddy_calibrate in inFlight — disabled "Starting…" feedback.
+                    OutlinedControl(
+                        label = stringResource(R.string.probe_starting),
+                        icon = JiibIcons.CalibrationWait,
+                        onClick = {},
+                        intent = Intent.Neutral,
+                        enabled = false,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .alpha(0.38f)
+                            .semantics { disabled() },
+                    )
+                } else {
+                    OutlinedControl(
+                        label = stringResource(R.string.calibration_start),
+                        icon = JiibIcons.CalibrationRun,
+                        onClick = onStart,
+                        intent = Intent.Go,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            },
+        )
 
-        // ── Active: Z readout + ManualProbeJog + Accept + Abort ──────────────────────
-        ProbePageState.Active -> Column(
+        // ── Active: Z readout + ManualProbeJog (body) / Accept + Abort (dock) ─────────
+        ProbePageState.Active -> FocusStage(
             modifier = modifier,
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            // Z hero readout (Geist Mono, accent2 colour — same as ZOffsetBody Row1).
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.padding(vertical = fsSp(8f, t.fs).dp),
-            ) {
-                Text(
-                    text = zText,
-                    style = JiibType.focusHero.toTextStyle(t),
-                    color = t.accent2,
-                    maxLines = 1,
-                )
-                Text(
-                    text = "mm",
-                    style = JiibType.caption.toTextStyle(t),
-                    color = t.text3,
-                    maxLines = 1,
-                )
-            }
-            // ManualProbeJog fills available space (D-08 two-column motif).
-            ManualProbeJog(
-                vm = vm,
-                step = step,
-                steps = steps,
-                enabled = enabled,
-                onTestZUp = onTestZUp,
-                onTestZDown = onTestZDown,
-                onStepUp = onStepUp,
-                onStepDown = onStepDown,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-            )
-            // Accept (go) + Abort (danger) — Back suppressed by sessionActive in ProbeContent.
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = fsSp(8f, t.fs).dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                OutlinedControl(
-                    label = stringResource(R.string.calibration_accept),
-                    icon = JiibIcons.CheckCircle,
-                    onClick = onAccept,
-                    intent = Intent.Go,
-                    modifier = Modifier.weight(1f),
-                )
-                OutlinedControl(
-                    label = stringResource(R.string.calibration_abort),
-                    icon = JiibIcons.CalibrationAbort,
-                    onClick = onAbort,
-                    intent = Intent.Danger,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-        }
+            body = {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    // Z hero readout (Geist Mono, accent2 colour — same as ZOffsetBody Row1).
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = zText,
+                            style = JiibType.focusHero.toTextStyle(t),
+                            color = t.accent2,
+                            maxLines = 1,
+                        )
+                        Text(
+                            text = "mm",
+                            style = JiibType.caption.toTextStyle(t),
+                            color = t.text3,
+                            maxLines = 1,
+                        )
+                    }
+                    // ManualProbeJog fills available space (D-08 two-column motif).
+                    ManualProbeJog(
+                        vm = vm,
+                        step = step,
+                        steps = steps,
+                        enabled = enabled,
+                        onTestZUp = onTestZUp,
+                        onTestZDown = onTestZDown,
+                        onStepUp = onStepUp,
+                        onStepDown = onStepDown,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                    )
+                }
+            },
+            dock = {
+                // Accept (go) + Abort (danger) — Back suppressed by sessionActive in ProbeContent.
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    OutlinedControl(
+                        label = stringResource(R.string.calibration_accept),
+                        icon = JiibIcons.CheckCircle,
+                        onClick = onAccept,
+                        intent = Intent.Go,
+                        modifier = Modifier.weight(1f),
+                    )
+                    OutlinedControl(
+                        label = stringResource(R.string.calibration_abort),
+                        icon = JiibIcons.CalibrationAbort,
+                        onClick = onAbort,
+                        intent = Intent.Danger,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            },
+        )
 
-        // ── Accepted (sweep): sweep label + ConsoleTail + Save ───────────────────────
-        ProbePageState.Accepted -> Column(
+        // ── Accepted (sweep): sweep label + ConsoleTail (body) / Save (dock) ─────────
+        ProbePageState.Accepted -> FocusStage(
             modifier = modifier,
-        ) {
-            FocusText(stringResource(R.string.eddy_calibrate_sweep_running), JiibType.caption, t, t.text2, modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp), maxHeightU = 2f)
-            ConsoleTail(
-                lines = lines,
-                uDp = uDp,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-            )
-            // SAVE_CONFIG restarts Klipper (hazard-in-process, R5 → warn / amber).
-            // Guard raised via onSaveConfig → ProbeContent's shared ProbeConfirm host.
-            OutlinedControl(
-                label = stringResource(R.string.calibration_save_config),
-                icon = JiibIcons.Save,
-                onClick = onSaveConfig,
-                intent = Intent.Warn,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = fsSp(8f, t.fs).dp),
-            )
-        }
+            body = {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    FocusText(stringResource(R.string.eddy_calibrate_sweep_running), JiibType.caption, t, t.text2, modifier = Modifier.fillMaxWidth(), maxHeightU = 2f)
+                    ConsoleTail(
+                        lines = lines,
+                        uDp = uDp,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                    )
+                }
+            },
+            dock = {
+                // SAVE_CONFIG restarts Klipper (hazard-in-process, R5 → warn / amber).
+                // Guard raised via onSaveConfig → ProbeContent's shared ProbeConfirm host.
+                OutlinedControl(
+                    label = stringResource(R.string.calibration_save_config),
+                    icon = JiibIcons.Save,
+                    onClick = onSaveConfig,
+                    intent = Intent.Warn,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+        )
     }
 }
 
@@ -1243,80 +1264,82 @@ internal fun ApplyBabystepBody(
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
-    Column(
-        modifier = modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Spacer(Modifier.weight(1f))
-
-        // Secondary rows
-        BabystepOffsetRow(
-            label = stringResource(R.string.probe_apply_babystep_saved_label),
-            value = vm.savedOffset?.let { babystepFmt(it) } ?: "—",
-        )
-        BabystepOffsetRow(
-            label = stringResource(R.string.probe_apply_babystep_new_label),
-            value = vm.newOffset?.let { babystepFmt(it) } ?: "—",
-        )
-        if (active) {
-            BabystepOffsetRow(
-                label = stringResource(R.string.calibration_increment), // "Step Size"
-                value = babystepFmt(step),
-            )
-        }
-
-        HorizontalDivider(
-            modifier = Modifier
-                .fillMaxWidth(0.7f)
-                .padding(vertical = fsSp(10f, t.fs).dp),
-            color = t.outline,
-        )
-
-        // Live Babystep — same compact row format as Saved/New (owner UAT 2026-06-28): the big
-        // hero block was overflowing the Active Focus and squeezing the action buttons below their
-        // 1U floor. Set apart by the divider above so it still reads as the live value of concern.
-        BabystepOffsetRow(
-            label = stringResource(R.string.probe_apply_babystep_live_label),
-            value = vm.liveBabystep?.let { babystepFmt(it) } ?: "—",
-        )
-
-        Spacer(Modifier.weight(1f))
-
-        // Bottom action zone — edge-to-edge, bottom-anchored.
-        if (!active) {
-            OutlinedControl(
-                label = stringResource(R.string.probe_apply_babystep_adjust),
-                icon = JiibIcons.LineWeight,
-                onClick = onAdjust,
-                intent = Intent.Go,
+    FocusStage(
+        modifier = modifier,
+        body = {
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-            )
-        } else {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                OutlinedControl(
-                    label = stringResource(R.string.probe_apply_babystep_clear),
-                    icon = JiibIcons.SpoolClear,
-                    onClick = onClear,
-                    intent = Intent.Accent,
-                    enabled = babystepClearEnabled(vm.liveBabystep),
-                    contentDescription = stringResource(R.string.cd_probe_apply_babystep_clear),
-                    modifier = Modifier.weight(1f),
+                // Secondary rows
+                BabystepOffsetRow(
+                    label = stringResource(R.string.probe_apply_babystep_saved_label),
+                    value = vm.savedOffset?.let { babystepFmt(it) } ?: "—",
                 )
-                OutlinedControl(
-                    label = stringResource(R.string.common_save), // = "Save" (the guard dialog warns about the restart)
-                    icon = JiibIcons.Save,
-                    onClick = onSave,
-                    intent = Intent.Warn,
-                    enabled = babystepSaveEnabled(vm, isPrinting),
-                    contentDescription = stringResource(R.string.cd_probe_apply_babystep_save),
-                    modifier = Modifier.weight(1f),
+                BabystepOffsetRow(
+                    label = stringResource(R.string.probe_apply_babystep_new_label),
+                    value = vm.newOffset?.let { babystepFmt(it) } ?: "—",
+                )
+                if (active) {
+                    BabystepOffsetRow(
+                        label = stringResource(R.string.calibration_increment), // "Step Size"
+                        value = babystepFmt(step),
+                    )
+                }
+
+                HorizontalDivider(
+                    modifier = Modifier
+                        .fillMaxWidth(0.7f)
+                        .padding(vertical = fsSp(10f, t.fs).dp),
+                    color = t.outline,
+                )
+
+                // Live Babystep — same compact row format as Saved/New (owner UAT 2026-06-28): the big
+                // hero block was overflowing the Active Focus and squeezing the action buttons below their
+                // 1U floor. Set apart by the divider above so it still reads as the live value of concern.
+                BabystepOffsetRow(
+                    label = stringResource(R.string.probe_apply_babystep_live_label),
+                    value = vm.liveBabystep?.let { babystepFmt(it) } ?: "—",
                 )
             }
-        }
-    }
+        },
+        dock = {
+            // Bottom action zone — edge-to-edge, bottom-anchored.
+            if (!active) {
+                OutlinedControl(
+                    label = stringResource(R.string.probe_apply_babystep_adjust),
+                    icon = JiibIcons.LineWeight,
+                    onClick = onAdjust,
+                    intent = Intent.Go,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    OutlinedControl(
+                        label = stringResource(R.string.probe_apply_babystep_clear),
+                        icon = JiibIcons.SpoolClear,
+                        onClick = onClear,
+                        intent = Intent.Accent,
+                        enabled = babystepClearEnabled(vm.liveBabystep),
+                        contentDescription = stringResource(R.string.cd_probe_apply_babystep_clear),
+                        modifier = Modifier.weight(1f),
+                    )
+                    OutlinedControl(
+                        label = stringResource(R.string.common_save), // = "Save" (the guard dialog warns about the restart)
+                        icon = JiibIcons.Save,
+                        onClick = onSave,
+                        intent = Intent.Warn,
+                        enabled = babystepSaveEnabled(vm, isPrinting),
+                        contentDescription = stringResource(R.string.cd_probe_apply_babystep_save),
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+        },
+    )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1351,62 +1374,61 @@ internal fun ProbeTestBody(
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
-    Box(modifier) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            // Last Z + accuracy form one block, vertically centered in the free space above the
-            // control zone (owner UAT 2026-06-28): weight spacer above the pair, another below.
-            Spacer(Modifier.weight(1f))
-
-            // ── Last Z readout: label start, value end (mirrors the Calibrate ReadoutRow grammar) ──
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = fsSp(12f, t.fs).dp),
-                verticalAlignment = Alignment.CenterVertically,
+    FocusStage(
+        modifier = modifier,
+        body = {
+            // Last Z + accuracy form one block, vertically centered by the Stage body zone.
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text(
-                    text = stringResource(R.string.probe_test_last_z_label),
-                    style = JiibType.body.toTextStyle(t),
-                    color = t.text2,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Spacer(Modifier.weight(1f))
-                Text(
-                    text = vm.lastZ?.let { probeTestFmtZ(it) } ?: "—",
-                    style = JiibType.statValue.toTextStyle(t),
-                    color = t.text,
-                    maxLines = 1,
-                )
-                if (vm.lastZ != null) {
-                    Spacer(Modifier.width(4.dp))
+                // ── Last Z readout: label start, value end (mirrors the Calibrate ReadoutRow grammar) ──
+                // Horizontal inset now owned by the FocusStage Dense zone inset.
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     Text(
-                        text = "mm",
-                        style = JiibType.caption.toTextStyle(t),
+                        text = stringResource(R.string.probe_test_last_z_label),
+                        style = JiibType.body.toTextStyle(t),
+                        color = t.text2,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Spacer(Modifier.weight(1f))
+                    Text(
+                        text = vm.lastZ?.let { probeTestFmtZ(it) } ?: "—",
+                        style = JiibType.statValue.toTextStyle(t),
+                        color = t.text,
+                        maxLines = 1,
+                    )
+                    if (vm.lastZ != null) {
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            text = "mm",
+                            style = JiibType.caption.toTextStyle(t),
+                            color = t.text3,
+                            maxLines = 1,
+                        )
+                    }
+                }
+
+                // ── Accuracy stat block (or "—" when no run yet), directly below the Last Z row ──
+                val acc = vm.accuracy
+                if (acc != null) {
+                    ProbeTestAccuracyBlock(acc)
+                } else {
+                    Text(
+                        text = "—",
+                        style = JiibType.statValue.toTextStyle(t),
                         color = t.text3,
                         maxLines = 1,
                     )
                 }
             }
-
-            // ── Accuracy stat block (or "—" when no run yet), directly below the Last Z row ──
-            val acc = vm.accuracy
-            if (acc != null) {
-                ProbeTestAccuracyBlock(acc)
-            } else {
-                Text(
-                    text = "—",
-                    style = JiibType.statValue.toTextStyle(t),
-                    color = t.text3,
-                    maxLines = 1,
-                )
-            }
-            Spacer(Modifier.weight(1f))
-
+        },
+        dock = {
             // ── Samples stepper [−] n [+] (theme-accent intent per owner UAT) ──
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1472,8 +1494,8 @@ internal fun ProbeTestBody(
                     modifier = Modifier.weight(1f),
                 )
             }
-        }
-    }
+        },
+    )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1529,70 +1551,76 @@ internal fun EddyRunBody(
 ) {
     val t = LocalTokens.current
 
-    Column(
+    FocusStage(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        // ── Row1: description + build-blind caution ──────────────────────────────
-        FocusText(description, JiibType.body, t, t.text2, modifier = Modifier.fillMaxWidth(), maxHeightU = 3f)
-        // Build-blind note: amber caption (t.heat) — text-only caution.
-        // NO new glyph added (icon-law: never pick a glyph without owner approval).
-        // The ⚠ is a unicode character embedded in the string resource.
-        FocusText(buildBlindNote, JiibType.caption, t, t.heat, modifier = Modifier.fillMaxWidth(), maxHeightU = 2f)
+        body = {
+            // Body = top-to-bottom Column: description + caution + weighted console (+ Tap chips).
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                // ── Row1: description + build-blind caution ──────────────────────────────
+                FocusText(description, JiibType.body, t, t.text2, modifier = Modifier.fillMaxWidth(), maxHeightU = 3f)
+                // Build-blind note: amber caption (t.heat) — text-only caution.
+                // NO new glyph added (icon-law: never pick a glyph without owner approval).
+                // The ⚠ is a unicode character embedded in the string resource.
+                FocusText(buildBlindNote, JiibType.caption, t, t.heat, modifier = Modifier.fillMaxWidth(), maxHeightU = 2f)
 
-        // ── Row2: ConsoleTail — fills available space ─────────────────────────────
-        ConsoleTail(
-            lines = lines,
-            uDp = uDp,
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .padding(top = 4.dp),
-        )
+                // ── Row2: ConsoleTail — fills available space ─────────────────────────────
+                ConsoleTail(
+                    lines = lines,
+                    uDp = uDp,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                )
 
-        // ── Row3 (EDDY_TAP only): stage selector chips ─────────────────────────────
-        // null tapStages = no selector (Drive Current path). Mirrors CalibrationRunContent's
-        // stage selector: selected chip = accent border + accentSoft fill; others = neutral.
-        if (tapStages != null && selectedStage != null) {
+                // ── Row3 (EDDY_TAP only): stage selector chips ─────────────────────────────
+                // null tapStages = no selector (Drive Current path). Mirrors CalibrationRunContent's
+                // stage selector: selected chip = accent border + accentSoft fill; others = neutral.
+                if (tapStages != null && selectedStage != null) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        tapStages.forEach { stage ->
+                            val isSelected = stage == selectedStage
+                            OutlinedControl(
+                                label = stage,
+                                onClick = { onSelectStage(stage) },
+                                modifier = Modifier.weight(1f),
+                                intent = if (isSelected) Intent.Accent else Intent.Neutral,
+                                fill = if (isSelected) t.accentSoft else null,
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        dock = {
+            // ── Run (go) + Save Config (warn) buttons ─────────────────────────────
+            // Intent R5: Run = go (expected action), Save Config = warn (Klipper restart — hazard).
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                tapStages.forEach { stage ->
-                    val isSelected = stage == selectedStage
-                    OutlinedControl(
-                        label = stage,
-                        onClick = { onSelectStage(stage) },
-                        modifier = Modifier.weight(1f),
-                        intent = if (isSelected) Intent.Accent else Intent.Neutral,
-                        fill = if (isSelected) t.accentSoft else null,
-                    )
-                }
+                OutlinedControl(
+                    label = stringResource(R.string.calibration_run),
+                    icon = JiibIcons.CalibrationRun,
+                    onClick = onRun,
+                    intent = Intent.Go,
+                    modifier = Modifier.weight(1f),
+                )
+                OutlinedControl(
+                    label = stringResource(R.string.calibration_save_config),
+                    icon = JiibIcons.Save,
+                    onClick = onSave,
+                    intent = Intent.Warn,
+                    modifier = Modifier.weight(1f),
+                )
             }
-        }
-
-        // ── Row4: Run (go) + Save Config (warn) buttons ─────────────────────────────
-        // Intent R5: Run = go (expected action), Save Config = warn (Klipper restart — hazard).
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            OutlinedControl(
-                label = stringResource(R.string.calibration_run),
-                icon = JiibIcons.CalibrationRun,
-                onClick = onRun,
-                intent = Intent.Go,
-                modifier = Modifier.weight(1f),
-            )
-            OutlinedControl(
-                label = stringResource(R.string.calibration_save_config),
-                icon = JiibIcons.Save,
-                onClick = onSave,
-                intent = Intent.Warn,
-                modifier = Modifier.weight(1f),
-            )
-        }
-    }
+        },
+    )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1709,7 +1737,8 @@ private fun AccuracyAutoText(
         maxLines = 1,
         softWrap = false,
         autoSize = TextAutoSize.StepBased(
-            minFontSize = fsSp(12f, t.fs).sp,
+            // LAW 2: 15sp ramp floor (was 12 — pre-R5 audit flag resolved)
+            minFontSize = fsSp(15f, t.fs).sp,
             maxFontSize = fsSp(role.baseSp, t.fs).sp,
             stepSize = 1.sp,
         ),
