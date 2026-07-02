@@ -34,12 +34,14 @@ import works.mees.jiib.theme.AppFont
 import works.mees.jiib.theme.FontCatalog
 import works.mees.jiib.theme.FontKind
 import works.mees.jiib.theme.JiibType
+import works.mees.jiib.designsystem.focus.FocusForm
 import works.mees.jiib.theme.compose.FocusText
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.previewTextStyle
 import works.mees.jiib.theme.compose.toTextStyle
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.TextAutoSize
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import works.mees.jiib.theme.fsSp
 
@@ -114,30 +116,37 @@ internal fun FontPickerContent(
                     icon = icon,
                     uDp = grid.uDp,
                     modifier = Modifier.fillMaxSize(),
+                    contentInset = 0.dp,
                     isPrinting = isPrinting,
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
                 ) {
-                    // Explainer caption — centered to sit symmetrically above the centered preview.
-                    FocusText(text = focusCaption, role = JiibType.caption, t = t, color = t.text2, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center, maxHeightU = 1f)
-                    // The Focus body IS the live preview: the selected font's name, rendered in its own
-                    // face. Selection updates the whole app immediately (tokenized fonts) so the chrome
-                    // re-renders too — no separate preview block needed.
-                    Box(
-                        Modifier.fillMaxWidth().weight(1f),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        BasicText( // focus-text-exempt: renders the selected font's own face (previewTextStyle carve-out)
-                            text = selected.displayName,
-                            style = selected.previewTextStyle(t).copy(color = t.text),
-                            modifier = Modifier.fillMaxWidth(),
-                            autoSize = TextAutoSize.StepBased(
-                                minFontSize = fsSp(15f, t.fs).sp,
-                                maxFontSize = fsSp(JiibType.listLabel.baseSp, t.fs).sp,
-                                stepSize = 1.sp,
-                            ),
-                        )
-                    }
+                    FocusForm(
+                        cap = {
+                            // Explainer caption — centered to sit symmetrically above the centered preview.
+                            FocusText(text = focusCaption, role = JiibType.caption, t = t, color = t.text2, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center, maxHeightU = 1f)
+                        },
+                        body = {
+                            // The Focus body IS the live preview: the selected font's name, rendered in its own
+                            // face. Selection updates the whole app immediately (tokenized fonts) so the chrome
+                            // re-renders too — no separate preview block needed.
+                            Box(
+                                Modifier.fillMaxWidth().weight(1f),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                BasicText( // focus-text-exempt: renders the selected font's own face (previewTextStyle carve-out)
+                                    text = selected.displayName,
+                                    style = selected.previewTextStyle(t).copy(color = t.text),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    autoSize = TextAutoSize.StepBased(
+                                        minFontSize = fsSp(15f, t.fs).sp,
+                                        maxFontSize = fsSp(JiibType.listLabel.baseSp, t.fs).sp,
+                                        stepSize = 1.sp,
+                                    ),
+                                )
+                            }
+                        },
+                    )
                 }
             },
             field = {

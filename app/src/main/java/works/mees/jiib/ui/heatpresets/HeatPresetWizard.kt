@@ -23,6 +23,7 @@ import works.mees.jiib.designsystem.components.FocusFrame
 import works.mees.jiib.designsystem.components.FootAction
 import works.mees.jiib.designsystem.components.FootButtonBar
 import works.mees.jiib.designsystem.control.Intent
+import works.mees.jiib.designsystem.focus.FocusForm
 import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.ScreenScaffold
 import works.mees.jiib.state.SettableHeater
@@ -171,54 +172,59 @@ fun HeatPresetWizard(
                 icon = JiibIcons.TempPresets,
                 uDp = uDp,
                 modifier = Modifier.fillMaxWidth().weight(1f),
+                contentInset = 0.dp,
                 isPrinting = isPrinting,
                 onEmergencyStop = onEmergencyStop,
                 onPanic = onEmergencyStop,
             ) {
-                val field = fields.getOrNull(safeStep - 1)
-                if (safeStep == 0 || field == null) {
-                    Text(
-                        text = stringResource(R.string.heat_presets_name_label),
-                        color = t.text,
-                        style = JiibType.listLabel.toTextStyle(t),
-                        maxLines = 1,
-                        modifier = Modifier.padding(bottom = 4.dp),
-                    )
-                    TokenTextField(
-                        value = name,
-                        onValueChange = { name = it },
-                        label = stringResource(R.string.heat_presets_name_hint),
-                        keyboardType = KeyboardType.Text,
-                        isError = name.isBlank(),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                } else {
-                    Text(
-                        text = field.displayName,
-                        color = t.text,
-                        style = JiibType.focusHeader.toTextStyle(t),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(bottom = 4.dp),
-                    )
-                    TokenTextField(
-                        value = values[field.objectName] ?: "",
-                        // Cap to 3 digits — max heater temp is 350 (FIX 4).
-                        onValueChange = { raw -> values[field.objectName] = raw.filter(Char::isDigit).take(3) },
-                        label = stringResource(R.string.heat_presets_value_hint),
-                        keyboardType = KeyboardType.Number,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    FocusText(
-                        text = stringResource(R.string.heat_presets_skip_hint),
-                        role = JiibType.caption,
-                        t = t,
-                        color = t.text2,
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                        textAlign = TextAlign.Start,
-                        maxHeightU = 2f,
-                    )
-                }
+                FocusForm(
+                    body = {
+                        val field = fields.getOrNull(safeStep - 1)
+                        if (safeStep == 0 || field == null) {
+                            Text(
+                                text = stringResource(R.string.heat_presets_name_label),
+                                color = t.text,
+                                style = JiibType.listLabel.toTextStyle(t),
+                                maxLines = 1,
+                                modifier = Modifier.padding(bottom = 4.dp),
+                            )
+                            TokenTextField(
+                                value = name,
+                                onValueChange = { name = it },
+                                label = stringResource(R.string.heat_presets_name_hint),
+                                keyboardType = KeyboardType.Text,
+                                isError = name.isBlank(),
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        } else {
+                            Text(
+                                text = field.displayName,
+                                color = t.text,
+                                style = JiibType.focusHeader.toTextStyle(t),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(bottom = 4.dp),
+                            )
+                            TokenTextField(
+                                value = values[field.objectName] ?: "",
+                                // Cap to 3 digits — max heater temp is 350 (FIX 4).
+                                onValueChange = { raw -> values[field.objectName] = raw.filter(Char::isDigit).take(3) },
+                                label = stringResource(R.string.heat_presets_value_hint),
+                                keyboardType = KeyboardType.Number,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            FocusText(
+                                text = stringResource(R.string.heat_presets_skip_hint),
+                                role = JiibType.caption,
+                                t = t,
+                                color = t.text2,
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.Start,
+                                maxHeightU = 2f,
+                            )
+                        }
+                    },
+                )
             }
         },
         field = {

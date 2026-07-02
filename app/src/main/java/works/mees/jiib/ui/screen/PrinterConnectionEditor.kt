@@ -2,11 +2,8 @@ package works.mees.jiib.ui.screen
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.basicMarquee
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -39,6 +37,7 @@ import works.mees.jiib.config.buildConnectionUrls
 import works.mees.jiib.config.normalizeHost
 import works.mees.jiib.config.resolveAutoSeededOnSave
 import works.mees.jiib.designsystem.ConfirmGuard
+import works.mees.jiib.designsystem.components.DigestRow
 import works.mees.jiib.designsystem.components.FocusFrame
 import works.mees.jiib.designsystem.components.FootAction
 import works.mees.jiib.designsystem.components.FootButtonBar
@@ -46,6 +45,8 @@ import works.mees.jiib.designsystem.components.ListRow
 import works.mees.jiib.designsystem.components.ListRowIcon
 import works.mees.jiib.designsystem.control.Intent
 import works.mees.jiib.designsystem.control.OutlinedControl
+import works.mees.jiib.designsystem.focus.FocusDigest
+import works.mees.jiib.designsystem.focus.FocusForm
 import works.mees.jiib.designsystem.icons.JiibIcon
 import works.mees.jiib.designsystem.icons.JiibIconView
 import works.mees.jiib.designsystem.icons.JiibIcons
@@ -61,8 +62,6 @@ import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.FocusText
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 
 /** The tappable Field rows; selecting one swaps the Focus into that field's editor. */
 private enum class ConnRow { Name, Host, Port, ApiKey, Advanced }
@@ -506,6 +505,7 @@ private fun ConnFocus(
         icon = JiibIcons.SystemRowPrinters,
         uDp = uDp,
         modifier = Modifier.fillMaxSize(),
+        contentInset = 0.dp,
         isPrinting = isPrinting,
         onEmergencyStop = estop,
         onPanic = estop,
@@ -577,41 +577,41 @@ private fun ConnTextEditor(
     onDone: () -> Unit,
 ) {
     val t = LocalTokens.current
-    Column(modifier.fillMaxSize()) {
-        TokenTextField(
-            value = value,
-            onValueChange = onChange,
-            label = label,
-            keyboardType = keyboard,
-            isPassword = isPassword,
-            isError = isError,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        if (warning != null) {
-            Spacer(Modifier.height(8.dp))
-            FocusText(
-                text = warning,
-                role = JiibType.caption,
-                t = t,
-                color = if (isError) t.stop else t.text2,
+    FocusForm(
+        modifier = modifier,
+        body = {
+            TokenTextField(
+                value = value,
+                onValueChange = onChange,
+                label = label,
+                keyboardType = keyboard,
+                isPassword = isPassword,
+                isError = isError,
                 modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Start,
-                maxHeightU = 2f,
             )
-        }
-        Spacer(Modifier.weight(1f))
-        secondaryAction?.let {
-            it()
-            Spacer(Modifier.height(8.dp))
-        }
-        OutlinedControl(
-            label = stringResource(R.string.common_done),
-            onClick = onDone,
-            icon = JiibIcons.CheckCircle,
-            intent = Intent.Go,
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
+            if (warning != null) {
+                FocusText(
+                    text = warning,
+                    role = JiibType.caption,
+                    t = t,
+                    color = if (isError) t.stop else t.text2,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Start,
+                    maxHeightU = 2f,
+                )
+            }
+        },
+        dock = {
+            secondaryAction?.invoke()
+            OutlinedControl(
+                label = stringResource(R.string.common_done),
+                onClick = onDone,
+                icon = JiibIcons.CheckCircle,
+                intent = Intent.Go,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+    )
 }
 
 /** The at-rest Focus: the live endpoint preview + the most recent Test (probe) result. */
@@ -623,25 +623,20 @@ private fun ConnSummary(
     uDp: Dp,
 ) {
     val t = LocalTokens.current
-    // Left-anchored label/status rows, centered vertically within the Focus region.
-    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center) {
-        Text(
-            text = urls.wsUrl.ifBlank { "-" },
-            color = t.text,
-            style = JiibType.dataMeta.toTextStyle(t),
-            maxLines = 1,
-            modifier = Modifier.fillMaxWidth().basicMarquee(),
-        )
-        Spacer(Modifier.height(12.dp))
+    val connTestStr = stringResource(R.string.conn_test)
+    val connTestUntested = stringResource(R.string.conn_test_untested)
+    val rows = buildList {
+        add(DigestRow.Note(urls.wsUrl.ifBlank { "-" }, role = JiibType.dataMeta, marquee = true))
         when {
-            probing -> Text(text = stringResource(R.string.conn_test), color = t.text2, style = JiibType.caption.toTextStyle(t), maxLines = 1, overflow = TextOverflow.Ellipsis)
-            probe == null -> Text(text = stringResource(R.string.conn_test_untested), color = t.text2, style = JiibType.caption.toTextStyle(t), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            probing -> add(DigestRow.Note(connTestStr, role = JiibType.caption, color = t.text2))
+            probe == null -> add(DigestRow.Note(connTestUntested, role = JiibType.caption, color = t.text2))
             else -> {
-                ProbeLine(stringResource(R.string.conn_test_http), probe.http.ok, probe.http.failure, uDp)
-                ProbeLine(stringResource(R.string.conn_test_ws), probe.ws.ok, probe.ws.failure, uDp)
+                add(DigestRow.Custom(heightU = 1f) { ProbeLine(stringResource(R.string.conn_test_http), probe.http.ok, probe.http.failure, uDp) })
+                add(DigestRow.Custom(heightU = 1f) { ProbeLine(stringResource(R.string.conn_test_ws), probe.ws.ok, probe.ws.failure, uDp) })
             }
         }
     }
+    FocusDigest(rows = rows, horizontalAlignment = Alignment.Start)
 }
 
 /** One transport's probe result line: a pass/fail glyph + a labelled outcome. */

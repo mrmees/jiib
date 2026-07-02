@@ -5,7 +5,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -59,6 +58,8 @@ import works.mees.jiib.designsystem.components.ListRow
 import works.mees.jiib.designsystem.components.ListRowLabel
 import works.mees.jiib.designsystem.components.ToggleRow
 import works.mees.jiib.designsystem.control.Intent
+import works.mees.jiib.designsystem.focus.FocusExplainer
+import works.mees.jiib.designsystem.focus.FocusForm
 import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.ListBlock
 import works.mees.jiib.designsystem.layout.ScreenScaffold
@@ -301,51 +302,23 @@ private fun MacrosContent(
                     icon = JiibIcons.LauncherMacros,
                     uDp = grid.uDp,
                     modifier = Modifier.fillMaxSize(),
+                    contentInset = 0.dp,
                     isPrinting = isPrinting,
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
                 ) {
-                    val t = LocalTokens.current
                     when {
-                        state.unavailable -> MacrosUnavailable(modifier = Modifier.fillMaxWidth())
-                        fieldMode is MacroFieldMode.ManageMode -> {
+                        state.unavailable -> FocusExplainer(text = stringResource(R.string.macros_unavailable))
+                        fieldMode is MacroFieldMode.ManageMode ->
                             // Manage Focus = what bookmarking does + the relocated underscore note
                             // (owner 2026-06-17 — moved here from the top of the manage list).
-                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-                                ) {
-                                    FocusText(
-                                        text = stringResource(R.string.macros_bookmark_explainer),
-                                        role = JiibType.body,
-                                        t = t,
-                                        color = t.text2,
-                                        modifier = Modifier.fillMaxWidth(),
-                                        maxHeightU = 2f,
-                                    )
-                                    FocusText(
-                                        text = stringResource(R.string.macros_helper_hint),
-                                        role = JiibType.body,
-                                        t = t,
-                                        color = t.text2,
-                                        modifier = Modifier.fillMaxWidth(),
-                                        maxHeightU = 2f,
-                                    )
-                                }
-                            }
-                        }
-                        liveMacro == null -> {
-                            // Launcher empty-state: nothing selected yet.
-                            FocusText(
-                                text = stringResource(R.string.macros_focus_select_prompt),
-                                role = JiibType.body,
-                                t = t,
-                                color = t.text2,
-                                modifier = Modifier.fillMaxSize(),
+                            FocusExplainer(
+                                text = stringResource(R.string.macros_bookmark_explainer) +
+                                    "\n\n" + stringResource(R.string.macros_helper_hint),
                             )
-                        }
+                        liveMacro == null ->
+                            // Launcher empty-state: nothing selected yet.
+                            FocusExplainer(text = stringResource(R.string.macros_focus_select_prompt))
                         else -> MacroDetailFocusBody(
                             macro = liveMacro,
                             bodyLoaded = bodyLoaded,
@@ -356,7 +329,6 @@ private fun MacrosContent(
                             onRawArgsChange = { rawArgs = it },
                             localToast = localToast,
                             running = running,
-                            t = t,
                         )
                     }
                 }
@@ -402,7 +374,7 @@ private fun MacrosContent(
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun ColumnScope.MacroDetailFocusBody(
+private fun MacroDetailFocusBody(
     macro: MacroVm,
     bodyLoaded: Boolean,
     rawMode: Boolean,
@@ -412,99 +384,95 @@ private fun ColumnScope.MacroDetailFocusBody(
     onRawArgsChange: (String) -> Unit,
     localToast: String?,
     running: Boolean,
-    t: works.mees.jiib.theme.ThemeTokens,
 ) {
-    if (!macro.description.isNullOrBlank()) {
-        FocusText(
-            text = macro.description,
-            role = JiibType.body,
-            t = t,
-            color = t.text2,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            maxHeightU = 2f,
-            textAlign = TextAlign.Start,
-        )
-    }
-
-    when {
-        !bodyLoaded -> {
-            Text(
-                text = stringResource(R.string.macros_loading_params),
-                color = t.text2,
-                style = JiibType.caption.toTextStyle(t),
-                maxLines = 1,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            )
-        }
-        rawMode -> {
-            TokenTextField(
-                value = rawArgs,
-                onValueChange = onRawArgsChange,
-                label = stringResource(R.string.macros_raw_args_label),
-                keyboardType = KeyboardType.Text,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-            )
-            Text(
-                text = stringResource(R.string.macros_raw_args_hint),
-                color = t.text3,
-                style = JiibType.caption.toTextStyle(t),
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-            )
-        }
-        else -> {
-            // This inner Column owns param-list overflow: it scrolls within the bounded Focus region
-            // (a high-param macro in a short landscape Focus stays usable).
-            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
-                params.forEach { param ->
-                    if (param.isNumeric) {
-                        MacroNumericParamField(
-                            param = param,
-                            rawValue = values[param.name].orEmpty(),
-                            onValueChange = { raw -> values[param.name] = raw },
-                            onValueCommit = { raw ->
-                                val parsed = raw.toDoubleOrNull()
-                                if (parsed != null) {
-                                    values[param.name] = formatNumeric(
-                                        parsed.coerceIn(MACRO_NUMERIC_RANGE.start, MACRO_NUMERIC_RANGE.endInclusive),
-                                    )
-                                } else if (raw.isEmpty()) {
-                                    values[param.name] = ""
-                                }
-                            },
-                            t = t,
-                        )
-                    } else {
-                        TokenTextField(
-                            value = values[param.name].orEmpty(),
-                            onValueChange = { values[param.name] = it },
-                            label = paramLabel(param),
-                            keyboardType = KeyboardType.Text,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 4.dp),
-                        )
+    val t = LocalTokens.current
+    FocusForm(
+        body = {
+            if (!macro.description.isNullOrBlank()) {
+                FocusText(
+                    text = macro.description,
+                    role = JiibType.body,
+                    t = t,
+                    color = t.text2,
+                    modifier = Modifier.fillMaxWidth(),
+                    maxHeightU = 2f,
+                    textAlign = TextAlign.Start,
+                )
+            }
+            when {
+                !bodyLoaded -> {
+                    Text(
+                        text = stringResource(R.string.macros_loading_params),
+                        color = t.text2,
+                        style = JiibType.caption.toTextStyle(t),
+                        maxLines = 1,
+                    )
+                }
+                rawMode -> {
+                    TokenTextField(
+                        value = rawArgs,
+                        onValueChange = onRawArgsChange,
+                        label = stringResource(R.string.macros_raw_args_label),
+                        keyboardType = KeyboardType.Text,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Text(
+                        text = stringResource(R.string.macros_raw_args_hint),
+                        color = t.text3,
+                        style = JiibType.caption.toTextStyle(t),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                else -> {
+                    // This inner Column owns param-list overflow: it scrolls within the bounded Focus region
+                    // (a high-param macro in a short landscape Focus stays usable).
+                    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
+                        params.forEach { param ->
+                            if (param.isNumeric) {
+                                MacroNumericParamField(
+                                    param = param,
+                                    rawValue = values[param.name].orEmpty(),
+                                    onValueChange = { raw -> values[param.name] = raw },
+                                    onValueCommit = { raw ->
+                                        val parsed = raw.toDoubleOrNull()
+                                        if (parsed != null) {
+                                            values[param.name] = formatNumeric(
+                                                parsed.coerceIn(MACRO_NUMERIC_RANGE.start, MACRO_NUMERIC_RANGE.endInclusive),
+                                            )
+                                        } else if (raw.isEmpty()) {
+                                            values[param.name] = ""
+                                        }
+                                    },
+                                    t = t,
+                                )
+                            } else {
+                                TokenTextField(
+                                    value = values[param.name].orEmpty(),
+                                    onValueChange = { values[param.name] = it },
+                                    label = paramLabel(param),
+                                    keyboardType = KeyboardType.Text,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
+                        }
                     }
                 }
             }
-        }
-    }
-
-    localToast?.let { msg ->
-        SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth().padding(horizontal = 8.dp))
-    }
-    if (running) {
-        SeverityToast(
-            Severity.Info,
-            stringResource(R.string.macros_running, macro.name),
-            Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-        )
-    }
+        },
+        dock = {
+            localToast?.let { msg ->
+                SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth())
+            }
+            if (running) {
+                SeverityToast(
+                    Severity.Info,
+                    stringResource(R.string.macros_running, macro.name),
+                    Modifier.fillMaxWidth(),
+                )
+            }
+        },
+    )
 }
 
 /** Param label with a `*` marker when the macro author expects the caller to supply it (required). */
