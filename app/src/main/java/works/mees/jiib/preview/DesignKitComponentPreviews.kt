@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.collections.immutable.persistentListOf
 import works.mees.jiib.R
 import works.mees.jiib.designsystem.control.OutlinedControl
+import works.mees.jiib.designsystem.focus.FocusDigest
 import works.mees.jiib.designsystem.focus.FocusExplainer
 import works.mees.jiib.designsystem.focus.FocusPlaceholder
 import works.mees.jiib.designsystem.components.DigestColumn
@@ -331,6 +332,25 @@ private fun DesignKitComponentDemo(modifier: Modifier = Modifier) {
                     FocusPlaceholder(
                         icon = JiibIcons.LauncherFiles,
                         text = "Nothing selected",
+                    )
+                }
+
+                // FocusDigest: archetype #3 — 3 Lines + 1 Note + 1 Custom.
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(grid.uDp * 4),
+                ) {
+                    FocusDigest(
+                        rows = listOf(
+                            DigestRow.Line(label = "Nozzle", value = "215°", emphasis = DigestEmphasis.Strong),
+                            DigestRow.Line(label = "Bed", value = "60°"),
+                            DigestRow.Line(label = "Speed", value = "100%", emphasis = DigestEmphasis.Meta),
+                            DigestRow.Note("moonraker.local:7125", marquee = true),
+                            DigestRow.Custom(heightU = 0.5f) {
+                                Box(Modifier.fillMaxSize())
+                            },
+                        ),
                     )
                 }
             }

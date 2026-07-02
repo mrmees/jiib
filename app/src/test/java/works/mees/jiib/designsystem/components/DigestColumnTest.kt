@@ -46,4 +46,14 @@ class DigestColumnTest {
         // available 300 < 320 → no scale in [0.6, 1.0] fits → scroll
         assertEquals(DigestFit.Scroll, digestFit(300f, clamped, minScale = 0.6f))
     }
+
+    @Test
+    fun note_rows_use_their_role_base_for_the_floor() {
+        // largestBase over [Note(dataInline 20), Line(Strong → 26)] = 26 → minScale = 15/26
+        val rows = listOf(
+            DigestRow.Note("host: 1.2.3.4"),
+            DigestRow.Line(label = "Nozzle", value = "215°", emphasis = DigestEmphasis.Strong),
+        )
+        assertEquals(15f / 26f, digestMinScale(rows), 0.001f)
+    }
 }

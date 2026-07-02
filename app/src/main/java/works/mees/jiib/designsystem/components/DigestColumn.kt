@@ -1,5 +1,6 @@
 package works.mees.jiib.designsystem.components
 
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -8,16 +9,22 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import works.mees.jiib.designsystem.icons.JiibIcon
 import works.mees.jiib.designsystem.layout.LocalUnitDp
+import works.mees.jiib.theme.JiibType
+import works.mees.jiib.theme.TextRole
 import works.mees.jiib.theme.compose.LocalTokens
+import works.mees.jiib.theme.compose.toTextStyle
 import works.mees.jiib.theme.fsSp
 
 /** One row of a Focus digest. Line rows scale (LAW 5); Custom rows (meters, chips) hold their U height. */
@@ -30,6 +37,19 @@ sealed interface DigestRow {
         val emphasis: DigestEmphasis = DigestEmphasis.Standard,
         val valueColor: Color? = null,
         val labelColor: Color? = null,
+    ) : DigestRow
+
+    /**
+     * Full-width single text line (for SystemInfo/PrinterSettings/ConnSummary digests).
+     * Scales like Line rows. [marquee] = true renders with [basicMarquee] instead of ellipsis —
+     * a named motion-law exception (single-line, overflow-only; ConnSummary URL precedent).
+     */
+    data class Note(
+        val text: String,
+        val role: TextRole = JiibType.dataInline,
+        val color: Color? = null,
+        val textAlign: TextAlign = TextAlign.Start,
+        val marquee: Boolean = false,
     ) : DigestRow
 
     class Custom(val heightU: Float = 1f, val content: @Composable () -> Unit) : DigestRow
@@ -71,6 +91,25 @@ fun digestFit(
     return DigestFit.Scroll
 }
 
+/**
+ * Pure extraction of the min-scale floor: the scale below which every text row is already
+ * clamped at the 15sp ramp floor. [DigestRow.Line] contributes the larger of its label/value
+ * base; [DigestRow.Note] contributes its role's base; [DigestRow.Custom] contributes nothing.
+ */
+fun digestMinScale(rows: List<DigestRow>): Float {
+    val largestBase = rows.mapNotNull { row ->
+        when (row) {
+            is DigestRow.Line -> {
+                val (l, v) = digestLineRoles(row.emphasis)
+                maxOf(l.baseSp, v.baseSp)
+            }
+            is DigestRow.Note -> row.role.baseSp
+            is DigestRow.Custom -> null
+        }
+    }.maxOrNull() ?: 15f
+    return (15f / largestBase).coerceAtMost(1f)
+}
+
 /** Line-height factor for modeling a text row's height from its font sp. */
 internal const val DIGEST_LINE_HEIGHT_FACTOR = 1.5f
 
@@ -93,7 +132,8 @@ fun DigestColumn(
         val gapPx = with(density) { 8.dp.toPx() }
         val uPx = with(density) { uDp.toPx() }
 
-        // Model: line rows = tallest of (label, value, icon 0.6U) at a given scale; custom rows fixed.
+        // Model: line rows = tallest of (label, value, icon 0.6U) at a given scale; note rows =
+        // role base scaled; custom rows fixed.
         val totalHeightAt: (Float) -> Float = { scale ->
             val rowsPx = rows.sumOf { row ->
                 when (row) {
@@ -107,19 +147,18 @@ fun DigestColumn(
                         val iconPx = if (row.icon != null) uPx * 0.6f else 0f
                         maxOf(textPx, iconPx).toDouble()
                     }
+                    is DigestRow.Note -> {
+                        val textPx = with(density) { (fsSp(digestScaledSp(row.role.baseSp, scale), t.fs) * DIGEST_LINE_HEIGHT_FACTOR).sp.toPx() }
+                        textPx.toDouble()
+                    }
                     is DigestRow.Custom -> (uPx * row.heightU).toDouble()
                 }
             }.toFloat()
             rowsPx + gapPx * (rows.size - 1).coerceAtLeast(0)
         }
 
-        // Global floor: the scale below which every Line row is already clamped at 15sp base.
-        val largestBase = rows.filterIsInstance<DigestRow.Line>()
-            .maxOfOrNull { row ->
-                val (l, v) = digestLineRoles(row.emphasis)
-                maxOf(l.baseSp, v.baseSp)
-            } ?: 15f
-        val minScale = (15f / largestBase).coerceAtMost(1f)
+        // Global floor: scale below which every text row is already clamped at the 15sp base.
+        val minScale = digestMinScale(rows)
 
         val fit = if (constraints.hasBoundedHeight) digestFit(availablePx, totalHeightAt, minScale) else DigestFit.Natural
         val scale = when (fit) {
@@ -148,6 +187,15 @@ fun DigestColumn(
                         valueColor = row.valueColor,
                         labelColor = row.labelColor,
                         scale = scale,
+                    )
+                    is DigestRow.Note -> Text(
+                        text = row.text,
+                        style = row.role.toTextStyle(t, sizeSp = fsSp(digestScaledSp(row.role.baseSp, scale), t.fs)),
+                        color = row.color ?: t.text,
+                        maxLines = 1,
+                        overflow = if (row.marquee) TextOverflow.Clip else TextOverflow.Ellipsis,
+                        textAlign = row.textAlign,
+                        modifier = Modifier.fillMaxWidth().then(if (row.marquee) Modifier.basicMarquee() else Modifier),
                     )
                     is DigestRow.Custom -> Box(Modifier.fillMaxWidth().height(uDp * row.heightU)) { row.content() }
                 }
