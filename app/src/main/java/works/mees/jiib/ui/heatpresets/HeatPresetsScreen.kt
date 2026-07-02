@@ -1,10 +1,7 @@
 package works.mees.jiib.ui.heatpresets
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -20,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -28,6 +26,8 @@ import works.mees.jiib.command.CommandRegistry
 import works.mees.jiib.command.dispatch
 import works.mees.jiib.config.HeatPreset
 import works.mees.jiib.designsystem.ConfirmGuard
+import works.mees.jiib.designsystem.components.DigestEmphasis
+import works.mees.jiib.designsystem.components.DigestRow
 import works.mees.jiib.designsystem.components.FocusFrame
 import works.mees.jiib.designsystem.components.FootAction
 import works.mees.jiib.designsystem.components.FootButtonBar
@@ -36,6 +36,8 @@ import works.mees.jiib.designsystem.components.ListRowIcon
 import works.mees.jiib.designsystem.components.ListRowLabel
 import works.mees.jiib.designsystem.control.Intent
 import works.mees.jiib.designsystem.control.OutlinedControl
+import works.mees.jiib.designsystem.focus.FocusDigest
+import works.mees.jiib.designsystem.focus.FocusExplainer
 import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.ListBlock
 import works.mees.jiib.designsystem.layout.ScreenScaffold
@@ -47,10 +49,8 @@ import works.mees.jiib.state.PrinterState
 import works.mees.jiib.state.enumerateSettableHeaters
 import works.mees.jiib.state.heaterDisplayName
 import works.mees.jiib.theme.JiibType
-import works.mees.jiib.theme.compose.FocusText
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
-import androidx.compose.ui.text.style.TextOverflow
 
 /**
  * The **Heat Presets** screen — per-printer preheat preset list/detail + create/edit wizard (Task 10).
@@ -131,6 +131,7 @@ fun HeatPresetsScreen(
                                 isPrinting = isPrinting,
                                 onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
                                 onPanic = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
+                                contentInset = 0.dp,
                             ) {
                                 HeatPresetDetail(
                                     preset = selected,
@@ -280,56 +281,30 @@ private fun HeatPresetDetail(
     uDp: Dp,
     modifier: Modifier = Modifier,
 ) {
-    val t = LocalTokens.current
     if (preset == null) {
-        FocusText(
-            text = stringResource(R.string.heat_presets_select_hint),
-            role = JiibType.body,
-            t = t,
-            color = t.text2,
-            modifier = modifier,
-        )
+        FocusExplainer(text = stringResource(R.string.heat_presets_select_hint), modifier = modifier)
         return
     }
-
-    Column(
+    FocusDigest(
+        rows = preset.setpoints.entries.sortedBy { it.key }.map { (obj, v) ->
+            DigestRow.Line(
+                label = heaterDisplayName(obj),
+                value = if (v == 0) stringResource(R.string.heat_presets_off) else "$v°C",
+                emphasis = DigestEmphasis.Standard,
+            )
+        },
+        horizontalAlignment = Alignment.Start,
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Column(
-            modifier = Modifier.weight(1f).fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            preset.setpoints.entries.sortedBy { it.key }.forEach { (obj, v) ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = heaterDisplayName(obj),
-                        color = t.text,
-                        style = JiibType.listLabel.toTextStyle(t),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Text(
-                        text = if (v == 0) stringResource(R.string.heat_presets_off) else "$v°C",
-                        color = t.text2,
-                        style = JiibType.dataInline.toTextStyle(t),
-                        maxLines = 1,
-                    )
-                }
-            }
-        }
-        OutlinedControl(
-            label = stringResource(R.string.common_edit),
-            onClick = onEdit,
-            icon = JiibIcons.HeatPresetEdit,
-            intent = Intent.Accent,
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
+        dock = {
+            OutlinedControl(
+                label = stringResource(R.string.common_edit),
+                onClick = onEdit,
+                icon = JiibIcons.HeatPresetEdit,
+                intent = Intent.Accent,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+    )
 }
 
 /**
