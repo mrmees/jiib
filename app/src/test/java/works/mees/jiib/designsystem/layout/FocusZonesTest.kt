@@ -24,11 +24,13 @@ class FocusZonesTest {
     }
 
     @Test
-    fun padding_never_adds_a_top_inset() {
-        // LAW 4 + the 2026-06-15 owner ruling: sides+bottom only, TOP always 0.
+    fun top_inset_is_8dp_except_flush() {
+        // LAW 4 + owner UAT 2026-07-02: top = 8dp for Default/Dense (content was kissing the
+        // header divider); 0dp for Flush (media fill). Supersedes the 2026-06-15 zero-top ruling.
         for (tier in FocusZoneInset.entries) {
             val p = focusZonePadding(tier)
-            assertEquals(0.dp, p.top)
+            val expectedTop = if (tier == FocusZoneInset.Flush) 0.dp else 8.dp
+            assertEquals(expectedTop, p.top)
             assertEquals(focusZoneInsetDp(tier), p.start)
             assertEquals(focusZoneInsetDp(tier), p.end)
             assertEquals(focusZoneInsetDp(tier), p.bottom)

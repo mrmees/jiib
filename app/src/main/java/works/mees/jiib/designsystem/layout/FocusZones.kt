@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -33,14 +33,16 @@ fun focusZoneInsetDp(inset: FocusZoneInset): Dp = when (inset) {
 }
 
 /**
- * Zone padding values as plain data for host tests. Sides + bottom only; the TOP inset is
- * always 0 — the FocusFrame header divider is the top landmark (owner UAT 2026-06-15).
+ * Zone padding values as plain data for host tests. Sides + bottom only; TOP inset is 8.dp for
+ * Default and Dense tiers (content was kissing the header divider — owner UAT 2026-07-02,
+ * supersedes the 2026-06-15 zero-top ruling). Flush tier retains top = 0.dp (media fill).
  */
 data class FocusZonePadding(val start: Dp, val top: Dp, val end: Dp, val bottom: Dp)
 
 fun focusZonePadding(inset: FocusZoneInset): FocusZonePadding {
     val d = focusZoneInsetDp(inset)
-    return FocusZonePadding(start = d, top = 0.dp, end = d, bottom = d)
+    val top = if (inset == FocusZoneInset.Flush) 0.dp else 8.dp
+    return FocusZonePadding(start = d, top = top, end = d, bottom = d)
 }
 
 /** Gap between zones and between docked rows — the app-wide 8dp registration rhythm. */
@@ -71,8 +73,10 @@ fun FocusZones(
         verticalArrangement = Arrangement.spacedBy(FocusZoneGap),
     ) {
         if (cap != null) {
+            // Fixed 1U strip — prevents autosize readouts from pumping the cap zone and
+            // displacing the body (LAW 1 refinement, owner UAT 2026-07-02).
             Box(
-                modifier = Modifier.fillMaxWidth().heightIn(max = uDp),
+                modifier = Modifier.fillMaxWidth().height(uDp),
                 contentAlignment = Alignment.Center,
                 content = cap,
             )

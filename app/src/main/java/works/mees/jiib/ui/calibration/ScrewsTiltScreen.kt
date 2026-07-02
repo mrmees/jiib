@@ -420,7 +420,7 @@ private fun BedScale(vm: ScrewsTiltVm) {
                 .size(width = frameW, height = frameH)
                 .clip(shape)
                 .border(BorderStroke(2.dp, t.outline), shape)
-                .background(t.surface),
+                .background(t.surface2),
         ) {
             BoxWithPoints(coordPoints, loX, hiX, loY, hiY, markerDp)
         }

@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -149,23 +150,8 @@ private fun PoolColorTile(
         }
     }
 
-    if (landscape) {
-        Row(
-            tileMod,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            TileLabel(Modifier.weight(1f))
-            Swatch(0.7f)
-        }
-    } else {
-        Column(
-            tileMod,
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically),
-        ) {
-            Swatch(0.6f)
-            TileLabel(Modifier)
-        }
+    // Color-only tiles — no text label (owner UAT 2026-07-02: labels cluttered narrow portrait).
+    Box(tileMod, contentAlignment = Alignment.Center) {
+        Swatch(if (landscape) 0.7f else 0.6f)
     }
 }

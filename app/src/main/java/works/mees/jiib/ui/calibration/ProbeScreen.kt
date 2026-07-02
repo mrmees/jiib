@@ -107,6 +107,7 @@ import works.mees.jiib.state.PrintState
 import works.mees.jiib.state.PrinterState
 import works.mees.jiib.theme.TextRole
 import works.mees.jiib.theme.JiibType
+import works.mees.jiib.theme.compose.FocusHeroValueText
 import works.mees.jiib.theme.compose.FocusText
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
@@ -956,13 +957,18 @@ internal fun ZOffsetBody(
     }
 }
 
-/** The big Geist-Mono Z number (accent2 hero) + "mm" caption. */
+/** The big Geist-Mono Z number (accent2 hero) with inline "mm" unit (Focus-text law 2026-07-02). */
 @Composable
 private fun ZHero(text: String) {
     val t = LocalTokens.current
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = text, style = JiibType.focusHero.toTextStyle(t), color = t.accent2, maxLines = 1)
-        Text(text = "mm", style = JiibType.caption.toTextStyle(t), color = t.text3, maxLines = 1)
+    Box(contentAlignment = Alignment.Center) {
+        FocusHeroValueText(
+            value = text,
+            unit = "mm",
+            t = t,
+            valueColor = t.accent2,
+            unitColor = t.text2,
+        )
     }
 }
 
@@ -1005,7 +1011,8 @@ private fun HeroReadoutRow(label: String, value: String) {
 @Composable
 private fun InvertedValuesNote(modifier: Modifier = Modifier) {
     val t = LocalTokens.current
-    FocusText(stringResource(R.string.probe_calibrate_inverted_note), JiibType.body, t, t.text3, modifier = modifier.fillMaxWidth(), maxHeightU = 2f)
+    // Unified to t.text2 — matches the blurb above it; owner UAT 2026-07-02 (one helper shade).
+    FocusText(stringResource(R.string.probe_calibrate_inverted_note), JiibType.body, t, t.text2, modifier = modifier.fillMaxWidth(), maxHeightU = 2f)
 }
 
 /** Idle action button: Starting… (disabled) / Home All (not homed) / Start (homed). */
@@ -1147,19 +1154,14 @@ internal fun EddyCalibrateBody(
                     modifier = Modifier.fillMaxSize(),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    // Z hero readout (Geist Mono, accent2 colour — same as ZOffsetBody Row1).
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = zText,
-                            style = JiibType.focusHero.toTextStyle(t),
-                            color = t.accent2,
-                            maxLines = 1,
-                        )
-                        Text(
-                            text = "mm",
-                            style = JiibType.caption.toTextStyle(t),
-                            color = t.text3,
-                            maxLines = 1,
+                    // Z hero readout — inline "mm" unit (Focus-text law 2026-07-02).
+                    Box(contentAlignment = Alignment.Center) {
+                        FocusHeroValueText(
+                            value = zText,
+                            unit = "mm",
+                            t = t,
+                            valueColor = t.accent2,
+                            unitColor = t.text2,
                         )
                     }
                     // ManualProbeJog fills available space (D-08 two-column motif).
@@ -1397,21 +1399,13 @@ internal fun ProbeTestBody(
                         overflow = TextOverflow.Ellipsis,
                     )
                     Spacer(Modifier.weight(1f))
+                    // "mm" unit is inline in the value text (owner UAT 2026-07-02).
                     Text(
-                        text = vm.lastZ?.let { probeTestFmtZ(it) } ?: "—",
+                        text = vm.lastZ?.let { "${probeTestFmtZ(it)} mm" } ?: "—",
                         style = JiibType.statValue.toTextStyle(t),
                         color = t.text,
                         maxLines = 1,
                     )
-                    if (vm.lastZ != null) {
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            text = "mm",
-                            style = JiibType.caption.toTextStyle(t),
-                            color = t.text3,
-                            maxLines = 1,
-                        )
-                    }
                 }
 
                 // ── Accuracy stat block (or "—" when no run yet), directly below the Last Z row ──
