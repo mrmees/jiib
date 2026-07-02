@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -260,32 +259,40 @@ private fun ThemeFocus(
     editingSwatch: ThemeSwatch?, onEditSwatch: (ThemeSwatch?) -> Unit, onCloseEditor: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    @Composable
-    fun frame(title: String, icon: JiibIcon, body: @Composable ColumnScope.() -> Unit) {
-        FocusFrame(title = title, icon = icon, uDp = uDp, modifier = modifier,
-            isPrinting = isPrinting, onEmergencyStop = onEmergencyStop, onPanic = onEmergencyStop,
-        ) { body() }
-    }
-
+    // NOTE: no local `frame(...)` wrapper — a helper that forwards a body lambda would hide each
+    // Focus body from FocusArchetypeConformanceTest (see its KNOWN LIMITATION). Every FocusFrame is
+    // inlined below so its trailing-lambda body is directly scannable.
     @Composable
     fun explainer(text: String) {
         FocusExplainer(text = text)
     }
 
     when (selected) {
-        null -> frame(stringResource(R.string.theme_screen_title), JiibIcons.Palette) {
+        null -> FocusFrame(title = stringResource(R.string.theme_screen_title), icon = JiibIcons.Palette,
+            uDp = uDp, modifier = modifier, isPrinting = isPrinting,
+            onEmergencyStop = onEmergencyStop, onPanic = onEmergencyStop,
+        ) {
             explainer(stringResource(R.string.theme_intro))
         }
-        ThemeRow.DarkLight -> frame(stringResource(R.string.theme_row_dark_light), JiibIcons.Contrast) {
+        ThemeRow.DarkLight -> FocusFrame(title = stringResource(R.string.theme_row_dark_light), icon = JiibIcons.Contrast,
+            uDp = uDp, modifier = modifier, isPrinting = isPrinting,
+            onEmergencyStop = onEmergencyStop, onPanic = onEmergencyStop,
+        ) {
             explainer(stringResource(R.string.theme_dark_light_focus))
         }
-        ThemeRow.PaletteMode -> frame(stringResource(R.string.theme_row_palette_mode), JiibIcons.InvertColors) {
+        ThemeRow.PaletteMode -> FocusFrame(title = stringResource(R.string.theme_row_palette_mode), icon = JiibIcons.InvertColors,
+            uDp = uDp, modifier = modifier, isPrinting = isPrinting,
+            onEmergencyStop = onEmergencyStop, onPanic = onEmergencyStop,
+        ) {
             FocusExplainer(
                 text = stringResource(R.string.theme_palette_mode_focus),
                 dock = { PaletteModeSegment(working.paletteMode, onPaletteMode, uDp) },
             )
         }
-        ThemeRow.Seed -> frame(stringResource(R.string.theme_row_seed), JiibIcons.Colors) {
+        ThemeRow.Seed -> FocusFrame(title = stringResource(R.string.theme_row_seed), icon = JiibIcons.Colors,
+            uDp = uDp, modifier = modifier, isPrinting = isPrinting,
+            onEmergencyStop = onEmergencyStop, onPanic = onEmergencyStop,
+        ) {
             val hue = seedHexToHue(working.seedHex)
             FocusStage(
                 body = {
@@ -311,7 +318,10 @@ private fun ThemeFocus(
         ThemeRow.Colors -> {
             val ed = editingSwatch
             if (ed == null) {
-                frame(stringResource(R.string.theme_row_colors), JiibIcons.Palette) {
+                FocusFrame(title = stringResource(R.string.theme_row_colors), icon = JiibIcons.Palette,
+                    uDp = uDp, modifier = modifier, isPrinting = isPrinting,
+                    onEmergencyStop = onEmergencyStop, onPanic = onEmergencyStop,
+                ) {
                     val tk = LocalTokens.current
                     FocusStage(
                         body = {
