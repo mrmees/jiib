@@ -5,15 +5,16 @@ import java.io.File
 
 /**
  * Focus-text conformance guard (Focus-text law, 2026-06-29). In the Focus-screen files, UNBOUNDED
- * raw Text(/BasicText( is banned — calls that carry neither `maxLines` nor `autoSize` in their
- * argument span must route through FocusText / FocusHeroText / FocusHeroValueText.
+ * raw Text(/BasicText( is banned — calls that carry neither `maxLines` nor `autoSize` as a
+ * TOP-LEVEL named argument must route through FocusText / FocusHeroText / FocusHeroValueText.
  *
- * Already-bounded raw Text( (has `maxLines` and/or `autoSize`) passes untouched — these are
- * Field/list/dialog sites where overflow is already controlled.  Callers tagged with
+ * Already-bounded raw Text( (has `maxLines` and/or `autoSize` as a top-level arg) passes untouched
+ * — these are Field/list/dialog sites where overflow is already controlled.  Callers tagged with
  * `// focus-text-exempt: <reason>` on the opening-paren line are also skipped.
  *
- * Detection uses a balanced-paren scan over the STRIPPED source (comments + string literals
- * blanked) so `maxLines` inside a comment or `Text(` inside a string literal don't count.
+ * Detection uses [findCalls] (balanced-paren scan over the STRIPPED source from [stripKotlin]) and
+ * [topLevelArgNames] so that `maxLines` buried inside a nested lambda/call does NOT count — that
+ * was the substring false-pass hole in the original implementation.
  *
  * ENFORCE mode: build-fails on any unbounded Focus text (neither maxLines nor autoSize).  Mirrors FontConformanceTest.
  */
@@ -51,37 +52,19 @@ class FocusTextConformanceTest {
             val f = File(base, rel)
             if (!f.exists()) return@flatMap emptyList<String>()
             val original = f.readLines()
-            val stripped = strip(f.readText())
+            val stripped = stripKotlin(f.readText())
 
             val fileOffenders = mutableListOf<String>()
-            for (match in rawText.findAll(stripped)) {
-                // The last character of the regex match is always `(`.
-                val openParen = match.range.last
-
-                // Line index (0-based) of the Text(/BasicText( token.
-                val lineIdx = stripped.substring(0, openParen).count { it == '\n' }
-
+            for (call in findCalls(stripped, rawText)) {
                 // Honor the exempt marker on the ORIGINAL source line (strip blanks comments).
-                if (original.getOrNull(lineIdx)?.contains(exempt) == true) continue
+                if (original.getOrNull(call.line - 1)?.contains(exempt) == true) continue
 
-                // Balanced-paren scan over the STRIPPED text to find the matching `)`.
-                // Strings are already blanked so stray `)` inside them can't unbalance the count.
-                var depth = 1
-                var pos = openParen + 1
-                while (pos < stripped.length && depth > 0) {
-                    when (stripped[pos]) {
-                        '(' -> depth++
-                        ')' -> depth--
-                    }
-                    if (depth > 0) pos++
-                }
-                // stripped[pos] is now the closing `)` (or pos == length if source is malformed).
-                val argSpan = stripped.substring(openParen + 1, pos)
-
-                // Flag ONLY if the call is UNBOUNDED: neither `maxLines` nor `autoSize` found in
-                // the argument span.  Either keyword in the span means overflow is already controlled.
-                if (!argSpan.contains("maxLines") && !argSpan.contains("autoSize")) {
-                    fileOffenders += "$rel:${lineIdx + 1}"
+                // Flag ONLY if the call is UNBOUNDED: neither `maxLines` nor `autoSize` found as
+                // a top-level named argument. Uses topLevelArgNames so that `maxLines` buried
+                // inside a nested lambda { Text("x", maxLines = 1) } does NOT count.
+                val names = topLevelArgNames(call.argSpan)
+                if ("maxLines" !in names && "autoSize" !in names) {
+                    fileOffenders += "$rel:${call.line}"
                 }
             }
             fileOffenders
@@ -109,48 +92,4 @@ class FocusTextConformanceTest {
     }
 
     private companion object { const val ENFORCE = true }
-}
-
-/**
- * Blank out `//` line comments, `/* */` block comments, and the CONTENTS of `"..."` / `"""..."""`
- * string literals (replace each consumed char with a space), leaving newlines intact so line numbers
- * are preserved. So the conformance regex matches only real code, never `Text(` inside a comment/string.
- */
-private fun strip(src: String): String {
-    val out = StringBuilder(src.length)
-    var i = 0
-    val n = src.length
-    while (i < n) {
-        val c = src[i]
-        val c2 = if (i + 1 < n) src[i + 1] else ' '
-        when {
-            c == '/' && c2 == '/' -> { // line comment → blank to EOL
-                while (i < n && src[i] != '\n') { out.append(' '); i++ }
-            }
-            c == '/' && c2 == '*' -> { // block comment → blank, keep newlines
-                out.append("  "); i += 2
-                while (i < n && !(src[i] == '*' && i + 1 < n && src[i + 1] == '/')) {
-                    out.append(if (src[i] == '\n') '\n' else ' '); i++
-                }
-                if (i < n) { out.append("  "); i += 2 }
-            }
-            c == '"' && c2 == '"' && i + 2 < n && src[i + 2] == '"' -> { // triple-quoted
-                out.append("   "); i += 3
-                while (i < n && !(src[i] == '"' && i + 1 < n && src[i + 1] == '"' && i + 2 < n && src[i + 2] == '"')) {
-                    out.append(if (src[i] == '\n') '\n' else ' '); i++
-                }
-                if (i < n) { out.append("   "); i += 3 }
-            }
-            c == '"' -> { // normal string, honor \" escapes
-                out.append(' '); i++
-                while (i < n && src[i] != '"') {
-                    if (src[i] == '\\' && i + 1 < n) { out.append("  "); i += 2 }
-                    else { out.append(if (src[i] == '\n') '\n' else ' '); i++ }
-                }
-                if (i < n) { out.append(' '); i++ }
-            }
-            else -> { out.append(c); i++ }
-        }
-    }
-    return out.toString()
 }
