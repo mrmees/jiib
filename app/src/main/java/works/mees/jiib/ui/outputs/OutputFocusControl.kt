@@ -1,13 +1,8 @@
 package works.mees.jiib.ui.outputs
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -15,11 +10,9 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import works.mees.jiib.designsystem.focus.FocusStage
 import works.mees.jiib.designsystem.layout.rememberUnitGrid
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
@@ -428,13 +421,14 @@ private fun FocusScrubberSurface(
     uDp: Dp,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        // CRITICAL build-once rule (P19 SC-3): Scrubber is NOT wrapped in key(value).
-        // Its internal working state is seeded via remember(value, range) — never rebuilt mid-drag.
-        // 004 ringed-thumb style (R9). Name-less: the FocusFrame header carries the output's identity,
-        // so the Scrubber header shows the live value only (centered, Task 2) — no duplicated name.
-        // Weighted body so the foot bar pins to the bottom (matches the LED/switch surfaces).
-        Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+    FocusStage(
+        modifier = modifier,
+        body = {
+            // CRITICAL build-once rule (P19 SC-3): Scrubber is NOT wrapped in key(value).
+            // Its internal working state is seeded via remember(value, range) — never rebuilt mid-drag.
+            // 004 ringed-thumb style (R9). Name-less: the FocusFrame header carries the output's identity,
+            // so the Scrubber header shows the live value only (centered, Task 2) — no duplicated name.
+            // FocusStage body is already a Box(fillMaxWidth().weight(1f), Center) — no wrapper needed.
             Scrubber(
                 name = "",
                 value = value.coerceIn(range.start, range.endInclusive),
@@ -447,15 +441,17 @@ private fun FocusScrubberSurface(
                 onSettle = { v -> if (!busy) onSettle(v) },
                 modifier = Modifier.fillMaxWidth(),
             )
-        }
-        failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
-        // Foot = FootButtonBar [Off] (power_off, Warn). No in-Focus Back — the Field list + its Back
-        // own navigation; you switch outputs by tapping list rows.
-        FootButtonBar(
-            uDp = uDp,
-            actions = listOf(footAction(ControlSpecs.outputOff, onClick = onOff, enabled = !busy)),
-        )
-    }
+        },
+        dock = {
+            failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
+            // Foot = FootButtonBar [Off] (power_off, Warn). No in-Focus Back — the Field list + its Back
+            // own navigation; you switch outputs by tapping list rows.
+            FootButtonBar(
+                uDp = uDp,
+                actions = listOf(footAction(ControlSpecs.outputOff, onClick = onOff, enabled = !busy)),
+            )
+        },
+    )
 }
 
 /**
@@ -495,8 +491,11 @@ private fun FocusLedSurface(
     var v by remember(seed) { mutableFloatStateOf(seed[2]) }
     var w by remember(seed) { mutableFloatStateOf(seed[3]) }
 
-    Column(modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+    // FocusStage: no separate hero (sliders fill the body); dock = failure toast + Off button.
+    // FocusStage body is already a Box(fillMaxWidth().weight(1f), Center) — no wrapper needed.
+    FocusStage(
+        modifier = modifier,
+        body = {
             if (ledHasRgb) {
                 // Full HSV (+ White for RGBW). Each settle sends the COMPLETE r/g/b/w state.
                 HsvSliders(
@@ -523,12 +522,14 @@ private fun FocusLedSurface(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
-        }
-        failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
-        FootButtonBar(
-            uDp = uDp,
-            actions = listOf(footAction(ControlSpecs.outputOff, onClick = onOff, enabled = !busy)),
-        )
-    }
+        },
+        dock = {
+            failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
+            FootButtonBar(
+                uDp = uDp,
+                actions = listOf(footAction(ControlSpecs.outputOff, onClick = onOff, enabled = !busy)),
+            )
+        },
+    )
 }
 

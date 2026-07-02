@@ -1,8 +1,6 @@
 package works.mees.jiib.ui.outputs
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Text
@@ -11,13 +9,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import works.mees.jiib.R
 import works.mees.jiib.control.ControlSpecs
 import works.mees.jiib.designsystem.Severity
 import works.mees.jiib.designsystem.SeverityToast
 import works.mees.jiib.designsystem.components.FootButtonBar
 import works.mees.jiib.designsystem.components.footAction
+import works.mees.jiib.designsystem.focus.FocusStage
 import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.FocusHeroText
 import works.mees.jiib.theme.compose.LocalTokens
@@ -57,35 +55,40 @@ fun OutputToggleControl(
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
-    Column(modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        // Body: the current On/Off state, color-coded, filling the space (no duplicate name — the
-        // FocusFrame header carries identity).
-        Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-            FocusHeroText(
-                text = if (isOn == true) stringResource(R.string.output_on) else stringResource(R.string.output_off),
-                role = JiibType.focusHero,
-                t = t,
-                color = if (isOn == true) t.go else t.text3,
-            )
-        }
-        if (readOnly) {
-            Text(
-                text = stringResource(R.string.output_read_only),
-                color = t.text3,
-                style = JiibType.caption.toTextStyle(t),
-                maxLines = 1,
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-            )
-        }
-        failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
-        if (!readOnly) {
-            FootButtonBar(
-                uDp = uDp,
-                actions = listOf(
-                    footAction(ControlSpecs.outputOn, onClick = onOn, enabled = enabled),
-                    footAction(ControlSpecs.outputOff, onClick = onOff, enabled = enabled),
-                ),
-            )
-        }
-    }
+    FocusStage(
+        modifier = modifier,
+        body = {
+            // Body: the current On/Off state, color-coded, filling the space (no duplicate name — the
+            // FocusFrame header carries identity).
+            Box(Modifier.fillMaxSize()) {
+                FocusHeroText(
+                    text = if (isOn == true) stringResource(R.string.output_on) else stringResource(R.string.output_off),
+                    role = JiibType.focusHero,
+                    t = t,
+                    color = if (isOn == true) t.go else t.text3,
+                )
+            }
+        },
+        dock = {
+            if (readOnly) {
+                Text(
+                    text = stringResource(R.string.output_read_only),
+                    color = t.text3,
+                    style = JiibType.caption.toTextStyle(t),
+                    maxLines = 1,
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                )
+            }
+            failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
+            if (!readOnly) {
+                FootButtonBar(
+                    uDp = uDp,
+                    actions = listOf(
+                        footAction(ControlSpecs.outputOn, onClick = onOn, enabled = enabled),
+                        footAction(ControlSpecs.outputOff, onClick = onOff, enabled = enabled),
+                    ),
+                )
+            }
+        },
+    )
 }
