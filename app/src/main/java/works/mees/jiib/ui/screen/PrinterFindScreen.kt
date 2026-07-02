@@ -14,6 +14,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.withTimeoutOrNull
@@ -35,8 +36,8 @@ import works.mees.jiib.designsystem.layout.rememberUnitGrid
 import works.mees.jiib.di.AppContainer
 import works.mees.jiib.state.PrintState
 import works.mees.jiib.state.PrinterState
+import works.mees.jiib.designsystem.focus.FocusExplainer
 import works.mees.jiib.theme.JiibType
-import works.mees.jiib.theme.compose.FocusText
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 
@@ -146,6 +147,7 @@ fun PrinterFindContent(
                     isPrinting = isPrinting,
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
+                    contentInset = 0.dp,
                 ) {
                     // Auto-scan on open means the pre-scan hint is never the initial state; the
                     // first emission is "Scanning…". Status order: probing > scanning > result.
@@ -155,7 +157,7 @@ fun PrinterFindContent(
                         scanned && discovered.isEmpty() -> stringResource(R.string.printers_scan_none_found)
                         else -> stringResource(R.string.printers_pick_found)
                     }
-                    FocusText(text = status, role = JiibType.body, t = t, color = t.text2, modifier = Modifier.fillMaxWidth(), maxHeightU = 2f)
+                    FocusExplainer(text = status)
                 }
             },
             field = {

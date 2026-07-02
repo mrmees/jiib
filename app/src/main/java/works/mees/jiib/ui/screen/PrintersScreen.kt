@@ -2,11 +2,8 @@ package works.mees.jiib.ui.screen
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,6 +24,7 @@ import works.mees.jiib.designsystem.components.FootButtonBar
 import works.mees.jiib.designsystem.components.ListRow
 import works.mees.jiib.designsystem.components.ListRowIcon
 import works.mees.jiib.designsystem.control.Intent
+import works.mees.jiib.designsystem.focus.FocusExplainer
 import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.ListBlock
 import works.mees.jiib.designsystem.layout.ScreenScaffold
@@ -37,7 +35,6 @@ import works.mees.jiib.di.AppContainer
 import works.mees.jiib.state.PrintState
 import works.mees.jiib.state.PrinterState
 import works.mees.jiib.theme.JiibType
-import works.mees.jiib.theme.compose.FocusText
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 import androidx.compose.ui.text.style.TextAlign
@@ -124,16 +121,17 @@ fun PrintersContent(
                     isPrinting = isPrinting,
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
+                    contentInset = 0.dp,
                 ) {
-                    Column(Modifier.fillMaxSize()) {
-                        FocusText(text = stringResource(R.string.printers_help_add),    role = JiibType.body, t = t, color = t.text2, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start, maxHeightU = 2f)
-                        Spacer(Modifier.height(8.dp))
-                        FocusText(text = stringResource(R.string.printers_help_switch), role = JiibType.body, t = t, color = t.text2, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start, maxHeightU = 2f)
-                        Spacer(Modifier.height(8.dp))
-                        FocusText(text = stringResource(R.string.printers_help_edit),   role = JiibType.body, t = t, color = t.text2, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start, maxHeightU = 2f)
-                        Spacer(Modifier.height(8.dp))
-                        FocusText(text = stringResource(R.string.printers_help_delete), role = JiibType.body, t = t, color = t.text2, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start, maxHeightU = 2f)
-                    }
+                    FocusExplainer(
+                        text = listOf(
+                            stringResource(R.string.printers_help_add),
+                            stringResource(R.string.printers_help_switch),
+                            stringResource(R.string.printers_help_edit),
+                            stringResource(R.string.printers_help_delete),
+                        ).joinToString("\n\n"),
+                        textAlign = TextAlign.Start,
+                    )
                 }
             },
             field = {
