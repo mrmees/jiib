@@ -36,6 +36,7 @@ import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 import works.mees.jiib.theme.fsSp
 import androidx.compose.material3.Text
+import androidx.compose.ui.text.style.TextOverflow
 
 /**
  * The button intent → role-token mapping (docs/ui_design/THEMING.md "Button intent = color";
@@ -225,6 +226,8 @@ fun OutlinedControl(
                     text = label,
                     color = t.text,
                     style = JiibType.buttonLabel.toTextStyle(t),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         } else {
@@ -232,6 +235,8 @@ fun OutlinedControl(
                 text = label,
                 color = t.text,
                 style = JiibType.buttonLabel.toTextStyle(t),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }

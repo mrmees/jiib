@@ -75,6 +75,7 @@ import works.mees.jiib.state.PrinterState
 import works.mees.jiib.state.thumbnailUrl
 import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.ThemeTokens
+import works.mees.jiib.theme.compose.FocusText
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 import works.mees.jiib.theme.fsSp
@@ -672,15 +673,15 @@ private fun androidx.compose.foundation.layout.ColumnScope.FilesListField(
                 .padding(8.dp),
             contentAlignment = Alignment.Center,
         ) {
-            Text(
+            FocusText(
                 text = when {
                     state.loading -> stringResource(R.string.files_loading)
                     state.error != null -> stringResource(R.string.files_error_load)
                     else -> stringResource(R.string.files_empty)
                 },
+                role = JiibType.body,
+                t = t,
                 color = t.text2,
-                style = JiibType.body.toTextStyle(t),
-                textAlign = TextAlign.Center,
                 modifier = Modifier.padding(16.dp),
             )
         }
@@ -858,12 +859,16 @@ private fun SpoolWarningGuard(
                         color = t.text,
                         style = JiibType.screenTitle.toTextStyle(t),
                         textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                     Text(
                         text = stringResource(R.string.files_spool_warning_subtitle),
                         color = t.text2,
                         style = JiibType.body.toTextStyle(t),
                         textAlign = TextAlign.Center,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(top = 12.dp, bottom = 8.dp),
                     )
                     warnings.forEach { w ->
@@ -885,6 +890,8 @@ private fun SpoolWarningGuard(
                                 text = w.message,
                                 color = t.heat,
                                 style = JiibType.body.toTextStyle(t),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.weight(1f),
                             )
                         }
@@ -894,6 +901,8 @@ private fun SpoolWarningGuard(
                         color = t.text3,
                         style = JiibType.caption.toTextStyle(t),
                         textAlign = TextAlign.Center,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(top = 12.dp, bottom = 24.dp),
                     )
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -918,7 +927,7 @@ private fun SpoolWarningGuard(
                             label = stringResource(R.string.common_back),
                             onClick = onBack,
                             modifier = Modifier.weight(1f),
-                            intent = Intent.Neutral,
+                            intent = Intent.Accent, // R5/R8: plain-nav Back wears accent (matches Scan/Move).
                         )
                         OutlinedControl(
                             label = stringResource(R.string.files_spool_warning_print_anyway),

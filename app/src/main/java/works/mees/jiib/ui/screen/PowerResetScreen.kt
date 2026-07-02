@@ -37,8 +37,10 @@ import works.mees.jiib.systeminfo.SystemInfo
 import works.mees.jiib.systeminfo.SystemInfoHolder
 import works.mees.jiib.systeminfo.hostActionAvailability
 import works.mees.jiib.theme.JiibType
+import works.mees.jiib.theme.compose.FocusText
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 
 // =============================================================================
@@ -291,10 +293,14 @@ fun PowerResetContent(
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
                 ) {
-                    Text(
+                    val t = LocalTokens.current
+                    FocusText(
                         text = stringResource(R.string.power_reset_blurb),
-                        style = JiibType.body.toTextStyle(LocalTokens.current),
-                        color = LocalTokens.current.text2,
+                        role = JiibType.body,
+                        t = t,
+                        color = t.text2,
+                        modifier = Modifier.fillMaxWidth(),
+                        maxHeightU = 3f,
                     )
                 }
             },
@@ -377,6 +383,8 @@ private fun PowerCommandRow(
                     text = cmd.disabledReason,
                     color = t.text2.copy(alpha = 0.5f),
                     style = JiibType.caption.toTextStyle(t),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }

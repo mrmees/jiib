@@ -55,9 +55,11 @@ import works.mees.jiib.theme.AppFont
 import works.mees.jiib.theme.FontCatalog
 import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.FontScale
+import works.mees.jiib.theme.compose.FocusText
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.previewTextStyle
 import works.mees.jiib.theme.compose.toTextStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.TextStyle
 import works.mees.jiib.ui.settings.TextSizeSelector
 
@@ -397,6 +399,8 @@ private fun AppSettingRow(
                 text = indicator,
                 color = indicatorColor ?: t.text2,
                 style = indicatorStyle ?: JiibType.caption.toTextStyle(t),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         },
     ) {
@@ -457,12 +461,12 @@ private fun AppSettingsFocus(
             onPanic = onEmergencyStop,
         ) {
             Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                Text(text = description, color = t.text2, style = JiibType.body.toTextStyle(t))
+                FocusText(text = description, role = JiibType.body, t = t, color = t.text2, modifier = Modifier.fillMaxWidth())
             }
             if (control != null) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                     content = control,
                 )
             }
@@ -539,6 +543,8 @@ private fun AppSettingsFocus(
                         text = stringResource(R.string.settings_babystep_layers_count, babystepLayers),
                         color = t.text,
                         style = JiibType.dataInline.toTextStyle(t),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 },
             )

@@ -62,6 +62,7 @@ import works.mees.jiib.di.AppContainer
 import works.mees.jiib.state.PrintState
 import works.mees.jiib.state.PrinterState
 import works.mees.jiib.theme.JiibType
+import works.mees.jiib.theme.compose.FocusText
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 import works.mees.jiib.theme.fsSp
@@ -352,14 +353,17 @@ private fun ScrewsTiltFocus(vm: ScrewsTiltVm, modifier: Modifier) {
         if (vm.hasCoords) {
             BedScale(vm = vm)
         } else {
-            Text(
+            FocusText(
                 text = if (vm.loop.totalScrews > 0) {
                     stringResource(R.string.screws_map_unavailable)
                 } else {
                     stringResource(R.string.screws_run_prompt)
                 },
+                role = JiibType.body,
+                t = t,
                 color = t.text2,
-                style = JiibType.body.toTextStyle(t),
+                modifier = Modifier.fillMaxWidth(),
+                maxHeightU = 2f,
                 textAlign = TextAlign.Center,
             )
         }

@@ -65,6 +65,7 @@ import works.mees.jiib.designsystem.layout.ScreenScaffold
 import works.mees.jiib.designsystem.layout.rememberUnitGrid
 import works.mees.jiib.net.JsonRpcMethods
 import works.mees.jiib.theme.JiibType
+import works.mees.jiib.theme.compose.FocusText
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 import works.mees.jiib.ui.screen.TokenTextField
@@ -316,35 +317,34 @@ private fun MacrosContent(
                                     verticalArrangement = Arrangement.spacedBy(12.dp),
                                     modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
                                 ) {
-                                    Text(
+                                    FocusText(
                                         text = stringResource(R.string.macros_bookmark_explainer),
+                                        role = JiibType.body,
+                                        t = t,
                                         color = t.text2,
-                                        style = JiibType.body.toTextStyle(t),
-                                        textAlign = TextAlign.Center,
                                         modifier = Modifier.fillMaxWidth(),
+                                        maxHeightU = 2f,
                                     )
-                                    Text(
+                                    FocusText(
                                         text = stringResource(R.string.macros_helper_hint),
+                                        role = JiibType.body,
+                                        t = t,
                                         color = t.text2,
-                                        // Match the bookmarking explainer's size (owner 2026-06-17).
-                                        style = JiibType.body.toTextStyle(t),
-                                        textAlign = TextAlign.Center,
                                         modifier = Modifier.fillMaxWidth(),
+                                        maxHeightU = 2f,
                                     )
                                 }
                             }
                         }
                         liveMacro == null -> {
                             // Launcher empty-state: nothing selected yet.
-                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Text(
-                                    text = stringResource(R.string.macros_focus_select_prompt),
-                                    color = t.text2,
-                                    style = JiibType.body.toTextStyle(t),
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.fillMaxWidth(),
-                                )
-                            }
+                            FocusText(
+                                text = stringResource(R.string.macros_focus_select_prompt),
+                                role = JiibType.body,
+                                t = t,
+                                color = t.text2,
+                                modifier = Modifier.fillMaxSize(),
+                            )
                         }
                         else -> MacroDetailFocusBody(
                             macro = liveMacro,
@@ -415,13 +415,16 @@ private fun ColumnScope.MacroDetailFocusBody(
     t: works.mees.jiib.theme.ThemeTokens,
 ) {
     if (!macro.description.isNullOrBlank()) {
-        Text(
+        FocusText(
             text = macro.description,
+            role = JiibType.body,
+            t = t,
             color = t.text2,
-            style = JiibType.body.toTextStyle(t),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp),
+            maxHeightU = 2f,
+            textAlign = TextAlign.Start,
         )
     }
 
@@ -431,6 +434,7 @@ private fun ColumnScope.MacroDetailFocusBody(
                 text = stringResource(R.string.macros_loading_params),
                 color = t.text2,
                 style = JiibType.caption.toTextStyle(t),
+                maxLines = 1,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
         }
@@ -448,6 +452,8 @@ private fun ColumnScope.MacroDetailFocusBody(
                 text = stringResource(R.string.macros_raw_args_hint),
                 color = t.text3,
                 style = JiibType.caption.toTextStyle(t),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             )
         }
@@ -633,6 +639,7 @@ private fun MacroNumericParamField(
                         text = "0",
                         color = t.text3,
                         style = JiibType.dataInline.toTextStyle(t),
+                        maxLines = 1,
                     )
                 }
                 innerField()
@@ -704,12 +711,15 @@ private fun MacrosEmptyNotice(modifier: Modifier = Modifier) {
             text = stringResource(R.string.macros_empty_title),
             color = t.text,
             style = JiibType.screenTitle.toTextStyle(t),
+            maxLines = 1,
             modifier = Modifier.fillMaxWidth(),
         )
         Text(
             text = stringResource(R.string.macros_empty_body),
             color = t.text2,
             style = JiibType.caption.toTextStyle(t),
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 8.dp),
@@ -720,13 +730,13 @@ private fun MacrosEmptyNotice(modifier: Modifier = Modifier) {
 @Composable
 internal fun MacrosUnavailable(modifier: Modifier = Modifier) {
     val t = LocalTokens.current
-    Column(modifier, verticalArrangement = Arrangement.Center) {
-        Text(
-            text = stringResource(R.string.macros_unavailable),
-            color = t.text2,
-            style = JiibType.body.toTextStyle(t),
-        )
-    }
+    FocusText(
+        text = stringResource(R.string.macros_unavailable),
+        role = JiibType.body,
+        t = t,
+        color = t.text2,
+        modifier = modifier,
+    )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

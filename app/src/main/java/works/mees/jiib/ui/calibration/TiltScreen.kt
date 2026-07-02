@@ -50,7 +50,10 @@ import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.ScreenScaffold
 import works.mees.jiib.designsystem.layout.rememberUnitGrid
 import works.mees.jiib.di.AppContainer
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import works.mees.jiib.theme.JiibType
+import works.mees.jiib.theme.compose.FocusText
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 
@@ -366,11 +369,15 @@ private fun TiltFieldBody(
                                 text = adj.stepper,
                                 color = t.text2,
                                 style = JiibType.dataInline.toTextStyle(t),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                             )
                             Text(
                                 text = String.format(Locale.US, "%+.4f mm", adj.mm),
                                 color = t.text,
                                 style = JiibType.dataInline.toTextStyle(t),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                             )
                         }
                     }
@@ -389,16 +396,21 @@ private fun TiltHeadlineText(text: String, color: Color) {
         text = text,
         color = color,
         style = JiibType.screenTitle.toTextStyle(t),
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
     )
 }
 
 @Composable
 private fun TiltBodyText(text: String) {
     val t = LocalTokens.current
-    Text(
+    FocusText(
         text = text,
+        role = JiibType.body,
+        t = t,
         color = t.text2,
-        style = JiibType.body.toTextStyle(t),
-        modifier = Modifier.padding(top = 8.dp),
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+        textAlign = TextAlign.Start,
+        maxHeightU = 2f,
     )
 }

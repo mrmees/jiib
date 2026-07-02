@@ -11,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import works.mees.jiib.R
@@ -33,9 +34,14 @@ import works.mees.jiib.theme.AppFont
 import works.mees.jiib.theme.FontCatalog
 import works.mees.jiib.theme.FontKind
 import works.mees.jiib.theme.JiibType
+import works.mees.jiib.theme.compose.FocusText
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.previewTextStyle
 import works.mees.jiib.theme.compose.toTextStyle
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.TextAutoSize
+import androidx.compose.ui.unit.sp
+import works.mees.jiib.theme.fsSp
 
 /**
  * ONE parameterized screen for both the interface-font and data-font pickers (DRY).
@@ -112,12 +118,8 @@ internal fun FontPickerContent(
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
                 ) {
-                    // Explainer caption — which kind of font this picker controls.
-                    Text(
-                        text = focusCaption,
-                        style = JiibType.caption.toTextStyle(t),
-                        color = t.text2,
-                    )
+                    // Explainer caption — centered to sit symmetrically above the centered preview.
+                    FocusText(text = focusCaption, role = JiibType.caption, t = t, color = t.text2, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center, maxHeightU = 1f)
                     // The Focus body IS the live preview: the selected font's name, rendered in its own
                     // face. Selection updates the whole app immediately (tokenized fonts) so the chrome
                     // re-renders too — no separate preview block needed.
@@ -125,10 +127,15 @@ internal fun FontPickerContent(
                         Modifier.fillMaxWidth().weight(1f),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(
+                        BasicText( // focus-text-exempt: renders the selected font's own face (previewTextStyle carve-out)
                             text = selected.displayName,
-                            style = selected.previewTextStyle(t),
-                            color = t.text,
+                            style = selected.previewTextStyle(t).copy(color = t.text),
+                            modifier = Modifier.fillMaxWidth(),
+                            autoSize = TextAutoSize.StepBased(
+                                minFontSize = fsSp(15f, t.fs).sp,
+                                maxFontSize = fsSp(JiibType.listLabel.baseSp, t.fs).sp,
+                                stepSize = 1.sp,
+                            ),
                         )
                     }
                 }

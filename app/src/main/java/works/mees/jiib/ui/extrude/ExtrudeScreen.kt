@@ -77,8 +77,10 @@ import works.mees.jiib.state.PrintState
 import works.mees.jiib.state.PrinterState
 import works.mees.jiib.spool.SpoolmanSpool
 import works.mees.jiib.theme.JiibType
+import works.mees.jiib.theme.compose.FocusHeroValueText
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
+import androidx.compose.ui.text.style.TextOverflow
 import works.mees.jiib.ui.spool.SpoolStatusRow
 
 /** Default highlighted length (mm). */
@@ -421,6 +423,8 @@ private fun ExtrudeContent(
                                     text = stringResource(R.string.extrude_no_macros),
                                     color = t.text2,
                                     style = JiibType.caption.toTextStyle(t),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
                                 )
                             }
                         } else {
@@ -537,7 +541,7 @@ private fun FocusGrid(
                     onClick = onExtrude,
                     modifier = Modifier.weight(1f).fillMaxHeight()
                         .alpha(if (vm.canExtrude && extrudeBusy) 0.38f else 1f),
-                    intent = if (vm.canExtrude) Intent.Accent else Intent.Danger,
+                    intent = if (vm.canExtrude) Intent.Go else Intent.Danger, // R19: motion IS the screen's purpose = Go; cold = Danger lockout cue.
                     symbol = if (vm.canExtrude) "output_circle" else COLD_SYMBOL,
                     enabled = vm.canExtrude && !extrudeBusy,
                     contentDescription = stringResource(R.string.extrude_cmd_extrude),
@@ -548,7 +552,7 @@ private fun FocusGrid(
                     onClick = onRetract,
                     modifier = Modifier.weight(1f).fillMaxHeight()
                         .alpha(if (vm.canExtrude && retractBusy) 0.38f else 1f),
-                    intent = if (vm.canExtrude) Intent.Accent else Intent.Danger,
+                    intent = if (vm.canExtrude) Intent.Go else Intent.Danger, // R19: motion IS the screen's purpose = Go; cold = Danger lockout cue.
                     symbol = if (vm.canExtrude) "input_circle" else COLD_SYMBOL,
                     enabled = vm.canExtrude && !retractBusy,
                     contentDescription = stringResource(R.string.extrude_cmd_retract),
@@ -583,6 +587,8 @@ private fun LabeledSlider(
             text = title,
             color = t.text,
             style = JiibType.listLabel.toTextStyle(t),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
         Scrubber(
@@ -607,9 +613,9 @@ private fun LabeledSlider(
 @Composable
 private fun InfoLine(temp: Double, distance: Double, speed: Int, modifier: Modifier = Modifier) {
     Row(modifier, horizontalArrangement = Arrangement.SpaceEvenly) {
-        ValueReadout(temp.roundToInt().toString(), "°C")
-        ValueReadout(fmtDist(distance), "mm")
-        ValueReadout(speed.toString(), "mm/s")
+        ValueReadout(temp.roundToInt().toString(), "°C", Modifier.weight(1f))
+        ValueReadout(fmtDist(distance), "mm", Modifier.weight(1f))
+        ValueReadout(speed.toString(), "mm/s", Modifier.weight(1f))
     }
 }
 
@@ -619,20 +625,16 @@ private fun InfoLine(temp: Double, distance: Double, speed: Int, modifier: Modif
  * (not a subscript). Unit is [text2] (brighter than the old dim [text3]) for legibility.
  */
 @Composable
-private fun ValueReadout(value: String, unit: String) {
+private fun ValueReadout(value: String, unit: String, modifier: Modifier = Modifier) {
     val t = LocalTokens.current
-    Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-        Text(
-            text = value,
-            color = t.text,
-            style = JiibType.focusHero.toTextStyle(t),
-            modifier = Modifier.alignByBaseline(),
-        )
-        Text(
-            text = unit,
-            color = t.text2,
-            style = JiibType.statValue.toTextStyle(t),
-            modifier = Modifier.alignByBaseline(),
+    // FocusHeroValueText renders value+unit as a single shrink-to-fit layout (Focus-text law 2026-06-29).
+    Box(modifier, contentAlignment = Alignment.Center) {
+        FocusHeroValueText(
+            value = value,
+            unit = unit,
+            t = t,
+            valueColor = t.text,
+            unitColor = t.text2,
         )
     }
 }
@@ -660,6 +662,8 @@ private fun ToolSelector(
                     text = label,
                     color = t.accent2,
                     style = JiibType.dataInline.toTextStyle(t),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }

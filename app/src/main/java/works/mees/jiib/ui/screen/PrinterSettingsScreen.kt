@@ -1,6 +1,7 @@
 package works.mees.jiib.ui.screen
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -44,6 +45,7 @@ import works.mees.jiib.state.ConnectionState
 import works.mees.jiib.state.PrintState
 import works.mees.jiib.state.PrinterState
 import works.mees.jiib.theme.JiibType
+import works.mees.jiib.theme.compose.FocusText
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 import works.mees.jiib.ui.route.NavDest
@@ -180,23 +182,37 @@ fun PrinterSettingsContent(
                         onEmergencyStop = onEmergencyStop,
                         onPanic = onEmergencyStop,
                     ) {
-                        Text(
-                            text = activeProfile.displayName(),
-                            color = t.text,
-                            style = JiibType.focusHeader.toTextStyle(t),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(
-                            text = "${activeProfile.host}:${activeProfile.port}",
-                            color = t.text2,
-                            style = JiibType.dataMeta.toTextStyle(t),
-                        )
-                        Text(
-                            text = stringResource(connectionState.printerSettingsLabelRes()),
-                            color = ringColor ?: t.text2,
-                            style = JiibType.caption.toTextStyle(t),
-                        )
+                        // Identity block centered both axes as a clean standalone Focus header.
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Text(
+                                text = activeProfile.displayName(),
+                                color = t.text,
+                                style = JiibType.focusHeader.toTextStyle(t),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                textAlign = TextAlign.Center,
+                            )
+                            Text(
+                                text = "${activeProfile.host}:${activeProfile.port}",
+                                color = t.text2,
+                                style = JiibType.dataMeta.toTextStyle(t),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                textAlign = TextAlign.Center,
+                            )
+                            Text(
+                                text = stringResource(connectionState.printerSettingsLabelRes()),
+                                color = ringColor ?: t.text2,
+                                style = JiibType.caption.toTextStyle(t),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                textAlign = TextAlign.Center,
+                            )
+                        }
                     }
                 } else {
                     // Empty-state card: mirrors PrintersContent's empty FocusFrame branch.
@@ -218,13 +234,15 @@ fun PrinterSettingsContent(
                                     color = t.text,
                                     style = JiibType.focusHeader.toTextStyle(t),
                                     textAlign = TextAlign.Center,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
                                 )
-                                Text(
+                                FocusText(
                                     text = stringResource(R.string.printers_empty_body),
+                                    role = JiibType.caption,
+                                    t = t,
                                     color = t.text2,
-                                    style = JiibType.caption.toTextStyle(t),
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.padding(top = 4.dp),
+                                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                                 )
                             }
                         }

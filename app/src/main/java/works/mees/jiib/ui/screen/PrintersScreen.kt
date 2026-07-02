@@ -37,8 +37,10 @@ import works.mees.jiib.di.AppContainer
 import works.mees.jiib.state.PrintState
 import works.mees.jiib.state.PrinterState
 import works.mees.jiib.theme.JiibType
+import works.mees.jiib.theme.compose.FocusText
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
+import androidx.compose.ui.text.style.TextAlign
 
 // =============================================================================
 // Pure mode-toggle state machine (Task 5 — 2-mode collapse)
@@ -124,13 +126,13 @@ fun PrintersContent(
                     onPanic = onEmergencyStop,
                 ) {
                     Column(Modifier.fillMaxSize()) {
-                        Text(stringResource(R.string.printers_help_add),    color = t.text2, style = JiibType.body.toTextStyle(t))
+                        FocusText(text = stringResource(R.string.printers_help_add),    role = JiibType.body, t = t, color = t.text2, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start, maxHeightU = 2f)
                         Spacer(Modifier.height(8.dp))
-                        Text(stringResource(R.string.printers_help_switch), color = t.text2, style = JiibType.body.toTextStyle(t))
+                        FocusText(text = stringResource(R.string.printers_help_switch), role = JiibType.body, t = t, color = t.text2, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start, maxHeightU = 2f)
                         Spacer(Modifier.height(8.dp))
-                        Text(stringResource(R.string.printers_help_edit),   color = t.text2, style = JiibType.body.toTextStyle(t))
+                        FocusText(text = stringResource(R.string.printers_help_edit),   role = JiibType.body, t = t, color = t.text2, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start, maxHeightU = 2f)
                         Spacer(Modifier.height(8.dp))
-                        Text(stringResource(R.string.printers_help_delete), color = t.text2, style = JiibType.body.toTextStyle(t))
+                        FocusText(text = stringResource(R.string.printers_help_delete), role = JiibType.body, t = t, color = t.text2, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start, maxHeightU = 2f)
                     }
                 }
             },
@@ -140,14 +142,14 @@ fun PrintersContent(
                         ListRow(selected = false, onClick = onAdd, uDp = grid.uDp,
                             leadingContent = { ListRowIcon(JiibIcons.PrinterAdd, grid.uDp, t.accent) }) {
                             Text(stringResource(R.string.printers_add), color = t.text,
-                                style = JiibType.listLabel.toTextStyle(t), modifier = Modifier.fillMaxWidth())
+                                style = JiibType.listLabel.toTextStyle(t), modifier = Modifier.fillMaxWidth(), maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                     }
                     item {
                         ListRow(selected = false, onClick = onFind, uDp = grid.uDp,
                             leadingContent = { ListRowIcon(JiibIcons.Search, grid.uDp, t.accent) }) {
                             Text(stringResource(R.string.conn_row_find), color = t.text,
-                                style = JiibType.listLabel.toTextStyle(t), modifier = Modifier.fillMaxWidth())
+                                style = JiibType.listLabel.toTextStyle(t), modifier = Modifier.fillMaxWidth(), maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                     }
                     items(profiles, key = { it.id }) { profile ->

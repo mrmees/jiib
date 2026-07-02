@@ -47,8 +47,10 @@ import works.mees.jiib.state.PrinterState
 import works.mees.jiib.state.enumerateSettableHeaters
 import works.mees.jiib.state.heaterDisplayName
 import works.mees.jiib.theme.JiibType
+import works.mees.jiib.theme.compose.FocusText
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
+import androidx.compose.ui.text.style.TextOverflow
 
 /**
  * The **Heat Presets** screen — per-printer preheat preset list/detail + create/edit wizard (Task 10).
@@ -152,6 +154,8 @@ fun HeatPresetsScreen(
                                         color = LocalTokens.current.text2,
                                         style = JiibType.body.toTextStyle(LocalTokens.current),
                                         textAlign = TextAlign.Center,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
                                     )
                                 }
                             } else {
@@ -170,6 +174,8 @@ fun HeatPresetsScreen(
                                                     text = presetSummary(p),
                                                     style = JiibType.dataMeta.toTextStyle(t),
                                                     color = t.text2,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis,
                                                 )
                                             },
                                         ) {
@@ -276,14 +282,13 @@ private fun HeatPresetDetail(
 ) {
     val t = LocalTokens.current
     if (preset == null) {
-        Box(modifier, contentAlignment = Alignment.Center) {
-            Text(
-                text = stringResource(R.string.heat_presets_select_hint),
-                color = t.text2,
-                style = JiibType.body.toTextStyle(t),
-                textAlign = TextAlign.Center,
-            )
-        }
+        FocusText(
+            text = stringResource(R.string.heat_presets_select_hint),
+            role = JiibType.body,
+            t = t,
+            color = t.text2,
+            modifier = modifier,
+        )
         return
     }
 
@@ -304,12 +309,15 @@ private fun HeatPresetDetail(
                         text = heaterDisplayName(obj),
                         color = t.text,
                         style = JiibType.listLabel.toTextStyle(t),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
                     )
                     Text(
                         text = if (v == 0) stringResource(R.string.heat_presets_off) else "$v°C",
                         color = t.text2,
                         style = JiibType.dataInline.toTextStyle(t),
+                        maxLines = 1,
                     )
                 }
             }

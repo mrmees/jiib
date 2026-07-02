@@ -43,8 +43,10 @@ import works.mees.jiib.di.AppContainer
 import works.mees.jiib.state.PrintState
 import works.mees.jiib.state.PrinterState
 import works.mees.jiib.theme.JiibType
+import works.mees.jiib.theme.compose.FocusText
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
+import androidx.compose.ui.text.style.TextOverflow
 import works.mees.jiib.ui.screen.TokenTextField
 
 /**
@@ -91,13 +93,13 @@ fun IncrementValuesScreen(
                     onPanic = estop,
                 ) {
                     if (selectedSpec == null) {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text(
-                                text = stringResource(R.string.increment_values_select_hint),
-                                color = LocalTokens.current.text2,
-                                style = JiibType.body.toTextStyle(LocalTokens.current),
-                            )
-                        }
+                        FocusText(
+                            text = stringResource(R.string.increment_values_select_hint),
+                            role = JiibType.body,
+                            t = LocalTokens.current,
+                            color = LocalTokens.current.text2,
+                            modifier = Modifier.fillMaxSize(),
+                        )
                     } else {
                         IncrementEditor(
                             spec = selectedSpec,
@@ -180,6 +182,8 @@ private fun IncrementEditor(
             text = errorMsg ?: stringResource(R.string.increment_values_input_hint),
             color = if (errorMsg != null) t.stop else t.text2,
             style = JiibType.caption.toTextStyle(t),
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
         )
         Spacer(Modifier.weight(1f))
         OutlinedControl(

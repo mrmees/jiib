@@ -28,6 +28,8 @@ import works.mees.jiib.R
 import works.mees.jiib.designsystem.components.FocusFrame
 
 import works.mees.jiib.designsystem.components.FootAction
+import androidx.compose.ui.text.style.TextOverflow
+import works.mees.jiib.theme.compose.FocusText
 import works.mees.jiib.designsystem.components.FootButtonBar
 import works.mees.jiib.designsystem.control.Intent
 import works.mees.jiib.designsystem.icons.JiibIcons
@@ -279,17 +281,21 @@ private fun EmptyConsole(modifier: Modifier = Modifier) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
         ) {
-            Text(
+            FocusText(
                 text = stringResource(R.string.console_empty_title),
+                role = JiibType.focusHeader,
+                t = t,
                 color = t.text,
-                style = JiibType.focusHeader.toTextStyle(t),
-                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+                maxHeightU = 1f,
             )
-            Text(
+            FocusText(
                 text = stringResource(R.string.console_empty_body),
+                role = JiibType.caption,
+                t = t,
                 color = t.text2,
-                style = JiibType.caption.toTextStyle(t),
-                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+                maxHeightU = 2f,
             )
         }
     }
@@ -311,6 +317,8 @@ private fun BackfillFailedNotice(modifier: Modifier = Modifier) {
             text = stringResource(R.string.console_backfill_failed),
             color = t.heat,
             style = JiibType.caption.toTextStyle(t),
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
