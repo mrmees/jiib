@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -66,9 +65,8 @@ import works.mees.jiib.designsystem.control.OutlinedControl
 import works.mees.jiib.designsystem.icons.JiibIcon
 import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.ScreenScaffold
-import works.mees.jiib.designsystem.layout.FocusInset
+import works.mees.jiib.designsystem.focus.FocusStage
 import works.mees.jiib.designsystem.layout.ListBlock
-import works.mees.jiib.designsystem.layout.LocalUnitDp
 import works.mees.jiib.designsystem.layout.controlHeight
 import works.mees.jiib.designsystem.layout.rememberUnitGrid
 import works.mees.jiib.di.AppContainer
@@ -321,7 +319,7 @@ private fun ExtrudeContent(
                     safetyActive = gating !is GatingState.Idle,
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
-                    contentInset = FocusInset / 2, // shared adjustment-focus rhythm (matches Fine-Tune)
+                    contentInset = 0.dp,
                 ) {
                     FocusGrid(
                         vm = vm,
@@ -490,47 +488,48 @@ private fun FocusGrid(
     onRetract: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Single vertical stack (2026-06-17 reflow): top→bottom = [tool selector] · nozzle readout ·
-    // distance selector · speed slider · Extrude/Retract in one bottom row (the hero, fills remaining).
-    Column(modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (vm.showToolSelector) {
-            ToolSelector(
-                tools = vm.tools,
-                inFlight = inFlight,
-                onSelect = onSelectTool,
-                modifier = Modifier.fillMaxWidth().controlHeight(uDp),
-            )
-        }
-        // Info line + sliders, centered vertically in the leftover space above the command row.
-        val lengthCeiling = vm.maxExtrudeDistance?.coerceAtMost(MAX_DISTANCE_MM) ?: MAX_DISTANCE_MM
-        Column(
-            Modifier.fillMaxWidth().weight(1f),
-            verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
-        ) {
-            // Info line — current temperature · length · speed (values only; the unit disambiguates).
-            InfoLine(temp = vm.nozzleTemp, distance = distance, speed = speed, modifier = Modifier.fillMaxWidth())
-            // Length slider — title start-aligned, bare track; max 100 mm (capped by printer ceiling).
-            LabeledSlider(
-                title = stringResource(R.string.extrude_length),
-                value = distance.toFloat(),
-                range = MIN_DISTANCE_MM..lengthCeiling,
-                onChange = { onSelectDistance(it.toDouble()) },
-                uDp = uDp,
-            )
-            // Speed slider — capped to the printer's reported max_extrude_only_velocity.
-            LabeledSlider(
-                title = stringResource(R.string.extrude_speed_readout),
-                value = speed.toFloat(),
-                range = MIN_SPEED_MM_S.toFloat()..vm.maxExtrudeVelocity.toFloat(),
-                onChange = { onSpeedSettle(it.roundToInt()) },
-                uDp = uDp,
-            )
-        }
-        // Command row pinned at the bottom — canonical [OutlinedControl] (filled + intent-colored
-        // border), 1U tall, glyph at the 0.6U tier (LocalUnitDp provided like every other control
-        // row). Warm = Accent; cold lockout = Danger/stop border + cold glyph, not tappable; an
-        // in-flight dispatch dims the affected button.
-        CompositionLocalProvider(LocalUnitDp provides uDp) {
+    val lengthCeiling = vm.maxExtrudeDistance?.coerceAtMost(MAX_DISTANCE_MM) ?: MAX_DISTANCE_MM
+    FocusStage(
+        modifier = modifier,
+        cap = if (vm.showToolSelector) {
+            {
+                ToolSelector(
+                    tools = vm.tools,
+                    inFlight = inFlight,
+                    onSelect = onSelectTool,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        } else null,
+        body = {
+            Column(
+                Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+            ) {
+                // Info line — current temperature · length · speed (values only; the unit disambiguates).
+                InfoLine(temp = vm.nozzleTemp, distance = distance, speed = speed, modifier = Modifier.fillMaxWidth())
+                // Length slider — title start-aligned, bare track; max 100 mm (capped by printer ceiling).
+                LabeledSlider(
+                    title = stringResource(R.string.extrude_length),
+                    value = distance.toFloat(),
+                    range = MIN_DISTANCE_MM..lengthCeiling,
+                    onChange = { onSelectDistance(it.toDouble()) },
+                    uDp = uDp,
+                )
+                // Speed slider — capped to the printer's reported max_extrude_only_velocity.
+                LabeledSlider(
+                    title = stringResource(R.string.extrude_speed_readout),
+                    value = speed.toFloat(),
+                    range = MIN_SPEED_MM_S.toFloat()..vm.maxExtrudeVelocity.toFloat(),
+                    onChange = { onSpeedSettle(it.roundToInt()) },
+                    uDp = uDp,
+                )
+            }
+        },
+        dock = {
+            // Command row — canonical OutlinedControl (filled + intent-colored border), 1U tall.
+            // Warm = Go; cold lockout = Danger/stop border + cold glyph, not tappable.
+            // An in-flight dispatch dims the affected button.
             Row(
                 Modifier.fillMaxWidth().controlHeight(uDp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -558,8 +557,8 @@ private fun FocusGrid(
                     contentDescription = stringResource(R.string.extrude_cmd_retract),
                 )
             }
-        }
-    }
+        },
+    )
 }
 
 /**
