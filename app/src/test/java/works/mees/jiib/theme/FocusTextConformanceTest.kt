@@ -80,16 +80,5 @@ class FocusTextConformanceTest {
         }
     }
 
-    private fun mainSrcDir(): File {
-        val userDir = requireNotNull(System.getProperty("user.dir"))
-        var dir: File? = File(userDir).canonicalFile
-        while (dir != null) {
-            val c = File(dir, "app/src/main/java/works/mees/jiib")
-            if (c.isDirectory) return c
-            dir = dir.parentFile
-        }
-        error("main source dir not found from $userDir")
-    }
-
     private companion object { const val ENFORCE = true }
 }
