@@ -415,7 +415,14 @@ private fun paletteModeLabelRes(mode: String): Int = when (mode) {
 internal fun hasCustomColors(t: ThemePrefs.ThemeTuple): Boolean =
     t.poolOverrides.isNotEmpty() || t.statusOverrides.isNotEmpty() || t.accentOverride != null
 
-/** Literal status fill for the grid: the draft override if set, else the (mode-gated) baked token. */
+/**
+ * Literal status fill for the grid: the draft override if set, else the (mode-gated) baked token.
+ *
+ * CODEX-FIX RATIONALE (T26): the STATUS swatches read the draft `statusOverrides` LITERALLY rather
+ * than through `t.stop`/`t.heat`/`t.go`, because those role tokens are **mode-gated** — they resolve
+ * against the committed (dark/light) theme, so a live draft edit would not surface in the swatch
+ * until saved. Reading the working tuple's override first keeps the preview honest.
+ */
 private fun statusFill(slot: StatusSlot, working: ThemePrefs.ThemeTuple, t: ThemeTokens): Color =
     working.statusOverrides[slot.key]?.toComposeColor() ?: when (slot) {
         StatusSlot.Stop -> t.stop
