@@ -24,6 +24,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.collections.immutable.persistentListOf
 import works.mees.jiib.R
+import works.mees.jiib.designsystem.control.OutlinedControl
+import works.mees.jiib.designsystem.focus.FocusExplainer
+import works.mees.jiib.designsystem.focus.FocusPlaceholder
 import works.mees.jiib.designsystem.components.DigestColumn
 import works.mees.jiib.designsystem.components.DigestEmphasis
 import works.mees.jiib.designsystem.components.DigestRow
@@ -296,6 +299,38 @@ private fun DesignKitComponentDemo(modifier: Modifier = Modifier) {
                                 ),
                             )
                         },
+                    )
+                }
+
+                // ── Focus Content Law — Layer 2 archetypes ─────────────────────────
+                // FocusExplainer: centered prose + dock (Dense inset auto-selected via LAW 4).
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(grid.uDp * 4),
+                ) {
+                    FocusExplainer(
+                        text = "Explainer body text — the dock below pulls the inset to Dense.",
+                        dock = {
+                            OutlinedControl(
+                                label = "Done",
+                                onClick = {},
+                                intent = Intent.Accent,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        },
+                    )
+                }
+
+                // FocusPlaceholder: proportional glyph + prompt text (Default inset).
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(grid.uDp * 4),
+                ) {
+                    FocusPlaceholder(
+                        icon = JiibIcons.LauncherFiles,
+                        text = "Nothing selected",
                     )
                 }
             }

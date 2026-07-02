@@ -34,4 +34,10 @@ class FocusZonesTest {
             assertEquals(focusZoneInsetDp(tier), p.bottom)
         }
     }
+
+    @Test
+    fun dock_presence_selects_the_dense_tier() {
+        assertEquals(FocusZoneInset.Dense, focusZoneInsetFor(hasDock = true))
+        assertEquals(FocusZoneInset.Default, focusZoneInsetFor(hasDock = false))
+    }
 }

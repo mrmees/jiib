@@ -252,6 +252,56 @@ fun FocusText(
 }
 
 /**
+ * Bounded Focus-body text — [AnnotatedString] overload (Focus-text law, 2026-07-02). Same bounding
+ * contract as the [String] overload; [BasicText] accepts [AnnotatedString] directly. Use when the
+ * caller needs inline spans (bold run, color run, etc.) inside a shrink-to-fit Focus body block.
+ */
+@Composable
+fun FocusText(
+    text: androidx.compose.ui.text.AnnotatedString,
+    role: TextRole,
+    t: ThemeTokens,
+    color: Color,
+    modifier: Modifier = Modifier,
+    maxHeightU: Float? = null,
+    textAlign: TextAlign = TextAlign.Center,
+    minSp: Float = 15f,
+    maxSp: Float? = null,
+) {
+    val uDp = LocalUnitDp.current ?: 64.dp
+    val boxMod = modifier.then(
+        if (maxHeightU != null) Modifier.heightIn(max = uDp * maxHeightU) else Modifier,
+    )
+    BoxWithConstraints(modifier = boxMod, contentAlignment = Alignment.Center) {
+        val density = LocalDensity.current
+        val maxFontSizeSp = fsSp(maxSp ?: role.baseSp, t.fs)
+        val maxLines = if (constraints.hasBoundedHeight) {
+            val lineHeightPx = with(density) { (maxFontSizeSp * 2.0f).sp.toPx() }
+            (constraints.maxHeight.toFloat() / lineHeightPx).toInt().coerceAtLeast(1)
+        } else Int.MAX_VALUE
+        BasicText(
+            text = text,
+            style = TextStyle(
+                fontFamily = (if (role.role == TypeRole.Ui) t.uiFont else t.dataFont).family,
+                fontWeight = role.weight,
+                color = color,
+                textAlign = textAlign,
+            ),
+            softWrap = true,
+            maxLines = maxLines,
+            autoSize = TextAutoSize.StepBased(
+                minFontSize = fsSp(minSp, t.fs).sp,
+                maxFontSize = maxFontSizeSp.sp,
+                stepSize = 1.sp,
+            ),
+            modifier = Modifier.fillMaxWidth().then(
+                if (constraints.hasBoundedHeight) Modifier.heightIn(max = this.maxHeight) else Modifier
+            ),
+        )
+    }
+}
+
+/**
  * Render an arbitrary catalog [AppFont]'s own name in its OWN face, at the list-label tier, for the
  * font picker. The ONE sanctioned inline-family site outside role plumbing (FontConformanceTest
  * allowlists this file) — keeps the picker screen itself conformant.

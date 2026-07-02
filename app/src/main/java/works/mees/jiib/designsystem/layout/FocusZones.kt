@@ -22,6 +22,10 @@ import androidx.compose.ui.unit.dp
  */
 enum class FocusZoneInset { Default, Dense, Flush }
 
+/** LAW 4: display archetypes default to the full inset; a dock pulls them to the dense tier. */
+fun focusZoneInsetFor(hasDock: Boolean): FocusZoneInset =
+    if (hasDock) FocusZoneInset.Dense else FocusZoneInset.Default
+
 fun focusZoneInsetDp(inset: FocusZoneInset): Dp = when (inset) {
     FocusZoneInset.Default -> FocusInset
     FocusZoneInset.Dense -> FocusInset / 2
