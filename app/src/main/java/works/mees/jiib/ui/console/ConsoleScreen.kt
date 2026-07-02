@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import works.mees.jiib.R
 import works.mees.jiib.designsystem.components.FocusFrame
-
+import works.mees.jiib.designsystem.focus.FocusMedia
 import works.mees.jiib.designsystem.components.FootAction
 import androidx.compose.ui.text.style.TextOverflow
 import works.mees.jiib.theme.compose.FocusText
@@ -204,21 +204,21 @@ private fun ConsoleContent(
                     onPanic = onEmergencyStop,
                     contentInset = 0.dp, // feed fills the frame edge-to-edge (rows carry their own padding)
                 ) {
-                    // Pinned-height BoxWithConstraints wrapper — load-bearing (the Files scroll lesson):
-                    // pins the RecyclerView so it can't over-measure and composite past the frame.
-                    BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
-                        // .height(maxHeight) is load-bearing — see FileListView / ConsoleListView patterns.
-                        ConsoleListView(
-                            lines = lines,
-                            modifier = Modifier.fillMaxWidth().height(maxHeight),
-                        )
-                        when {
-                            // rawLineCount (not lines.size): "raw lines exist but every one is
-                            // filtered out" must NOT show the fresh-connect empty overlay (WR-01).
-                            rawLineCount == 0 && !backfillFailed ->
-                                EmptyConsole(Modifier.matchParentSize())
-                            backfillFailed ->
-                                BackfillFailedNotice(Modifier.fillMaxWidth())
+                    FocusMedia(
+                        overlay = {
+                            when {
+                                // rawLineCount (not lines.size): "raw lines exist but every one is
+                                // filtered out" must NOT show the fresh-connect empty overlay (WR-01).
+                                rawLineCount == 0 && !backfillFailed -> EmptyConsole(Modifier.matchParentSize())
+                                backfillFailed -> BackfillFailedNotice(Modifier.fillMaxWidth())
+                            }
+                        },
+                    ) {
+                        // Pinned-height BoxWithConstraints wrapper — load-bearing (the Files scroll lesson):
+                        // pins the RecyclerView so it can't over-measure and composite past the frame.
+                        BoxWithConstraints(Modifier.fillMaxSize()) {
+                            // .height(maxHeight) is load-bearing — see FileListView / ConsoleListView patterns.
+                            ConsoleListView(lines = lines, modifier = Modifier.fillMaxWidth().height(maxHeight))
                         }
                     }
                 }
