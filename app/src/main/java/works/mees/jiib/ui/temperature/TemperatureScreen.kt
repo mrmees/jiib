@@ -914,15 +914,14 @@ private fun HeaterControlFocus(
         body = {
             // ── Value display (live scrubber position while dragging, else the working target) ──
             // FocusHeroValueText renders value+unit as a single shrink-to-fit layout (Focus-text law 2026-06-29).
-            Box(Modifier.fillMaxSize()) {
-                FocusHeroValueText(
-                    value = shown.toString(),
-                    unit = "°C",
-                    t = t,
-                    valueColor = t.text,
-                    unitColor = t.text2,
-                )
-            }
+            // No wrapper Box: the Stage body slot IS BoxScope and the zone centers wrap-content children.
+            FocusHeroValueText(
+                value = shown.toString(),
+                unit = "°C",
+                t = t,
+                valueColor = t.text,
+                unitColor = t.text2,
+            )
         },
         dock = {
             // ── Scrubber (coarse) — bare track; preview on drag, commit on release ──
