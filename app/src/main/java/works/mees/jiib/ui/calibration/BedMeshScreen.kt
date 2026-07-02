@@ -961,6 +961,31 @@ private fun BedMeshFocusRegion(
     uDp: Dp,
     modifier: Modifier = Modifier,
 ) {
+    FocusStage(modifier = modifier, body = {
+        BedMeshFocusContent(
+            vm = vm,
+            selectedProfile = selectedProfile,
+            tokens = tokens,
+            uDp = uDp,
+            modifier = Modifier.fillMaxSize(),
+        )
+    })
+}
+
+/**
+ * The Stage-agnostic inner content of [BedMeshFocusRegion] — the renderModel resolution + the
+ * aspect-ratio heatmap/empty Box. Called directly (WITHOUT its own [FocusStage]) from
+ * [MeshConfigEditorFocus]'s PREVIEW branch, which is already inside a Stage, so both paths carry
+ * exactly ONE Dense Stage inset.
+ */
+@Composable
+private fun BedMeshFocusContent(
+    vm: BedMeshVm,
+    selectedProfile: String?,
+    tokens: ThemeTokens,
+    uDp: Dp,
+    modifier: Modifier = Modifier,
+) {
     val t = LocalTokens.current
     // Resolve the model to render: if a saved profile is selected AND it differs from the active
     // mesh, preview that profile. Otherwise render the live model.
@@ -969,7 +994,7 @@ private fun BedMeshFocusRegion(
         if (sel != null && sel != vm.model.profileName) vm.model.previewOf(sel) ?: vm.model
         else vm.model
     }
-    FocusStage(modifier = modifier, body = {
+    Box(modifier, contentAlignment = Alignment.Center) {
         Box(Modifier.aspectRatio(1f), contentAlignment = Alignment.Center) {
             // Gate on renderModel.isEmpty — a previewed saved profile must render even when no live
             // mesh is loaded (Codex correctness: renderModel != vm.model when previewing).
@@ -1037,7 +1062,7 @@ private fun BedMeshFocusRegion(
                 )
             }
         }
-    })
+    }
 }
 
 /**
@@ -1046,7 +1071,7 @@ private fun BedMeshFocusRegion(
  * Dispatches to the appropriate editor based on [item]:
  * - VIEW_TYPE → [ViewTypeSelector] (description + 3 icon-only foot buttons)
  * - HIGH_COLOR / LOW_COLOR → [PoolColorPicker] (data-pool swatch grid)
- * - PREVIEW → [BedMeshFocusRegion] with current settings (selectedProfile=null → live mesh)
+ * - PREVIEW → [BedMeshFocusContent] with current settings (selectedProfile=null → live mesh)
  */
 @Composable
 private fun MeshConfigEditorFocus(
@@ -1081,7 +1106,9 @@ private fun MeshConfigEditorFocus(
                 t = tokens,
                 modifier = Modifier.fillMaxSize(),
             )
-            MeshConfigItem.PREVIEW -> BedMeshFocusRegion(
+            // Direct content call (no nested Stage) — this branch is already inside the Stage
+            // above, so the preview heatmap carries exactly one Dense inset like the else-branch.
+            MeshConfigItem.PREVIEW -> BedMeshFocusContent(
                 vm = vm,
                 selectedProfile = null,  // always preview with current settings
                 tokens = tokens,
