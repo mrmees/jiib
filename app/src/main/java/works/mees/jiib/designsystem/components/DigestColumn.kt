@@ -13,6 +13,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -31,6 +32,7 @@ import works.mees.jiib.theme.fsSp
 
 /** One row of a Focus digest. Line rows scale (LAW 5); Custom rows (meters, chips) hold their U height. */
 sealed interface DigestRow {
+    @Immutable
     data class Line(
         val label: String,
         val value: String,
@@ -48,6 +50,7 @@ sealed interface DigestRow {
      * Scales like Line rows. [marquee] = true renders with [basicMarquee] instead of ellipsis —
      * a named motion-law exception (single-line, overflow-only; ConnSummary URL precedent).
      */
+    @Immutable
     data class Note(
         val text: String,
         val role: TextRole = JiibType.dataInline,
@@ -61,6 +64,7 @@ sealed interface DigestRow {
      * Height model: same as a single [Line] row — max over both cells' role bases + icon term.
      * [right] null → left takes full width via weight, right side is a Spacer.
      */
+    @Immutable
     data class Duo(val left: Line, val right: Line? = null) : DigestRow
 
     class Custom(val heightU: Float = 1f, val content: @Composable () -> Unit) : DigestRow

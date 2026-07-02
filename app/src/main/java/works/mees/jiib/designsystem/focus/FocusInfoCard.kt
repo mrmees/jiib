@@ -166,7 +166,7 @@ private fun IconRowsContent(
 
         val key = stats.joinToString("¦") { stat ->
             "${stat.icon != null},${stat.label.length},${stat.value.length}"
-        } + "|$availW|$availH|${t.fs}"
+        } + "|$availW|$availH|${t.fs}|${density.density}|${density.fontScale}"
 
         val scale = remember(key) {
             var widest = 0f
@@ -289,7 +289,7 @@ private fun CenteredBlockContent(
 
         val key = (headline ?: "") + "|" +
                 dataLines.joinToString("¦") { it.length.toString() } +
-                "|$availW|$availH|${t.fs}"
+                "|$availW|$availH|${t.fs}|${density.density}|${density.fontScale}"
 
         val sizeFrac = remember(key) {
             val nameLayout = headline?.let {

@@ -18,7 +18,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import works.mees.jiib.R
@@ -135,7 +134,6 @@ fun HeatPresetsScreen(
                                 HeatPresetDetail(
                                     preset = selected,
                                     onEdit = { selected?.let { editing = HeatPresetEditState.Editing(it.id) } },
-                                    uDp = grid.uDp,
                                     modifier = Modifier.fillMaxSize(),
                                 )
                             }
@@ -277,7 +275,6 @@ internal val HeatPresetEditStateSaver =
 private fun HeatPresetDetail(
     preset: HeatPreset?,
     onEdit: () -> Unit,
-    uDp: Dp,
     modifier: Modifier = Modifier,
 ) {
     if (preset == null) {

@@ -252,6 +252,12 @@ parameters, Temperature sensors, Output controls) follows this two-part layout:
    is pinned to the BOTTOM of the Focus content area (`Arrangement.Bottom` or a trailing
    `Spacer` before the control group). It does NOT float in the center alongside the value.
 
+> **SUPERSEDED (2026-07): FocusFrame no longer takes `contentInset`; archetypes own their insets
+> — see §"Focus content law (2026-07)" → LAW 4 (Inset tiers).** The `contentInset` param was
+> deleted; adjuster Focuses are the `AdjusterPanel` archetype and get the **Dense** tier (8dp side +
+> bottom, 8dp top) from their `FocusZones` — not a `FocusInset / 2` on the frame. The paragraph
+> below is retained for historical context only.
+
 **Shared `contentInset = FocusInset / 2` (8dp):** adjuster Focuses use the halved inset (matching
 the Calibration Hub, 2026-06-13 owner UAT) so the bottom-docked control group sits 8dp from the
 frame edge — enough breathing room without wasting the value zone's vertical budget.

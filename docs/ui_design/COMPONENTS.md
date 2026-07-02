@@ -147,7 +147,9 @@ header is always present — idle and printing alike. It contains:
 **Header/content divider (2026-06-15 owner UAT):**
 
 A **full-width 1dp `t.outline` hairline** sits flush at the 1U header's bottom edge (the content top
-inset is 0, so the divider is the boundary), separating the header bar from the content area. It is a
+inset is **8dp** for the Default + Dense tiers — **0 only for the Flush case** (FocusMedia); owner
+2026-07-02 amendment, superseding the earlier "content top inset = 0", see `LAYOUT.md §"Focus content
+law (2026-07)" LAW 4`), separating the header bar from the content area. It is a
 **visual landmark**, app-wide on every `FocusFrame`. Without it, a vertically-centered Focus body
 reads as *floating* — the title sits centered in a tall 1U bar with no boundary beneath it, so the
 eye has nothing to measure "centered" against and the content feels pushed down even when it is
