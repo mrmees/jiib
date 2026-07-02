@@ -295,6 +295,7 @@ private fun HeatPresetDetail(
         },
         horizontalAlignment = Alignment.Start,
         modifier = modifier,
+        maxScale = 1.5f,
         dock = {
             OutlinedControl(
                 label = stringResource(R.string.common_edit),

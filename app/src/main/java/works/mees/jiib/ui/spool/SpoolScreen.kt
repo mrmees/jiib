@@ -830,7 +830,9 @@ private fun SpoolDetailContent(
     val editWeightCd = stringResource(R.string.cd_spool_weight_edit)
     val measureInteraction = remember { MutableInteractionSource() }
     val rows = buildList {
-        add(DigestRow.Custom(heightU = 1f) {
+        // FillMeter natural height: 6dp track + 4dp gap + ~22.5dp dataMeta label ≈ 32.5dp.
+        // 0.5U (32dp) clips; 0.6U (38.4dp) fits with margin — smallest clean fraction.
+        add(DigestRow.Custom(heightU = 0.6f) {
             FillMeter(
                 fraction = fillFraction,
                 fillColor = spoolColor ?: t.accent,
@@ -841,16 +843,20 @@ private fun SpoolDetailContent(
                 label = fillLabel,
             )
         })
-        add(DigestRow.Line(icon = JiibIcons.Nozzle, label = "", value = tempText(filament?.settingsExtruderTemp)))
-        add(DigestRow.Line(icon = JiibIcons.HeatBed, label = "", value = tempText(filament?.settingsBedTemp)))
-        add(DigestRow.Line(
-            icon = JiibIcons.CalendarAddOn,
-            label = "",
-            value = spool.registered?.substringBefore('T')?.ifBlank { null } ?: stringResource(R.string.spool_value_unset),
+        // Temp fields: 2-per-row Duo grid (nozzle left, bed right).
+        add(DigestRow.Duo(
+            left = DigestRow.Line(icon = JiibIcons.Nozzle, label = "", value = tempText(filament?.settingsExtruderTemp)),
+            right = DigestRow.Line(icon = JiibIcons.HeatBed, label = "", value = tempText(filament?.settingsBedTemp)),
         ))
-        if (spool.archived) {
-            add(DigestRow.Line(icon = JiibIcons.Archive, label = "", value = stringResource(R.string.spool_badge_archived), valueColor = t.heat))
-        }
+        // Date + optional archived: Duo grid (registered left, archived right when present).
+        add(DigestRow.Duo(
+            left = DigestRow.Line(
+                icon = JiibIcons.CalendarAddOn,
+                label = "",
+                value = spool.registered?.substringBefore('T')?.ifBlank { null } ?: stringResource(R.string.spool_value_unset),
+            ),
+            right = if (spool.archived) DigestRow.Line(icon = JiibIcons.Archive, label = "", value = stringResource(R.string.spool_badge_archived), valueColor = t.heat) else null,
+        ))
     }
     FocusDigest(rows = rows, horizontalAlignment = Alignment.Start)
 }

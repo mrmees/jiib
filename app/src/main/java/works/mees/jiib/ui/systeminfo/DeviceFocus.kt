@@ -29,7 +29,7 @@ fun ColumnScope.HostDetail(
     throttle: List<String>,
 ) {
     FocusDigest(
-        rows = hostDetailLines(host, throttle).map { DigestRow.Note(it) },
+        rows = hostDetailLines(host, throttle).map { DigestRow.Note(it, marquee = true) },
         horizontalAlignment = Alignment.Start,
     )
 }
@@ -53,7 +53,7 @@ fun ColumnScope.McuDetail(
     mcu: McuDevice,
 ) {
     FocusDigest(
-        rows = mcuDetailLines(mcu).map { DigestRow.Note(it) },
+        rows = mcuDetailLines(mcu).map { DigestRow.Note(it, marquee = true) },
         horizontalAlignment = Alignment.Start,
     )
 }

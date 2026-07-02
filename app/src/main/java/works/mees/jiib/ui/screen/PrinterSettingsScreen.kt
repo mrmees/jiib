@@ -177,11 +177,14 @@ fun PrinterSettingsContent(
                         onEmergencyStop = onEmergencyStop,
                         onPanic = onEmergencyStop,
                     ) {
-                        FocusDigest(rows = listOf(
-                            DigestRow.Note(activeProfile.displayName(), role = JiibType.focusHeader, color = t.text, textAlign = TextAlign.Center),
-                            DigestRow.Note("${activeProfile.host}:${activeProfile.port}", role = JiibType.dataMeta, color = t.text2, textAlign = TextAlign.Center),
-                            DigestRow.Note(stringResource(connectionState.printerSettingsLabelRes()), role = JiibType.caption, color = ringColor ?: t.text2, textAlign = TextAlign.Center),
-                        ))
+                        FocusDigest(
+                            rows = listOf(
+                                DigestRow.Note(activeProfile.displayName(), role = JiibType.focusHeader, color = t.text, textAlign = TextAlign.Center),
+                                DigestRow.Note("${activeProfile.host}:${activeProfile.port}", role = JiibType.dataMeta, color = t.text2, textAlign = TextAlign.Center),
+                                DigestRow.Note(stringResource(connectionState.printerSettingsLabelRes()), role = JiibType.caption, color = ringColor ?: t.text2, textAlign = TextAlign.Center),
+                            ),
+                            maxScale = 1.5f,
+                        )
                     }
                 } else {
                     // Empty-state card: mirrors PrintersContent's empty FocusFrame branch.

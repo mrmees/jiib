@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.rememberScrollState
@@ -52,23 +54,34 @@ sealed interface DigestRow {
         val marquee: Boolean = false,
     ) : DigestRow
 
+    /**
+     * Two [Line] cells side-by-side in a weighted Row (1:1 grid).
+     * Height model: same as a single [Line] row — max over both cells' role bases + icon term.
+     * [right] null → left takes full width via weight, right side is a Spacer.
+     */
+    data class Duo(val left: Line, val right: Line? = null) : DigestRow
+
     class Custom(val heightU: Float = 1f, val content: @Composable () -> Unit) : DigestRow
 }
 
 sealed interface DigestFit {
     data object Natural : DigestFit
-    data class Shrunk(val scale: Float) : DigestFit
+    data class Scaled(val scale: Float) : DigestFit
     data object Scroll : DigestFit
 }
 
 /**
- * LAW 5, the pure core: walk scale 1.0 → minScale in stepDown decrements; first scale whose
- * modeled total height fits wins. Natural if 1.0 fits, Scroll if nothing fits.
- * totalHeightAt models row heights at a given scale (clamping per-row floors is the caller's model).
+ * LAW 5, the pure core: walk scale candidates from [maxScale] downward in [stepDown] decrements;
+ * first candidate whose modeled total height fits wins.
  *
- * Each candidate is computed as (1.0 - i*stepDown) in Double then converted to Float, avoiding
- * the floating-point accumulation error of repeated Float subtraction (which can strand the
- * stepping slightly above exact multiples like 0.8f or 0.6f and miss them).
+ * - Returns [DigestFit.Natural] ONLY when [maxScale] == 1f AND scale-1.0 fits (existing fast-path,
+ *   unchanged in meaning). With [maxScale] > 1f any fit — including grow candidates — returns
+ *   [DigestFit.Scaled], so the caller knows layout grew or shrank.
+ * - Returns [DigestFit.Scroll] when even the [minScale] candidate does not fit.
+ *
+ * Each candidate is computed as `(maxScale - n * stepDown)` in Double then converted to Float,
+ * avoiding the floating-point accumulation error of repeated Float subtraction (which can strand
+ * the stepping slightly above exact multiples like 0.8f or 0.6f and miss them).
  *
  * The +0.5f fit tolerance forgives sub-pixel float rounding in the height model (e.g. `0.6f` is
  * not exactly 0.6 in IEEE 754, so `400f * 0.6f` can be 0.000015px over the expected value).
@@ -77,14 +90,17 @@ fun digestFit(
     availablePx: Float,
     totalHeightAt: (Float) -> Float,
     minScale: Float,
+    maxScale: Float = 1f,
     stepDown: Float = 0.05f,
 ): DigestFit {
     val fits = { s: Float -> totalHeightAt(s) <= availablePx + 0.5f }
-    if (fits(1f)) return DigestFit.Natural
-    var step = 1
+    // Natural fast-path: only when maxScale == 1f (no growth requested) AND fits at 1.0.
+    if (maxScale == 1f && fits(1f)) return DigestFit.Natural
+    // Walk candidates from maxScale downward.
+    var step = 0
     while (step < 10_000) {
-        val scale = (1.0 - step * stepDown.toDouble()).toFloat().coerceAtLeast(minScale)
-        if (fits(scale)) return DigestFit.Shrunk(scale)
+        val scale = (maxScale.toDouble() - step * stepDown.toDouble()).toFloat().coerceAtLeast(minScale)
+        if (fits(scale)) return DigestFit.Scaled(scale)
         if (scale == minScale) break   // tested at the floor — nothing smaller to try
         step++
     }
@@ -94,7 +110,8 @@ fun digestFit(
 /**
  * Pure extraction of the min-scale floor: the scale below which every text row is already
  * clamped at the 15sp ramp floor. [DigestRow.Line] contributes the larger of its label/value
- * base; [DigestRow.Note] contributes its role's base; [DigestRow.Custom] contributes nothing.
+ * base; [DigestRow.Note] contributes its role's base; [DigestRow.Duo] contributes the max over
+ * both cells' bases; [DigestRow.Custom] contributes nothing.
  */
 fun digestMinScale(rows: List<DigestRow>): Float {
     val largestBase = rows.mapNotNull { row ->
@@ -104,6 +121,15 @@ fun digestMinScale(rows: List<DigestRow>): Float {
                 maxOf(l.baseSp, v.baseSp)
             }
             is DigestRow.Note -> row.role.baseSp
+            is DigestRow.Duo -> {
+                val (ll, lv) = digestLineRoles(row.left.emphasis)
+                val leftBase = maxOf(ll.baseSp, lv.baseSp)
+                val rightBase = row.right?.let { r ->
+                    val (rl, rv) = digestLineRoles(r.emphasis)
+                    maxOf(rl.baseSp, rv.baseSp)
+                } ?: 0f
+                maxOf(leftBase, rightBase)
+            }
             is DigestRow.Custom -> null
         }
     }.maxOrNull() ?: 15f
@@ -116,12 +142,15 @@ internal const val DIGEST_LINE_HEIGHT_FACTOR = 1.5f
 /**
  * A digest block that degrades deterministically: even rhythm when roomy → text scales toward
  * the 15sp floor when tight → scrolls as LAST resort. Never silently clipped.
+ * [maxScale] > 1f opts into grow-to-cap: when there is extra space the column scales UP to
+ * [maxScale], returning [DigestFit.Scaled] (never [DigestFit.Natural]) when it grows.
  */
 @Composable
 fun DigestColumn(
     rows: List<DigestRow>,
     modifier: Modifier = Modifier,
     horizontalAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
+    maxScale: Float = 1f,
 ) {
     val t = LocalTokens.current
     val uDp = LocalUnitDp.current ?: 64.dp
@@ -133,7 +162,7 @@ fun DigestColumn(
         val uPx = with(density) { uDp.toPx() }
 
         // Model: line rows = tallest of (label, value, icon 0.6U) at a given scale; note rows =
-        // role base scaled; custom rows fixed.
+        // role base scaled; duo rows = single-line formula over max of both cells; custom rows fixed.
         val totalHeightAt: (Float) -> Float = { scale ->
             val rowsPx = rows.sumOf { row ->
                 when (row) {
@@ -151,6 +180,20 @@ fun DigestColumn(
                         val textPx = with(density) { (fsSp(digestScaledSp(row.role.baseSp, scale), t.fs) * DIGEST_LINE_HEIGHT_FACTOR).sp.toPx() }
                         textPx.toDouble()
                     }
+                    is DigestRow.Duo -> {
+                        // Height = single-line formula over the max of both cells' role bases + icon term.
+                        val (ll, lv) = digestLineRoles(row.left.emphasis)
+                        val leftMaxSp = maxOf(digestScaledSp(ll.baseSp, scale), digestScaledSp(lv.baseSp, scale))
+                        val rightMaxSp = row.right?.let { r ->
+                            val (rl, rv) = digestLineRoles(r.emphasis)
+                            maxOf(digestScaledSp(rl.baseSp, scale), digestScaledSp(rv.baseSp, scale))
+                        } ?: 0f
+                        val maxSp = maxOf(leftMaxSp, rightMaxSp)
+                        val textPx = with(density) { (fsSp(maxSp, t.fs) * DIGEST_LINE_HEIGHT_FACTOR).sp.toPx() }
+                        val leftIconPx = if (row.left.icon != null) uPx * 0.6f else 0f
+                        val rightIconPx = if (row.right?.icon != null) uPx * 0.6f else 0f
+                        maxOf(textPx, leftIconPx, rightIconPx).toDouble()
+                    }
                     is DigestRow.Custom -> (uPx * row.heightU).toDouble()
                 }
             }.toFloat()
@@ -160,10 +203,10 @@ fun DigestColumn(
         // Global floor: scale below which every text row is already clamped at the 15sp base.
         val minScale = digestMinScale(rows)
 
-        val fit = if (constraints.hasBoundedHeight) digestFit(availablePx, totalHeightAt, minScale) else DigestFit.Natural
+        val fit = if (constraints.hasBoundedHeight) digestFit(availablePx, totalHeightAt, minScale, maxScale) else DigestFit.Natural
         val scale = when (fit) {
             DigestFit.Natural -> 1f
-            is DigestFit.Shrunk -> fit.scale
+            is DigestFit.Scaled -> fit.scale
             DigestFit.Scroll -> minScale
         }
 
@@ -197,6 +240,37 @@ fun DigestColumn(
                         textAlign = row.textAlign,
                         modifier = Modifier.fillMaxWidth().then(if (row.marquee) Modifier.basicMarquee() else Modifier),
                     )
+                    is DigestRow.Duo -> Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        DigestLine(
+                            label = row.left.label,
+                            value = row.left.value,
+                            icon = row.left.icon,
+                            iconTint = row.left.iconTint,
+                            emphasis = row.left.emphasis,
+                            valueColor = row.left.valueColor,
+                            labelColor = row.left.labelColor,
+                            scale = scale,
+                            modifier = Modifier.weight(1f),
+                        )
+                        if (row.right != null) {
+                            DigestLine(
+                                label = row.right.label,
+                                value = row.right.value,
+                                icon = row.right.icon,
+                                iconTint = row.right.iconTint,
+                                emphasis = row.right.emphasis,
+                                valueColor = row.right.valueColor,
+                                labelColor = row.right.labelColor,
+                                scale = scale,
+                                modifier = Modifier.weight(1f),
+                            )
+                        } else {
+                            Spacer(Modifier.weight(1f))
+                        }
+                    }
                     is DigestRow.Custom -> Box(Modifier.fillMaxWidth().height(uDp * row.heightU)) { row.content() }
                 }
             }
