@@ -132,7 +132,7 @@ fun BoxScope.FocusHeroValueText(
         // genuinely impossible constraints (text wider than the available box at minSp).
         // Cached: re-measure only when measurement-affecting inputs change, not on every
         // color/token recomposition (hero values fire every 100–500 ms on live Moonraker data).
-        val chosenSp = remember(value, unit, maxWidthPx, t.fs, t.dataFont) {
+        val chosenSp = remember(value, unit, unitEm, maxWidthPx, t.fs, t.dataFont) {
             var result = minSpScaled
             for (sp in maxSpScaled.roundToInt() downTo ceil(minSpScaled.toDouble()).toInt()) {
                 val layout = textMeasurer.measure(

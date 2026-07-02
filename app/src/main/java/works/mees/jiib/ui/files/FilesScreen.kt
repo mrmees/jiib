@@ -927,7 +927,7 @@ private fun SpoolWarningGuard(
                             label = stringResource(R.string.common_back),
                             onClick = onBack,
                             modifier = Modifier.weight(1f),
-                            intent = Intent.Neutral,
+                            intent = Intent.Accent, // R5/R8: plain-nav Back wears accent (matches Scan/Move).
                         )
                         OutlinedControl(
                             label = stringResource(R.string.files_spool_warning_print_anyway),
