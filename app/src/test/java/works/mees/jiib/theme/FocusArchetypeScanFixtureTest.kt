@@ -56,6 +56,32 @@ class FocusArchetypeScanFixtureTest {
     }
 
     @Test
+    fun parenless_column_at_body_level_is_an_offender() {
+        // Bypass fix: `Column { }` has NO `(` — the CALL detector never sees it and step-1 masking
+        // hides the interior; the BLOCK detector must catch the opener itself.
+        val body = """ Column { Text("hi") } """
+        assertTrue(scanFocusBody(body, registry, "f.kt", 1).isNotEmpty())
+    }
+
+    @Test
+    fun parenless_box_inside_a_when_branch_is_an_offender() {
+        val body = """
+            when (mode) {
+                Mode.A -> FocusExplainer(text = a)
+                else -> Box{}
+            }
+        """
+        assertTrue(scanFocusBody(body, registry, "f.kt", 1).isNotEmpty())
+    }
+
+    @Test
+    fun parenless_registry_archetype_trailing_lambda_is_not_flagged() {
+        // BLOCK skips registry names; control-flow (`when {`) is lowercase and never matches.
+        val body = """ FocusStage { FocusExplainer(text = x) } """
+        assertEquals(emptyList<String>(), scanFocusBody(body, registry, "f.kt", 1))
+    }
+
+    @Test
     fun forbidden_inside_a_slot_lambda_is_not_scanned() {
         // F3: DigestRow.Custom / builder / any non-registry lambda is slot content — not scanned.
         val body = """ FocusStage(body = { Row { Icon() ; Text("slot") } }) """

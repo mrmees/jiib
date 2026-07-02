@@ -177,6 +177,11 @@ private val FORBIDDEN = setOf(
     "Spacer", "Text", "BasicText", "Image", "AsyncImage", "Icon",
 )
 private val CALL = Regex("""(^|[^.\w])([A-Z]\w*)\s*\(""")
+// Parenless block form — `Column { … }` / `Box{}` — bypasses CALL (which requires `(`), and step-1
+// masking would then hide the interior. Detect the OPENER itself: Uppercase name directly before
+// `{`. Control-flow keywords (`when`/`if`…) are lowercase and never match; registry archetypes with
+// parenless trailing lambdas are skipped by name.
+private val BLOCK = Regex("""(^|[^.\w])([A-Z]\w*)\s*\{""")
 private val PAD = Regex("""\.padding\s*\(""")
 private val CONTROL_KW = setOf("if", "when", "for", "while", "catch")
 
@@ -246,6 +251,17 @@ fun scanFocusBody(
         if (masked[start]) continue
         val name = m.groupValues[2]
         if (name in FORBIDDEN) offenders += "$file:${lineOf(start)} raw $name( in Focus body"
+    }
+    // Parenless block form: the name char (not the preceding boundary char, which may itself sit in
+    // a masked span) decides visibility — a body-level `Column { }` or a when-branch `Box{}` is an
+    // offender even though step-1 masked the brace interior (the OPENER is at the visible level).
+    for (m in BLOCK.findAll(body)) {
+        val idStart = m.range.first + m.groupValues[1].length
+        if (masked[idStart]) continue
+        val name = m.groupValues[2]
+        if (name in FORBIDDEN && name !in registry) {
+            offenders += "$file:${lineOf(idStart)} raw $name { in Focus body"
+        }
     }
     for (m in PAD.findAll(body)) {
         if (!masked[m.range.first]) offenders += "$file:${lineOf(m.range.first)} .padding( in Focus body"
