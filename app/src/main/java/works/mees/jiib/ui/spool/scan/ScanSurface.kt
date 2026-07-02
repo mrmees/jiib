@@ -171,7 +171,7 @@ fun ScanSurface(
                 label = "Back",
                 onClick = onBack,
                 modifier = Modifier.weight(1f),
-                intent = Intent.Neutral, // D-10: plain nav spends no safety color (matches Move).
+                intent = Intent.Accent, // R5/R8: plain-nav Back wears accent (matches Move).
                 icon = JiibIcons.Back,
             )
             if (livePreview) {

@@ -771,7 +771,7 @@ internal fun MoveHubContent(
                                         label = "Cancel",
                                         onClick = { mode = MoveMode.TouchMove },
                                         modifier = Modifier.weight(1f),
-                                        intent = Intent.Accent,
+                                        intent = Intent.Danger, // C7: discards the typed name + Z toggle = cancel-with-loss.
                                         icon = JiibIcons.DialogClose,
                                         contentDescription = "Cancel",
                                     )

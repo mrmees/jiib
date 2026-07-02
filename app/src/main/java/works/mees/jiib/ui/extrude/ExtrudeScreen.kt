@@ -541,7 +541,7 @@ private fun FocusGrid(
                     onClick = onExtrude,
                     modifier = Modifier.weight(1f).fillMaxHeight()
                         .alpha(if (vm.canExtrude && extrudeBusy) 0.38f else 1f),
-                    intent = if (vm.canExtrude) Intent.Accent else Intent.Danger,
+                    intent = if (vm.canExtrude) Intent.Go else Intent.Danger, // R19: motion IS the screen's purpose = Go; cold = Danger lockout cue.
                     symbol = if (vm.canExtrude) "output_circle" else COLD_SYMBOL,
                     enabled = vm.canExtrude && !extrudeBusy,
                     contentDescription = stringResource(R.string.extrude_cmd_extrude),
@@ -552,7 +552,7 @@ private fun FocusGrid(
                     onClick = onRetract,
                     modifier = Modifier.weight(1f).fillMaxHeight()
                         .alpha(if (vm.canExtrude && retractBusy) 0.38f else 1f),
-                    intent = if (vm.canExtrude) Intent.Accent else Intent.Danger,
+                    intent = if (vm.canExtrude) Intent.Go else Intent.Danger, // R19: motion IS the screen's purpose = Go; cold = Danger lockout cue.
                     symbol = if (vm.canExtrude) "input_circle" else COLD_SYMBOL,
                     enabled = vm.canExtrude && !retractBusy,
                     contentDescription = stringResource(R.string.extrude_cmd_retract),
