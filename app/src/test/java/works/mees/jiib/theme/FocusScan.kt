@@ -163,13 +163,20 @@ fun lambdaBodySpan(stripped: String, callEndOffset: Int): Pair<Int, Int>? {
 // produced 47 FALSE POSITIVES on the correctly-migrated tree — it flagged value constructors
 // (`InfoStat(`, `SetServoArgs(` …), framework factories (`RoundedCornerShape(`, `BorderStroke(`,
 // `LaunchedEffect(` …) and, worst, slot-content helpers reached via `DigestRow.Custom { … }` /
-// `buildList { … }` — the exact interiors amendment F3 rules "are NOT scanned". This scanner is the
-// FAITHFUL realization of that ruling: it masks all lambda/slot interiors (F3) plus registry call
-// arg spans, keeps CONTROL-FLOW (`when`/`if`/`else`) VISIBLE (so a hand-rolled `Column{}` inside a
-// `when`-branch IS still caught), and flags ONLY the enumerated FORBIDDEN layout/content primitives
-// + `.padding(`. Uppercase calls that are not FORBIDDEN (archetypes, component classes, value
-// constructors, framework factories) are permitted at Focus-body level. Verified: ZERO offenders on
-// the migrated tree; teeth confirmed by fixtures (body-level & when-branch `Column` are caught).
+// `buildList { … }` — the exact interiors amendment F3 rules "are NOT scanned".
+//
+// MASKING (F3 boundary): this scanner masks ONLY registry-archetype call spans — the archetype's
+// arg list AND its trailing/`= { }` slot lambda. Those slot interiors are the archetype's contract
+// (governed by LAW-2 text conformance + component-class law), so they are NOT scanned. EVERY OTHER
+// lambda is scanned like the rest of the body: `remember { }`, `LaunchedEffect { }`, `key { }`,
+// lowercase-call lambdas, and unknown-Uppercase-call lambdas are all visible. Control-flow
+// (`when`/`if`/`else`) is likewise visible. So a hand-rolled `Column{}` at body level, inside a
+// `when`-branch, OR inside a non-registry lambda is caught. The scanner flags ONLY the enumerated
+// FORBIDDEN layout/content primitives + `.padding(` — including fully-qualified / member-access
+// forms (`foo.layout.Column(`) whose LAST dotted segment is FORBIDDEN, and per-file import aliases
+// (`import …Column as Foo` → `Foo` is forbidden in that file). Uppercase calls that are not
+// FORBIDDEN (archetypes, component classes, value constructors, framework factories) are permitted.
+// Verified: ZERO offenders on the migrated tree; teeth confirmed by fixtures.
 // ---------------------------------------------------------------------------------------------
 
 private val FORBIDDEN = setOf(
@@ -177,91 +184,107 @@ private val FORBIDDEN = setOf(
     "Spacer", "Text", "BasicText", "Image", "AsyncImage", "Icon",
 )
 private val CALL = Regex("""(^|[^.\w])([A-Z]\w*)\s*\(""")
-// Parenless block form — `Column { … }` / `Box{}` — bypasses CALL (which requires `(`), and step-1
-// masking would then hide the interior. Detect the OPENER itself: Uppercase name directly before
-// `{`. Control-flow keywords (`when`/`if`…) are lowercase and never match; registry archetypes with
-// parenless trailing lambdas are skipped by name.
+// Parenless block form — `Column { … }` / `Box{}` — bypasses CALL (which requires `(`). Detect the
+// OPENER itself: Uppercase name directly before `{`. Control-flow keywords (`when`/`if`…) are
+// lowercase and never match; registry archetypes with parenless trailing lambdas are skipped by name.
 private val BLOCK = Regex("""(^|[^.\w])([A-Z]\w*)\s*\{""")
+// Fully-qualified / member-access forms — `foo.bar.Column(` and `Something.Column {`. The `[^.\w]`
+// guard on CALL/BLOCK deliberately exempts a leading `.` (so value constructors like `DigestRow.Line(`
+// pass). These regexes re-catch the exempted forms but ONLY when the LAST dotted segment is FORBIDDEN,
+// so `DigestRow.Line(` (Line ∉ FORBIDDEN) still passes while `androidx….layout.Column(` is flagged.
+private val DOTTED_CALL = Regex("""\.([A-Z]\w*)\s*\(""")
+private val DOTTED_BLOCK = Regex("""\.([A-Z]\w*)\s*\{""")
 private val PAD = Regex("""\.padding\s*\(""")
-private val CONTROL_KW = setOf("if", "when", "for", "while", "catch")
+private val IMPORT_ALIAS = Regex("""(?m)^\s*import\s+([\w.]+)\s+as\s+(\w+)""")
 
 /**
- * Is the `{` at [open] the opener of a CONTROL-FLOW block (scan inside) rather than a lambda/slot
- * block (mask inside)? Control-flow: preceded by `->` (when-branch), by `else`/`try`/`finally`/`do`,
- * or by a `)` whose matching `(` is preceded by `if`/`when`/`for`/`while`/`catch`. Everything else
- * (call trailing lambda, `= { }`, builder `buildList { }`, `remember { }`, `.let { }` …) is a slot.
+ * The per-file FORBIDDEN set: the base [FORBIDDEN] primitives PLUS any `import x.y.Z as W` alias in
+ * [src] whose target `Z` (last dotted segment) is a FORBIDDEN primitive — `W` is then forbidden in
+ * that file too (alias-evasion defense). See Codex #1.
  */
-private fun isControlFlowBrace(body: String, open: Int): Boolean {
-    var j = open - 1
-    while (j >= 0 && body[j].isWhitespace()) j--
-    if (j < 0) return false
-    if (j >= 1 && body[j] == '>' && body[j - 1] == '-') return true // `-> {`
-    var e = j
-    while (e >= 0 && (body[e].isLetterOrDigit() || body[e] == '_')) e--
-    if (body.substring(e + 1, j + 1) in setOf("else", "try", "finally", "do")) return true
-    if (body[j] == ')') { // `) {` — control-flow iff the matching `(` follows a control keyword
-        var d = 1; var p = j - 1
-        while (p >= 0 && d > 0) { when (body[p]) { ')' -> d++; '(' -> d-- }; if (d > 0) p-- }
-        var k = p - 1
-        while (k >= 0 && body[k].isWhitespace()) k--
-        var ke = k
-        while (ke >= 0 && (body[ke].isLetterOrDigit() || body[ke] == '_')) ke--
-        return body.substring(ke + 1, k + 1) in CONTROL_KW
-    }
-    return false
+fun focusForbiddenFor(src: String): Set<String> {
+    val aliases = IMPORT_ALIAS.findAll(src)
+        .filter { it.groupValues[1].substringAfterLast('.') in FORBIDDEN }
+        .map { it.groupValues[2] }
+        .toSet()
+    return if (aliases.isEmpty()) FORBIDDEN else FORBIDDEN + aliases
 }
 
 /**
  * Scan one Focus-body span (already `stripKotlin`ed by real callers; fixtures pass pre-stripped
- * bodies). Masks lambda/slot brace interiors (F3 — slots are the archetype's contract, governed by
- * LAW-2 text conformance + component-class law) and registry call arg spans; keeps control-flow
- * visible. Returns offender strings "file:line reason" for FORBIDDEN primitives / `.padding(` that
- * survive at the visible Focus-body level.
+ * bodies). Masks ONLY registry-archetype call spans — the arg list AND the trailing/`= { }` slot
+ * lambda (F3: slots are the archetype's contract, governed by LAW-2 text conformance +
+ * component-class law). Every OTHER lambda (generic `remember { }` / `LaunchedEffect { }` /
+ * lowercase- or unknown-Uppercase-call lambdas) is SCANNED, as is control-flow. Returns offender
+ * strings "file:line reason" for [forbidden] primitives / `.padding(` — bare, fully-qualified, and
+ * parenless — that survive at the visible level. [forbidden] defaults to the base [FORBIDDEN] set;
+ * real callers pass [focusForbiddenFor] to fold in per-file import aliases.
  */
 fun scanFocusBody(
     body: String,
     registry: Set<String>,
     file: String,
     baseLine: Int,
+    forbidden: Set<String> = FORBIDDEN,
 ): List<String> {
     val n = body.length
     val masked = BooleanArray(n)
-    // 1) Mask every lambda/slot brace interior (control-flow blocks stay visible).
-    var i = 0
-    while (i < n) {
-        if (body[i] == '{' && !isControlFlowBrace(body, i)) {
-            var d = 1; var p = i + 1
-            while (p < n && d > 0) { when (body[p]) { '{' -> d++; '}' -> d-- }; if (d > 0) p++ }
-            for (q in i..minOf(p, n - 1)) masked[q] = true
-            i = p + 1
-        } else i++
-    }
-    // 2) Mask registry-archetype call arg spans (their trailing lambdas are already masked in 1).
-    for (m in CALL.findAll(body)) {
-        if (m.groupValues[2] !in registry) continue
-        val open = m.range.last
+    fun matchParen(open: Int): Int {
         var d = 1; var p = open + 1
         while (p < n && d > 0) { when (body[p]) { '(' -> d++; ')' -> d-- }; if (d > 0) p++ }
-        for (q in m.range.first..minOf(p, n - 1)) masked[q] = true
+        return p
+    }
+    fun matchBrace(open: Int): Int {
+        var d = 1; var p = open + 1
+        while (p < n && d > 0) { when (body[p]) { '{' -> d++; '}' -> d-- }; if (d > 0) p++ }
+        return p
+    }
+    fun mask(from: Int, to: Int) { for (q in from..minOf(to, n - 1)) masked[q] = true }
+    // Mask registry-archetype call spans ONLY: `Archetype(args) { slot }` — args AND trailing lambda.
+    for (m in CALL.findAll(body)) {
+        if (m.groupValues[2] !in registry) continue
+        val close = matchParen(m.range.last)
+        var end = close
+        var p = close + 1
+        while (p < n && body[p].isWhitespace()) p++
+        if (p < n && body[p] == '{') end = matchBrace(p)
+        mask(m.range.first, end)
+    }
+    // Mask registry parenless blocks: `Archetype { slot }`.
+    for (m in BLOCK.findAll(body)) {
+        if (m.groupValues[2] !in registry) continue
+        mask(m.range.first, matchBrace(m.range.last))
     }
     fun lineOf(offset: Int) = baseLine + body.substring(0, offset).count { it == '\n' }
     val offenders = mutableListOf<String>()
+    // Bare uppercase call form: `Column(`.
     for (m in CALL.findAll(body)) {
-        val start = m.range.first
-        if (masked[start]) continue
+        val idStart = m.range.first + m.groupValues[1].length
+        if (masked[idStart]) continue
         val name = m.groupValues[2]
-        if (name in FORBIDDEN) offenders += "$file:${lineOf(start)} raw $name( in Focus body"
+        if (name in forbidden) offenders += "$file:${lineOf(idStart)} raw $name( in Focus body"
     }
-    // Parenless block form: the name char (not the preceding boundary char, which may itself sit in
-    // a masked span) decides visibility — a body-level `Column { }` or a when-branch `Box{}` is an
-    // offender even though step-1 masked the brace interior (the OPENER is at the visible level).
+    // Fully-qualified / member-access call form: `foo.layout.Column(` (last segment FORBIDDEN).
+    for (m in DOTTED_CALL.findAll(body)) {
+        val idStart = m.range.first + 1
+        if (masked[idStart]) continue
+        val name = m.groupValues[1]
+        if (name in forbidden) offenders += "$file:${lineOf(idStart)} raw $name( (fully-qualified) in Focus body"
+    }
+    // Parenless block form: the name char (not the preceding boundary char) decides visibility —
+    // a body-level `Column { }` or a when-branch `Box{}` is an offender.
     for (m in BLOCK.findAll(body)) {
         val idStart = m.range.first + m.groupValues[1].length
         if (masked[idStart]) continue
         val name = m.groupValues[2]
-        if (name in FORBIDDEN && name !in registry) {
-            offenders += "$file:${lineOf(idStart)} raw $name { in Focus body"
-        }
+        if (name in forbidden && name !in registry) offenders += "$file:${lineOf(idStart)} raw $name { in Focus body"
+    }
+    // Fully-qualified parenless block: `Something.Column {`.
+    for (m in DOTTED_BLOCK.findAll(body)) {
+        val idStart = m.range.first + 1
+        if (masked[idStart]) continue
+        val name = m.groupValues[1]
+        if (name in forbidden && name !in registry) offenders += "$file:${lineOf(idStart)} raw $name { (fully-qualified) in Focus body"
     }
     for (m in PAD.findAll(body)) {
         if (!masked[m.range.first]) offenders += "$file:${lineOf(m.range.first)} .padding( in Focus body"

@@ -106,6 +106,72 @@ class FocusArchetypeScanFixtureTest {
         assertTrue(scanFocusBody(body, registry, "f.kt", 1).isNotEmpty())
     }
 
+    // --- Item 1: masking is registry-only; generic lambdas are now SCANNED --------------------
+
+    @Test
+    fun forbidden_inside_a_generic_nonregistry_lambda_is_now_caught() {
+        // `remember { }` / `LaunchedEffect { }` are NOT registry slots — their interiors are scanned.
+        val body = """ LaunchedEffect(Unit) { Column { Text("nope") } } """
+        assertTrue(scanFocusBody(body, registry, "f.kt", 1).isNotEmpty())
+    }
+
+    @Test
+    fun forbidden_inside_a_registry_parenless_slot_is_still_masked() {
+        // Registry parenless trailing lambda IS a slot → interior masked (F3).
+        val body = """ FocusStage { Column { Text("slot") } } """
+        assertEquals(emptyList<String>(), scanFocusBody(body, registry, "f.kt", 1))
+    }
+
+    // --- Item 2: fully-qualified + alias evasion defenses --------------------------------------
+
+    @Test
+    fun fully_qualified_forbidden_call_is_flagged() {
+        val body = """ androidx.compose.foundation.layout.Column(Modifier) { } """
+        assertTrue(scanFocusBody(body, registry, "f.kt", 1).isNotEmpty())
+    }
+
+    @Test
+    fun fully_qualified_forbidden_block_is_flagged() {
+        val body = """ some.pkg.Column { } """
+        assertTrue(scanFocusBody(body, registry, "f.kt", 1).isNotEmpty())
+    }
+
+    @Test
+    fun member_access_non_forbidden_value_constructor_still_passes() {
+        // `DigestRow.Line(` — Line ∉ FORBIDDEN — must NOT be flagged by the dotted-form detector,
+        // even bare at the visible body level (value construction is permitted).
+        val body = """ val r = DigestRow.Line(label = a, value = b) """
+        assertEquals(emptyList<String>(), scanFocusBody(body, registry, "f.kt", 1))
+    }
+
+    @Test
+    fun import_aliased_forbidden_primitive_is_flagged() {
+        // `import …Column as Grid` → `Grid(` is forbidden in that file.
+        val src = "import androidx.compose.foundation.layout.Column as Grid\nfun f() {}"
+        val forbidden = focusForbiddenFor(src)
+        assertTrue("Grid" in forbidden)
+        val body = """ Grid(Modifier) { FocusExplainer(text = x) } """
+        assertTrue(scanFocusBody(body, registry, "f.kt", 1, forbidden).isNotEmpty())
+    }
+
+    @Test
+    fun import_alias_of_non_forbidden_symbol_is_not_added() {
+        val src = "import works.mees.jiib.designsystem.layout.ListBlock as DesignListBlock"
+        assertTrue("DesignListBlock" !in focusForbiddenFor(src))
+    }
+
+    // --- Item 3: FocusFrame with no trailing lambda and no `content =` arg (F2b) ---------------
+
+    @Test
+    fun focusFrame_without_trailing_lambda_has_null_body_span() {
+        val src = "FocusFrame(title = t, icon = i)"
+        val stripped = stripKotlin(src)
+        val call = findCalls(stripped, Regex("""(^|[^.\w])FocusFrame\s*\(""")).single()
+        // Neither a `content =` arg nor a trailing lambda → the real test flags it as an offender.
+        assertTrue("content" !in topLevelArgNames(call.argSpan))
+        assertEquals(null, lambdaBodySpan(stripped, call.endOffset))
+    }
+
     // --- F2: the `content =` named-arg guard (applied at the FocusFrame-call level) -------------
 
     @Test
