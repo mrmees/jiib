@@ -1,6 +1,7 @@
 package works.mees.jiib.theme.compose
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -97,5 +98,41 @@ class FocusTextFitTest {
             singleLineHeightAt = singleLineAtMin,
         )
         assertEquals(FocusTextFit(20, Int.MAX_VALUE), fit)
+    }
+
+    // --- focusTextSpRange regression tests ---
+
+    /**
+     * Regression: caption role at M font-scale (t.fs=1.15) → fsSp(15, 1.15) = 17.25 for BOTH
+     * minSp and maxSp. Old code: ceil(17.25)=18 for min, round(17.25)=17 for max → inverted range.
+     * The range must NEVER be inverted.
+     */
+    @Test
+    fun focusTextSpRange_equal_scaled_inputs_yield_non_inverted_range() {
+        val (min, max) = focusTextSpRange(17.25f, 17.25f)
+        assertTrue("min ($min) must be <= max ($max) — range must not invert", min <= max)
+    }
+
+    /**
+     * End-to-end: when focusTextSpRange produces a non-inverted range from equal inputs, and the
+     * text fits at the single candidate size, focusTextFit must return Int.MAX_VALUE maxLines —
+     * not the line-cap truncation fallback.
+     */
+    @Test
+    fun equal_scaled_sp_text_that_fits_renders_at_size_not_truncation_fallback() {
+        val (minSp, maxSp) = focusTextSpRange(17.25f, 17.25f)
+        // height = 10 * sp; at sp=17 (or 18) → 170 or 180 <= 400 → fits
+        val fit = focusTextFit(
+            maxHeightPx = 400f,
+            minSp = minSp,
+            maxSp = maxSp,
+            fullHeightAt = { sp -> 10f * sp },
+            singleLineHeightAt = { sp -> 2f * sp },
+        )
+        assertEquals(
+            "text fits at the single candidate — must not be line-capped (maxLines must be MAX_VALUE)",
+            Int.MAX_VALUE,
+            fit.maxLines,
+        )
     }
 }

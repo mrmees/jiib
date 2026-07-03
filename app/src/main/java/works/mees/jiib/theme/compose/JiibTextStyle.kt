@@ -11,6 +11,7 @@ import androidx.compose.runtime.remember
 import kotlin.math.ceil
 import kotlin.math.roundToInt
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
@@ -205,6 +206,21 @@ fun focusTextFit(
 }
 
 /**
+ * Converts fs-scaled float sp values to the Int range consumed by [focusTextFit], guaranteeing the
+ * range is never inverted. Both ends are rounded consistently ([Float.roundToInt]) and [minSp] is
+ * clamped to at most [maxSp], so a sub-1sp difference between the scaled values (e.g. caption role
+ * at M font-scale: fsSp(15, 1.15) = 17.25 for both → old ceil/round produced 18/17, inverted) can
+ * never produce a zero-iteration walk that silently falls through to the line-cap truncation path.
+ *
+ * Extracted from [FocusText] to make the conversion unit-testable (see FocusTextFitTest).
+ */
+fun focusTextSpRange(minScaledSp: Float, maxScaledSp: Float): Pair<Int, Int> {
+    val maxSp = maxScaledSp.roundToInt()
+    val minSp = minScaledSp.roundToInt().coerceAtMost(maxSp)
+    return Pair(minSp, maxSp)
+}
+
+/**
  * Bounded Focus-body text (Focus-text law, 2026-06-29; measurement rewrite 2026-07-02). Renders
  * [text] in [role] and SHRINKS the font (role base size → [minSp], never below) so the RENDERED
  * content fits the HEIGHT budget without overflowing the FocusFrame clip. The general (non-hero)
@@ -266,6 +282,7 @@ fun FocusText(
     maxSp: Float? = null,
 ) {
     val uDp = LocalUnitDp.current ?: 64.dp   // LocalUnitDp is Dp? (null until a U-aware container provides it)
+    val density = LocalDensity.current        // keyed into remember so density changes invalidate the fit
     val boxMod = modifier.then(
         if (maxHeightU != null) Modifier.heightIn(max = uDp * maxHeightU) else Modifier,
     )
@@ -279,16 +296,19 @@ fun FocusText(
         val maxHeightPx = constraints.maxHeight
 
         // Measure-based fit, cached: re-run the walk only when a measurement-affecting input changes
-        // (text/role/font/size-range/width/height), not on every color or token recomposition.
-        val fit = remember(text, role, family, maxScaledSp, minScaledSp, widthBudget, maxHeightPx, bounded) {
+        // (text/role/font/size-range/width/height/density), not on every color or token recomposition.
+        val fit = remember(text, role, family, maxScaledSp, minScaledSp, widthBudget, maxHeightPx, bounded, density) {
+            // focusTextSpRange converts the float sp values to a consistent Int range that can never
+            // invert (e.g. caption role at M fs: both inputs = 17.25 → old ceil/round gave 18/17).
+            val (minSpInt, maxSpInt) = focusTextSpRange(minScaledSp, maxScaledSp)
             if (!bounded) {
-                FocusTextFit(maxScaledSp.roundToInt(), Int.MAX_VALUE)
+                FocusTextFit(maxSpInt, Int.MAX_VALUE)
             } else {
                 val measureStyle = TextStyle(fontFamily = family.family, fontWeight = role.weight)
                 focusTextFit(
                     maxHeightPx = maxHeightPx.toFloat(),
-                    minSp = ceil(minScaledSp.toDouble()).toInt(),
-                    maxSp = maxScaledSp.roundToInt(),
+                    minSp = minSpInt,
+                    maxSp = maxSpInt,
                     fullHeightAt = { sp ->
                         measurer.measure(
                             text = text,
