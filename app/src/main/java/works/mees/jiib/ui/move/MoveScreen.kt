@@ -487,61 +487,49 @@ internal fun MoveHubContent(
                             if (zMax == null) {
                                 FocusExplainer(text = "Waiting for printer bounds…")
                             } else {
-                                // Five columns: [fine labels] [fine slider] [Z value] [full slider]
-                                // [full labels]. Range labels flank each slider as their own columns
-                                // (owner 2026-06-17). Center Z value matches the X/Y coordinate text.
+                                // Three vertical scrubber columns, fine → coarse (owner 2026-07-02):
+                                // 0–10 @ 0.05 | 0–50 @ 0.1 | 0–Zmax @ 1. The Z readout moved to the
+                                // Focus header; each column stacks max label / track / "0" (the old
+                                // flanking ZRangeLabels side columns and center readout are retired).
+                                val onScrub = { v: Float -> workingZ = v }
+                                val onScrubSettle = { v: Float ->
+                                    workingZ = v
+                                    onMoveTo(null, null, v.toDouble())
+                                }
                                 FocusStage(
                                     body = {
-                                Row(
-                                    modifier = Modifier.fillMaxSize(),
-                                ) {
-                                    // Col 1 — Fine range labels: 50 (top) / 0 (bottom).
-                                    ZRangeLabels(top = "50", bottom = "0")
-                                    // Col 2 — Fine slider: 0–50 mm @ 0.1 mm.
-                                    ZScrubberColumn(
-                                        name = "Fine",
-                                        value = workingZ,
-                                        range = 0f..50f,
-                                        step = 0.1f,
-                                        uDp = grid.uDp,
-                                        modifier = Modifier.weight(1f),
-                                        onValueChange = { workingZ = it },
-                                        onSettle = { v ->
-                                            workingZ = v
-                                            onMoveTo(null, null, workingZ.toDouble())
-                                        },
-                                    )
-                                    // Col 3 — Z value, centered; matches the X/Y coordinate readout
-                                    // (statValue, 26sp) on the Touch Move / XY focuses (owner 2026-06-17).
-                                    Box(
-                                        Modifier.fillMaxHeight().padding(horizontal = 4.dp),
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        Text(
-                                            text = String.format(java.util.Locale.US, "%.2f", workingZ) + "mm",
-                                            style = JiibType.statValue.toTextStyle(t),
-                                            color = t.text,
-                                            maxLines = 1,
-                                            softWrap = false,
-                                        )
-                                    }
-                                    // Col 4 — Full slider: 0–Zmax @ 1 mm.
-                                    ZScrubberColumn(
-                                        name = "Full",
-                                        value = workingZ,
-                                        range = 0f..zMax,
-                                        step = 1f,
-                                        uDp = grid.uDp,
-                                        modifier = Modifier.weight(1f),
-                                        onValueChange = { workingZ = it },
-                                        onSettle = { v ->
-                                            workingZ = v
-                                            onMoveTo(null, null, workingZ.toDouble())
-                                        },
-                                    )
-                                    // Col 5 — Full range labels: floor(Zmax) (top) / 0 (bottom).
-                                    ZRangeLabels(top = floor(zMax).toInt().toString(), bottom = "0")
-                                }
+                                        Row(modifier = Modifier.fillMaxSize()) {
+                                            ZScrubberColumn(
+                                                maxLabel = "10",
+                                                value = workingZ,
+                                                range = 0f..10f,
+                                                step = 0.05f,
+                                                uDp = grid.uDp,
+                                                modifier = Modifier.weight(1f),
+                                                onValueChange = onScrub,
+                                                onSettle = onScrubSettle,
+                                            )
+                                            ZScrubberColumn(
+                                                maxLabel = "50",
+                                                value = workingZ,
+                                                range = 0f..50f,
+                                                step = 0.1f,
+                                                uDp = grid.uDp,
+                                                modifier = Modifier.weight(1f),
+                                                onValueChange = onScrub,
+                                                onSettle = onScrubSettle,
+                                            )
+                                            ZScrubberColumn(
+                                                maxLabel = floor(zMax).toInt().toString(),
+                                                value = workingZ,
+                                                range = 0f..zMax,
+                                                step = 1f,
+                                                uDp = grid.uDp,
+                                                modifier = Modifier.weight(1f),
+                                                onValueChange = onScrub,
+                                                onSettle = onScrubSettle,
+                                            )
+                                        }
                                     },
                                 )
                             }
@@ -972,13 +960,14 @@ private fun moveModeHeader(mode: MoveMode): Pair<String, JiibIcon> = when (mode)
 }
 
 /**
- * One vertical Z scrubber column (Fine 0–50 / Full 0–Zmax). Bare — the endpoint range labels now
- * live in their own flanking [ZRangeLabels] columns (owner 2026-06-17, five-column Z layout). Both
- * sliders are `weight(1f)`-equal via [modifier].
+ * One vertical Z scrubber column with its endpoint range labels stacked ABOVE (max) and BELOW ("0")
+ * the track (owner 2026-07-02 — the flanking ZRangeLabels side columns are retired; the max label
+ * IS the column's scale identity, so the old Fine/Full names are gone too). Labels keep the old
+ * side-label treatment: dataInline, t.text2. All columns are `weight(1f)`-equal via [modifier].
  */
 @Composable
 private fun ZScrubberColumn(
-    name: String,
+    maxLabel: String,
     value: Float,
     range: ClosedFloatingPointRange<Float>,
     step: Float,
@@ -987,39 +976,38 @@ private fun ZScrubberColumn(
     onSettle: (Float) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(
-        modifier = modifier.fillMaxHeight(),
-        contentAlignment = Alignment.Center,
-    ) {
-        Scrubber(
-            name = name,
-            value = value,
-            range = range,
-            step = step,
-            uDp = uDp,
-            unit = "mm",
-            orientation = ScrubberOrientation.Vertical,
-            onValueChange = onValueChange,
-            onSettle = onSettle,
-        )
-    }
-}
-
-/**
- * A range-label column flanking a Z scrubber: [top] pushed to the top of the height, [bottom] to the
- * bottom. Sized at the Z value's CURRENT size (dataInline, 20sp — owner ruling 2026-06-17; NOT the
- * 26sp the center readout grows to). Muted via `t.text2`.
- */
-@Composable
-private fun ZRangeLabels(top: String, bottom: String) {
     val t = LocalTokens.current
     Column(
-        modifier = Modifier.fillMaxHeight().padding(horizontal = 4.dp),
+        modifier = modifier.fillMaxHeight(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(text = top, style = JiibType.dataInline.toTextStyle(t), color = t.text2, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Spacer(Modifier.weight(1f))
-        Text(text = bottom, style = JiibType.dataInline.toTextStyle(t), color = t.text2, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(
+            text = maxLabel,
+            style = JiibType.dataInline.toTextStyle(t),
+            color = t.text2,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+            Scrubber(
+                name = "Z",
+                value = value,
+                range = range,
+                step = step,
+                uDp = uDp,
+                unit = "mm",
+                orientation = ScrubberOrientation.Vertical,
+                onValueChange = onValueChange,
+                onSettle = onSettle,
+            )
+        }
+        Text(
+            text = "0",
+            style = JiibType.dataInline.toTextStyle(t),
+            color = t.text2,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
