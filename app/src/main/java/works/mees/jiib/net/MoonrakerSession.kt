@@ -25,6 +25,7 @@ import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import works.mees.jiib.BuildConfig
 import works.mees.jiib.auth.AuthException
 import works.mees.jiib.auth.MoonrakerAuth
 import works.mees.jiib.command.CommandRegistry
@@ -85,7 +86,7 @@ class MoonrakerSession(
     private val backoffBase: Duration = DEFAULT_BASE,
     private val rng: Random = Random.Default,
     private val clientName: String = "jiib",
-    private val clientVersion: String = "0.1.0",
+    private val clientVersion: String = BuildConfig.VERSION_NAME,
     // Moonraker's `server.connection.identify` REQUIRES a non-empty `url` argument alongside
     // client_name/version/type — omitting it returns `{code:400,"No data for argument: url"}`
     // (verified live against Moonraker v0.13). Recorded by Moonraker for its connection list only.

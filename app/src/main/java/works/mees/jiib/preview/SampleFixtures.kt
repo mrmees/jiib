@@ -490,7 +490,7 @@ object SampleFixtures {
      * App version string used by [SystemPageContent] preview panels.
      * Mirrors [BuildConfig.VERSION_NAME] shape at preview time; static fixture.
      */
-    const val systemPageVersion: String = "0.1.0-debug"
+    const val systemPageVersion: String = "ALPHA-26.7.3.1"
 
     // ---------------------------------------------------------------------------------------------
     // Printers screen fixtures (28-06, D-15)

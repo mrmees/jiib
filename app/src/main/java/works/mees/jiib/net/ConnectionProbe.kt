@@ -13,6 +13,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import works.mees.jiib.BuildConfig
 import works.mees.jiib.auth.MoonrakerAuth
 import works.mees.jiib.command.CommandRegistry
 import works.mees.jiib.command.IdentifyArgs
@@ -78,7 +79,8 @@ class ConnectionProbe(
         const val DEFAULT_TIMEOUT_MS = 5_000L
 
         private const val CLIENT_NAME = "jiib"
-        private const val CLIENT_VERSION = "0.1.0"
+        // App version, single-sourced from Gradle (BuildConfig can't back a `const val`).
+        private val CLIENT_VERSION = BuildConfig.VERSION_NAME
         private const val CLIENT_URL = "https://github.com/mrmees/jiib"
 
         /**

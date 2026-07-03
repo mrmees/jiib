@@ -24,10 +24,26 @@ val devProps = Properties().apply {
 fun devProp(key: String, default: String): String =
     (devProps.getProperty(key) ?: default)
 
+// Versioning scheme (owner-defined 2026-07-03): <CANDIDATE>-<yy>.<m>.<d>.<n>
+//   CANDIDATE = release track (ALPHA for now; BETA/stable later),
+//   yy.m.d    = release date, no zero padding (26.7.3 = 2026-07-03),
+//   n         = Nth release on that date, 1-based. Keep n ≤ 9.
+// Bump these MANUALLY per release — never auto-derive from the build clock (reproducibility).
+val versionCandidate = "ALPHA"
+val versionYear = 26
+val versionMonth = 7
+val versionDay = 3
+val versionRelease = 1
+
+val appVersionName = "$versionCandidate-$versionYear.$versionMonth.$versionDay.$versionRelease"
+
 // R1 (26.5-04): the SINGLE versionCode base. defaultConfig reads it, and the per-ABI
 // onVariants block below derives each split's versionCode from it (v7a = base, arm64 = base+1)
 // — never hardcode a stale copy of this value anywhere else.
-val appVersionCode = 1
+// Derived as yymmdd·100 + n·10 (e.g. ALPHA-26.7.3.1 → 26070310): monotonic across dates and
+// same-day re-releases, and the ×10 gap between releases guarantees the per-ABI +0/+1 offsets
+// can never collide with a neighboring release. Max value 99123199 is well under the 2.1B cap.
+val appVersionCode = (versionYear * 10_000 + versionMonth * 100 + versionDay) * 100 + versionRelease * 10
 
 android {
     namespace = "works.mees.jiib"
@@ -41,7 +57,7 @@ android {
         minSdk = 23                                  // PKG-02 floor (asserted on MERGED manifest by verifyMinSdk)
         targetSdk = 35                               // D-10/D-11 cleartext caveat applies on API 24+
         versionCode = appVersionCode
-        versionName = "0.1.0"
+        versionName = appVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
