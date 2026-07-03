@@ -49,7 +49,9 @@ import works.mees.jiib.designsystem.components.FootAction
 import works.mees.jiib.designsystem.components.FocusFrame
 import works.mees.jiib.designsystem.components.FootButtonBar
 import works.mees.jiib.designsystem.components.ListRow
+import works.mees.jiib.designsystem.components.focusGlyphSideDp
 import works.mees.jiib.designsystem.components.footAction
+import works.mees.jiib.designsystem.focus.FocusStage
 import works.mees.jiib.control.ControlSpecs
 import works.mees.jiib.designsystem.control.Intent
 import works.mees.jiib.designsystem.icons.JiibIconView
@@ -65,7 +67,6 @@ import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.FocusText
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
-import works.mees.jiib.theme.fsSp
 import works.mees.jiib.ui.temperature.titleCase
 import kotlin.math.max
 
@@ -224,7 +225,7 @@ fun ScrewsTiltContent(
                             HardLockStatusCard(screwsLockedLabel, grid.uDp, Modifier.fillMaxSize())
                             return@FocusFrame
                         }
-                        ScrewsTiltFocus(vm = vm, modifier = Modifier.fillMaxSize().padding(8.dp))
+                        ScrewsTiltFocus(vm = vm, modifier = Modifier.fillMaxSize())
                     }
                 },
                 field = {
@@ -349,7 +350,7 @@ private fun ScrewListRow(point: ScrewPoint, uDp: androidx.compose.ui.unit.Dp) {
 @Composable
 private fun ScrewsTiltFocus(vm: ScrewsTiltVm, modifier: Modifier) {
     val t = LocalTokens.current
-    Box(modifier, contentAlignment = Alignment.Center) {
+    FocusStage(modifier = modifier) {
         if (vm.hasCoords) {
             BedScale(vm = vm)
         } else {
@@ -400,6 +401,7 @@ private fun BedScale(vm: ScrewsTiltVm) {
     BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         val availW = maxWidth
         val availH = maxHeight
+        val markerDp = focusGlyphSideDp(maxWidth, maxHeight, 0.18f)
         // Largest w x h matching `aspect` (= w/h) that still fits the pane -> letterbox.
         val frameW: androidx.compose.ui.unit.Dp
         val frameH: androidx.compose.ui.unit.Dp
@@ -417,9 +419,9 @@ private fun BedScale(vm: ScrewsTiltVm) {
                 .size(width = frameW, height = frameH)
                 .clip(shape)
                 .border(BorderStroke(2.dp, t.outline), shape)
-                .background(t.surface),
+                .background(t.surface2),
         ) {
-            BoxWithPoints(coordPoints, loX, hiX, loY, hiY)
+            BoxWithPoints(coordPoints, loX, hiX, loY, hiY, markerDp)
         }
     }
 }
@@ -432,6 +434,7 @@ private fun BoxWithPoints(
     hiX: Double,
     loY: Double,
     hiY: Double,
+    sizeDp: androidx.compose.ui.unit.Dp,
 ) {
     val t = LocalTokens.current
     Box(Modifier.fillMaxSize()) {
@@ -462,7 +465,7 @@ private fun BoxWithPoints(
                 contentAlignment = BiasAlignment(fx, fy),
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    JiibIconView(icon = glyph, tint = tint, sizeDp = fsSp(56f, t.fs).dp)
+                    JiibIconView(icon = glyph, tint = tint, sizeDp = sizeDp)
                     if (turn != null) {
                         Text(
                             text = "${"%.3f".format(turn.z)} mm",

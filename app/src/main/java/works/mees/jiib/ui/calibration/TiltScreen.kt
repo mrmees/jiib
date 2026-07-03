@@ -21,7 +21,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.util.Locale
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -44,6 +43,7 @@ import works.mees.jiib.designsystem.components.UnknownStatusCard
 import works.mees.jiib.designsystem.components.FocusFrame
 import works.mees.jiib.designsystem.components.FootButtonBar
 import works.mees.jiib.designsystem.components.footAction
+import works.mees.jiib.designsystem.focus.FocusStage
 import works.mees.jiib.control.ControlSpecs
 import works.mees.jiib.designsystem.control.Intent
 import works.mees.jiib.designsystem.icons.JiibIcons
@@ -305,11 +305,7 @@ private fun TiltFocus(
         TiltState.Running -> t.text
         TiltState.Idle -> t.text
     }
-    Column(
-        modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
+    FocusStage(modifier = modifier) {
         // Title lives in the FocusFrame header (the mandatory 1U header) — not repeated here.
         Box(
             Modifier.fillMaxWidth(0.9f).aspectRatio(1f),

@@ -1,13 +1,8 @@
 package works.mees.jiib.ui.outputs
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -15,11 +10,9 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import works.mees.jiib.designsystem.focus.FocusStage
 import works.mees.jiib.designsystem.layout.rememberUnitGrid
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
@@ -40,8 +33,10 @@ import works.mees.jiib.designsystem.Severity
 import works.mees.jiib.designsystem.SeverityToast
 import works.mees.jiib.designsystem.components.FootButtonBar
 import works.mees.jiib.designsystem.components.Scrubber
+import works.mees.jiib.designsystem.components.StepperRow
 import works.mees.jiib.designsystem.components.footAction
 import works.mees.jiib.control.ControlSpecs
+import works.mees.jiib.designsystem.control.Intent
 import works.mees.jiib.designsystem.hsvToRgb
 import works.mees.jiib.designsystem.rgbToHsv
 import works.mees.jiib.di.AppContainer
@@ -428,13 +423,19 @@ private fun FocusScrubberSurface(
     uDp: Dp,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        // CRITICAL build-once rule (P19 SC-3): Scrubber is NOT wrapped in key(value).
-        // Its internal working state is seeded via remember(value, range) — never rebuilt mid-drag.
-        // 004 ringed-thumb style (R9). Name-less: the FocusFrame header carries the output's identity,
-        // so the Scrubber header shows the live value only (centered, Task 2) — no duplicated name.
-        // Weighted body so the foot bar pins to the bottom (matches the LED/switch surfaces).
-        Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+    // Track the live drag position so dock steppers step from the currently shown value
+    // (matches HeaterControlFocus's scrubLive pattern — owner UAT 2026-07-02 dock-rhythm rule).
+    var scrubLive by remember { mutableStateOf<Float?>(null) }
+
+    FocusStage(
+        modifier = modifier,
+        body = {
+            // CRITICAL build-once rule (P19 SC-3): Scrubber is NOT wrapped in key(value).
+            // Its internal working state is seeded via remember(value, range) — never rebuilt mid-drag.
+            // 004 ringed-thumb style (R9). Name-less: the FocusFrame header carries the output's identity,
+            // so the Scrubber header shows the live value only (centered, Task 2) — no duplicated name.
+            // FocusStage body is already a Box(fillMaxWidth().weight(1f), Center) — no wrapper needed.
+            // showSteppers=false — the ± row moves to the dock (owner UAT 2026-07-02 dock-rhythm rule).
             Scrubber(
                 name = "",
                 value = value.coerceIn(range.start, range.endInclusive),
@@ -442,20 +443,41 @@ private fun FocusScrubberSurface(
                 step = step,
                 unit = unit,
                 uDp = uDp,
-                // Settle: dispatch ONCE on gesture-end / stepper tap; busy guard inside the lambda
-                // (the drag stays live while a dispatch is in flight — pre-004 semantics).
-                onSettle = { v -> if (!busy) onSettle(v) },
+                showSteppers = false,
+                onValueChange = { scrubLive = it },
+                // Settle: dispatch ONCE on gesture-end; clear scrubLive so steppers rebase to live value.
+                onSettle = { v -> scrubLive = null; if (!busy) onSettle(v) },
                 modifier = Modifier.fillMaxWidth(),
             )
-        }
-        failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
-        // Foot = FootButtonBar [Off] (power_off, Warn). No in-Focus Back — the Field list + its Back
-        // own navigation; you switch outputs by tapping list rows.
-        FootButtonBar(
-            uDp = uDp,
-            actions = listOf(footAction(ControlSpecs.outputOff, onClick = onOff, enabled = !busy)),
-        )
-    }
+        },
+        dock = {
+            // Dock order (owner UAT 2026-07-02): ± row → failureText → Off.
+            // Matches HeaterControlFocus's dock rhythm in TemperatureScreen.kt.
+            val shown = (scrubLive ?: value).coerceIn(range.start, range.endInclusive)
+            StepperRow(
+                onDecrement = {
+                    val v = (shown - step).coerceIn(range.start, range.endInclusive)
+                    scrubLive = null
+                    if (!busy) onSettle(v)
+                },
+                onIncrement = {
+                    val v = (shown + step).coerceIn(range.start, range.endInclusive)
+                    scrubLive = null
+                    if (!busy) onSettle(v)
+                },
+                uDp = uDp,
+                busy = busy,
+                intent = Intent.Accent,
+            )
+            failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
+            // Foot = FootButtonBar [Off] (power_off, Warn). No in-Focus Back — the Field list + its Back
+            // own navigation; you switch outputs by tapping list rows.
+            FootButtonBar(
+                uDp = uDp,
+                actions = listOf(footAction(ControlSpecs.outputOff, onClick = onOff, enabled = !busy)),
+            )
+        },
+    )
 }
 
 /**
@@ -495,8 +517,11 @@ private fun FocusLedSurface(
     var v by remember(seed) { mutableFloatStateOf(seed[2]) }
     var w by remember(seed) { mutableFloatStateOf(seed[3]) }
 
-    Column(modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+    // FocusStage: no separate hero (sliders fill the body); dock = ± row (white-only only) +
+    // failure toast + Off button. Dock rhythm matches HeaterControlFocus (owner UAT 2026-07-02).
+    FocusStage(
+        modifier = modifier,
+        body = {
             if (ledHasRgb) {
                 // Full HSV (+ White for RGBW). Each settle sends the COMPLETE r/g/b/w state.
                 HsvSliders(
@@ -510,6 +535,7 @@ private fun FocusLedSurface(
                 )
             } else {
                 // White-only LED: a single brightness scrubber (name-less → centered value, Task 2).
+                // showSteppers=false — the ± row moves to the dock (owner UAT 2026-07-02 dock-rhythm rule).
                 Scrubber(
                     name = "",
                     value = w * 100f,
@@ -518,17 +544,38 @@ private fun FocusLedSurface(
                     unit = "%",
                     uDp = uDp,
                     enabled = !busy,
+                    showSteppers = false,
                     onValueChange = { w = it / 100f },
                     onSettle = { settled -> w = settled / 100f; if (!busy) onSettle(0f, 0f, settled / 100f, settled) },
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
-        }
-        failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
-        FootButtonBar(
-            uDp = uDp,
-            actions = listOf(footAction(ControlSpecs.outputOff, onClick = onOff, enabled = !busy)),
-        )
-    }
+        },
+        dock = {
+            // Dock order (owner UAT 2026-07-02): ± row (white-only) → failureText → Off.
+            if (!ledHasRgb) {
+                StepperRow(
+                    onDecrement = {
+                        val newPct = (w * 100f - 1f).coerceIn(0f, 100f)
+                        w = newPct / 100f
+                        if (!busy) onSettle(0f, 0f, w, newPct)
+                    },
+                    onIncrement = {
+                        val newPct = (w * 100f + 1f).coerceIn(0f, 100f)
+                        w = newPct / 100f
+                        if (!busy) onSettle(0f, 0f, w, newPct)
+                    },
+                    uDp = uDp,
+                    busy = busy,
+                    intent = Intent.Accent,
+                )
+            }
+            failureText?.let { msg -> SeverityToast(Severity.Error, msg, Modifier.fillMaxWidth()) }
+            FootButtonBar(
+                uDp = uDp,
+                actions = listOf(footAction(ControlSpecs.outputOff, onClick = onOff, enabled = !busy)),
+            )
+        },
+    )
 }
 

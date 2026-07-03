@@ -117,6 +117,9 @@ fun Scrubber(
     unit: String = "",
     enabled: Boolean = true,
     onValueChange: (Float) -> Unit = {},
+    /** When false, the internal ± [StepperRow] is suppressed so the caller can host it in the
+     *  Focus dock instead (owner UAT 2026-07-02 — dock rhythm: ± first, failureText, Off). */
+    showSteppers: Boolean = true,
 ) {
     val t = LocalTokens.current
     val density = LocalDensity.current
@@ -386,18 +389,17 @@ fun Scrubber(
                     )
                 }
 
-                // ± stepper row — discrete adjust; each tap is its own settle (ends a discrete
-                // gesture). The canonical [StepperRow] (Phase 4): 1U row, LocalUnitDp-provided so the
-                // tiles floor at 1U and FILL the row (R26), Decrease/Increase icon tokens, Accent
-                // intent (R5: setting adjustment = accent). Spacing = gapM (12dp at U=64) — pixel-
-                // identical to the prior hand-rolled Row.
-                StepperRow(
-                    onDecrement = { set(working - step); settle() },
-                    onIncrement = { set(working + step); settle() },
-                    uDp = uDp,
-                    intent = Intent.Accent,
-                    spacing = gapM(uDp),
-                )
+                // ± stepper row — suppressed when showSteppers=false so FocusScrubberSurface
+                // can host it in the dock (owner UAT 2026-07-02 dock-rhythm rule).
+                if (showSteppers) {
+                    StepperRow(
+                        onDecrement = { set(working - step); settle() },
+                        onIncrement = { set(working + step); settle() },
+                        uDp = uDp,
+                        intent = Intent.Accent,
+                        spacing = gapM(uDp),
+                    )
+                }
             }
         }
     } else {

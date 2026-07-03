@@ -1,15 +1,10 @@
 package works.mees.jiib.ui.screen
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.BasicText
-import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -24,7 +19,6 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import works.mees.jiib.BuildConfig
 import works.mees.jiib.R
@@ -37,6 +31,7 @@ import works.mees.jiib.designsystem.components.ListRow
 import works.mees.jiib.designsystem.components.ListRowIcon
 import works.mees.jiib.designsystem.components.ListRowLabel
 import works.mees.jiib.designsystem.control.Intent
+import works.mees.jiib.designsystem.focus.FocusExplainer
 import works.mees.jiib.designsystem.icons.JiibIcon
 import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.ListBlock
@@ -45,10 +40,7 @@ import works.mees.jiib.designsystem.layout.rememberUnitGrid
 import works.mees.jiib.di.AppContainer
 import works.mees.jiib.state.PrintState
 import works.mees.jiib.state.PrinterState
-import works.mees.jiib.theme.JiibType
-import works.mees.jiib.theme.fsSp
 import works.mees.jiib.theme.compose.LocalTokens
-import works.mees.jiib.theme.compose.toTextStyle
 import works.mees.jiib.ui.route.NavDest
 
 /**
@@ -131,7 +123,42 @@ fun SystemPageContent(
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
                 ) {
-                    SystemFocusContent()
+                    val jibNote = stringResource(R.string.system_focus_jib_note)
+                    val jiibNote = stringResource(R.string.system_focus_jiib_note)
+                    val block = remember(jibNote, jiibNote) {
+                        buildAnnotatedString {
+                            append(jibNote)
+                            append("\n\n")
+                            val jiibStart = length
+                            append(jiibNote)
+                            val idx = jiibNote.indexOf("jiib")
+                            if (idx >= 0) {
+                                addStyle(
+                                    SpanStyle(fontWeight = FontWeight.Bold, fontStyle = FontStyle.Italic),
+                                    jiibStart + idx,
+                                    jiibStart + idx + "jiib".length,
+                                )
+                            }
+                        }
+                    }
+                    FocusExplainer(
+                        text = block,
+                        color = t.text,
+                        maxSp = 34f,
+                        watermark = {
+                            BoxWithConstraints(Modifier.fillMaxSize()) {
+                                val markSize = minOf(maxWidth, maxHeight) * 0.5f
+                                Image(
+                                    painter = painterResource(R.drawable.jiib_lockup),
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Fit,
+                                    colorFilter = ColorFilter.tint(t.accent2),
+                                    alpha = 0.45f,
+                                    modifier = Modifier.size(markSize).align(Alignment.BottomEnd),
+                                )
+                            }
+                        },
+                    )
                 }
             },
             field = {
@@ -171,69 +198,6 @@ fun SystemPageContent(
                 )
             },
         )
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Focus content (static brand strip — stateless, no Moonraker)
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-private fun SystemFocusContent() {
-    val t = LocalTokens.current
-
-    BoxWithConstraints(Modifier.fillMaxSize()) {
-        // Brand watermark: the full jiib lockup (icon + wordmark), bottom-end, faint accent2 tint —
-        // the same treatment as the standby Focus mark (PrintStatusFocus). The readable text rides
-        // over it, top-start.
-        val markSize = minOf(maxWidth, maxHeight) * 0.5f
-        Image(
-            painter = painterResource(R.drawable.jiib_lockup),
-            contentDescription = null,
-            contentScale = ContentScale.Fit,
-            colorFilter = ColorFilter.tint(t.accent2),
-            alpha = 0.45f,
-            modifier = Modifier.size(markSize).align(Alignment.BottomEnd),
-        )
-
-        // Both paragraphs as ONE block so they share a single fitted size (same font style for both);
-        // the word "jiib" is bold + italic in the second paragraph.
-        val jibNote = stringResource(R.string.system_focus_jib_note)
-        val jiibNote = stringResource(R.string.system_focus_jiib_note)
-        val block = remember(jibNote, jiibNote) {
-            buildAnnotatedString {
-                append(jibNote)
-                append("\n\n")
-                val jiibStart = length
-                append(jiibNote)
-                val idx = jiibNote.indexOf("jiib")
-                if (idx >= 0) {
-                    addStyle(
-                        SpanStyle(fontWeight = FontWeight.Bold, fontStyle = FontStyle.Italic),
-                        jiibStart + idx,
-                        jiibStart + idx + "jiib".length,
-                    )
-                }
-            }
-        }
-
-        // Sized to fit: one BasicText autosizes the whole block to fill the focus body (grows on big
-        // screens, shrinks to the 15sp floor on the Nexus 7), centered — the CalibrationHub pattern.
-        Box(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 12.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            BasicText(
-                text = block,
-                style = JiibType.body.toTextStyle(t).copy(color = t.text),
-                autoSize = TextAutoSize.StepBased(
-                    minFontSize = fsSp(15f, t.fs).sp,
-                    maxFontSize = fsSp(34f, t.fs).sp,
-                    stepSize = 1.sp,
-                ),
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
     }
 }
 

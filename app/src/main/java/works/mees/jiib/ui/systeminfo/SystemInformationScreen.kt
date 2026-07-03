@@ -15,6 +15,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import works.mees.jiib.R
@@ -171,15 +172,8 @@ fun SystemInformationContent(
                     onPanic = onEmergencyStop,
                 ) {
                     when (val d = selected) {
-                        is HostDevice -> HostDetail(
-                            host = d,
-                            throttle = throttle,
-                            uDp = grid.uDp,
-                        )
-                        is McuDevice -> McuDetail(
-                            mcu = d,
-                            uDp = grid.uDp,
-                        )
+                        is HostDevice -> HostDetail(host = d, throttle = throttle)
+                        is McuDevice -> McuDetail(mcu = d)
                     }
                 }
             },

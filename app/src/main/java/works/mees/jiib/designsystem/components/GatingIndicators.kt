@@ -1,27 +1,23 @@
 package works.mees.jiib.designsystem.components
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import works.mees.jiib.R
 import works.mees.jiib.designsystem.control.Intent
 import works.mees.jiib.designsystem.control.OutlinedControl
-import works.mees.jiib.designsystem.layout.LocalUnitDp
+import works.mees.jiib.designsystem.layout.FocusZoneInset
+import works.mees.jiib.designsystem.layout.FocusZones
 import works.mees.jiib.theme.JiibType
+import works.mees.jiib.theme.compose.FocusHeroText
+import works.mees.jiib.theme.compose.FocusText
 import works.mees.jiib.theme.compose.LocalTokens
-import works.mees.jiib.theme.compose.toTextStyle
 
 /**
  * Focus content card shown while a HardLock operation is running (e.g. homing).
@@ -44,14 +40,18 @@ fun HardLockStatusCard(
     modifier: Modifier = Modifier,
 ) {
     val tokens = LocalTokens.current
-    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(
-            text = label,
-            color = tokens.text,
-            style = JiibType.focusHero.toTextStyle(tokens),
-            textAlign = TextAlign.Center,
-        )
-    }
+    FocusZones(
+        inset = FocusZoneInset.Default,
+        modifier = modifier,
+        body = {
+            FocusHeroText(
+                text = label,
+                role = JiibType.focusHero,
+                t = tokens,
+                color = tokens.text,
+            )
+        },
+    )
 }
 
 /**
@@ -65,7 +65,8 @@ fun HardLockStatusCard(
  * **Static only** — no looping animation (Adreno 320 fill-rate budget).
  * E-stop stays live in the [FocusFrame] header above; this card owns only the Focus body.
  *
- * @param uDp      one unit U from the screen's unit grid (controls Dismiss button height via [LocalUnitDp]).
+ * @param uDp      one unit U from the screen's unit grid (reserved; [LocalUnitDp] is provided by
+ *                 the enclosing FocusFrame — no need to re-provide it here).
  * @param onDismiss called when the user taps Dismiss; the caller wires this to [CommandDispatcher.acknowledgeUnresolved].
  */
 @Composable
@@ -75,31 +76,34 @@ fun UnknownStatusCard(
     modifier: Modifier = Modifier,
 ) {
     val tokens = LocalTokens.current
-    Column(
-        modifier = modifier.fillMaxSize().padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Text(
-            text = stringResource(R.string.gating_unknown_title),
-            color = tokens.text,
-            style = JiibType.focusHeroLabel.toTextStyle(tokens),
-            textAlign = TextAlign.Center,
-        )
-        Text(
-            text = stringResource(R.string.gating_unknown_message),
-            color = tokens.text2,
-            style = JiibType.body.toTextStyle(tokens),
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 8.dp, bottom = 24.dp),
-        )
-        CompositionLocalProvider(LocalUnitDp provides uDp) {
-            OutlinedControl(
-                label = stringResource(R.string.gating_unknown_dismiss),
-                onClick = onDismiss,
-                intent = Intent.Accent,
-                modifier = Modifier.fillMaxWidth(0.7f),
-            )
-        }
-    }
+    FocusZones(
+        inset = FocusZoneInset.Default,
+        modifier = modifier,
+        body = {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                FocusText(
+                    text = stringResource(R.string.gating_unknown_title),
+                    role = JiibType.focusHeroLabel,
+                    t = tokens,
+                    color = tokens.text,
+                    modifier = Modifier.fillMaxWidth(),
+                    maxHeightU = 2f,
+                )
+                FocusText(
+                    text = stringResource(R.string.gating_unknown_message),
+                    role = JiibType.body,
+                    t = tokens,
+                    color = tokens.text2,
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    maxHeightU = 2f,
+                )
+                OutlinedControl(
+                    label = stringResource(R.string.gating_unknown_dismiss),
+                    onClick = onDismiss,
+                    intent = Intent.Accent,
+                    modifier = Modifier.fillMaxWidth(0.7f).padding(top = 24.dp),
+                )
+            }
+        },
+    )
 }

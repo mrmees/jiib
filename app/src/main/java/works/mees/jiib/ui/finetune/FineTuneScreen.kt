@@ -48,7 +48,6 @@ import works.mees.jiib.designsystem.components.ListRowLabel
 import works.mees.jiib.designsystem.components.shouldShowBaseline
 import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.icons.JiibIconView
-import works.mees.jiib.designsystem.layout.FocusInset
 import works.mees.jiib.designsystem.layout.ListBlock
 import works.mees.jiib.designsystem.layout.ScreenScaffold
 import works.mees.jiib.designsystem.layout.rememberUnitGrid
@@ -333,7 +332,6 @@ private fun FineTuneContent(
                     isPrinting = isPrinting,
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
-                    contentInset = FocusInset / 2, // shared calibration-focus rhythm
                     trailingActionIcon = run {
                         val v = working[selectedTuner.name] ?: vm.valueForTuner(selectedTuner)
                         val base = vm.baselineForTuner(selectedTuner)

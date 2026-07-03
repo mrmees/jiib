@@ -9,17 +9,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -56,6 +54,9 @@ import works.mees.jiib.designsystem.Severity
 import works.mees.jiib.designsystem.SeverityToast
 import works.mees.jiib.designsystem.components.FocusFrame
 import works.mees.jiib.designsystem.components.FootAction
+import works.mees.jiib.designsystem.focus.FocusForm
+import works.mees.jiib.designsystem.focus.FocusMedia
+import works.mees.jiib.designsystem.focus.FocusStage
 import works.mees.jiib.designsystem.components.FootButtonBar
 import works.mees.jiib.designsystem.components.ListRow
 import works.mees.jiib.designsystem.components.Scrubber
@@ -65,10 +66,8 @@ import works.mees.jiib.designsystem.control.Intent
 import works.mees.jiib.designsystem.control.OutlinedControl
 import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.icons.JiibIconView
-import works.mees.jiib.designsystem.layout.FocusInset
 import works.mees.jiib.designsystem.layout.ListBlock
 import works.mees.jiib.designsystem.layout.ListFrameInset
-import works.mees.jiib.designsystem.layout.LocalUnitDp
 import works.mees.jiib.designsystem.layout.ScreenScaffold
 import works.mees.jiib.designsystem.layout.rememberUnitGrid
 import works.mees.jiib.config.HeatPreset
@@ -513,17 +512,18 @@ private fun TemperatureContent(
                                 isPrinting = isPrinting,
                                 onEmergencyStop = onEmergencyStop,
                                 onPanic = onEmergencyStop,
-                                contentInset = 0.dp, // graph fills to the rounded frame edge (owner 2026-06-17)
                             ) {
-                                GraphViewHost(
-                                    tokens = t,
-                                    series = visible.series,
-                                    setpoints = visible.setpoints,
-                                    traceColors = visible.colors,
-                                    yRange = graphRange,
-                                    showAxisLabels = true,
-                                    modifier = Modifier.fillMaxSize(),
-                                )
+                                FocusMedia {
+                                    GraphViewHost(
+                                        tokens = t,
+                                        series = visible.series,
+                                        setpoints = visible.setpoints,
+                                        traceColors = visible.colors,
+                                        yRange = graphRange,
+                                        showAxisLabels = true,
+                                        modifier = Modifier.fillMaxSize(),
+                                    )
+                                }
                             }
                         }
                         mode == TempMode.Monitoring -> {
@@ -538,7 +538,6 @@ private fun TemperatureContent(
                                 isPrinting = isPrinting,
                                 onEmergencyStop = onEmergencyStop,
                                 onPanic = onEmergencyStop,
-                                contentInset = FocusInset / 2,
                             ) {
                                 SensorAppearanceFocus(
                                     traceColor = traceColors[sensor.name],
@@ -564,7 +563,6 @@ private fun TemperatureContent(
                                 isPrinting = isPrinting,
                                 onEmergencyStop = onEmergencyStop,
                                 onPanic = onEmergencyStop,
-                                contentInset = FocusInset / 2, // shared calibration-focus rhythm
                             ) {
                                 HeaterControlFocus(
                                     sensor = sensor,
@@ -748,35 +746,38 @@ private fun SensorPickerFocus(
         isPrinting = isPrinting,
         onEmergencyStop = onEmergencyStop,
         onPanic = onEmergencyStop,
-        contentInset = FocusInset / 2,
     ) {
-        Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            ListBlock(modifier = Modifier.weight(1f).padding(horizontal = ListFrameInset)) {
-                items(available, key = { it }) { name ->
-                    val isOn = name in selected
-                    ListRow(
-                        selected = isOn,
-                        onClick = { onToggle(name, !isOn) },
-                        uDp = uDp,
-                        leadingContent = {
-                            ListRowIcon(icon = iconForSensor(name), uDp = uDp, tint = t.text2)
-                        },
-                        trailingContent = {
-                            JiibIconView(
-                                icon = if (isOn) JiibIcons.Visibility else JiibIcons.VisibilityOff,
-                                tint = if (isOn) t.accent else t.text2,
-                            )
-                        },
-                    ) { ListRowLabel(sensorPickerLabel(name)) }
+        FocusForm(
+            body = {
+                ListBlock(modifier = Modifier.weight(1f).padding(horizontal = ListFrameInset)) {
+                    items(available, key = { it }) { name ->
+                        val isOn = name in selected
+                        ListRow(
+                            selected = isOn,
+                            onClick = { onToggle(name, !isOn) },
+                            uDp = uDp,
+                            leadingContent = {
+                                ListRowIcon(icon = iconForSensor(name), uDp = uDp, tint = t.text2)
+                            },
+                            trailingContent = {
+                                JiibIconView(
+                                    icon = if (isOn) JiibIcons.Visibility else JiibIcons.VisibilityOff,
+                                    tint = if (isOn) t.accent else t.text2,
+                                )
+                            },
+                        ) { ListRowLabel(sensorPickerLabel(name)) }
+                    }
                 }
-            }
-            OutlinedControl(
-                label = stringResource(R.string.common_done),
-                onClick = onDone,
-                modifier = Modifier.fillMaxWidth(),
-                intent = Intent.Accent,
-            )
-        }
+            },
+            dock = {
+                OutlinedControl(
+                    label = stringResource(R.string.common_done),
+                    onClick = onDone,
+                    modifier = Modifier.fillMaxWidth(),
+                    intent = Intent.Accent,
+                )
+            },
+        )
     }
 }
 
@@ -801,65 +802,74 @@ private fun SensorAppearanceFocus(
     modifier: Modifier = Modifier,
 ) {
     val t = LocalTokens.current
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        // 4×2 color grid fills the space between the FocusFrame header and the bottom buttons.
-        val swatchRows = colorfulSwatches.chunked(4) // two rows of four
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
-            // Center the two rows in the leftover space; rows wrap to the (width-driven) dot height.
-            verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
-        ) {
-            swatchRows.forEach { rowColors ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+    // 4×2 color grid fills the space between the FocusFrame header and the bottom buttons.
+    val swatchRows = colorfulSwatches.chunked(4) // two rows of four
+    FocusStage(
+        modifier = modifier,
+        body = {
+            // Deterministic dot size: fit both axes so the 4×2 grid never overflows the body.
+            // dot = min(¼ of available width (minus 3 gaps), ½ of available height (minus 1 gap), 1.4U cap)
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                val dot = minOf(
+                    (maxWidth - 8.dp * 3) / 4,
+                    (maxHeight - 8.dp) / 2,
+                    uDp * 1.4f,
+                )
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
                 ) {
-                    rowColors.forEach { poolColor ->
-                        val isSelected = traceColor != null && poolColor.toArgb() == traceColor.toArgb()
-                        // Each dot is a centered, WIDTH-DRIVEN square (¼ of the row) capped at ~1.4U so
-                        // it stays large but never balloons to the row height (the old overlap/overflow bug).
-                        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .aspectRatio(1f)
-                                    .sizeIn(maxWidth = uDp * 1.4f, maxHeight = uDp * 1.4f)
-                                    .clip(CircleShape)
-                                    .background(poolColor) // data color — THEME-01 carve-out
-                                    .border(
-                                        BorderStroke(if (isSelected) 4.dp else 1.dp, t.accentLine),
-                                        CircleShape,
+                    swatchRows.forEach { rowColors ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            rowColors.forEach { poolColor ->
+                                val isSelected = traceColor != null && poolColor.toArgb() == traceColor.toArgb()
+                                // Each dot is a fixed square derived from the real body budget —
+                                // never wider than a ¼-cell nor taller than ½-body (selection border unchanged).
+                                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(dot)
+                                            .clip(CircleShape)
+                                            .background(poolColor) // data color — THEME-01 carve-out
+                                            .border(
+                                                BorderStroke(if (isSelected) 4.dp else 1.dp, t.accentLine),
+                                                CircleShape,
+                                            )
+                                            .clickable { onColorSelect(poolColor) },
                                     )
-                                    .clickable { onColorSelect(poolColor) },
-                            )
+                                }
+                            }
                         }
                     }
                 }
             }
-        }
-        // Bottom buttons: Visibility · Done.
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            OutlinedControl(
-                label = "",
-                onClick = onVisibilityToggle,
-                modifier = Modifier.weight(1f),
-                intent = if (traceVisible) Intent.Accent else Intent.Neutral,
-                icon = if (traceVisible) JiibIcons.Visibility else JiibIcons.VisibilityOff,
-                contentDescription = stringResource(R.string.cd_temp_trace_visibility),
-            )
-            OutlinedControl(
-                label = stringResource(R.string.common_done),
-                onClick = onDone,
-                modifier = Modifier.weight(1f),
-                intent = Intent.Accent,
-            )
-        }
-    }
+        },
+        dock = {
+            // Bottom buttons: Visibility · Done.
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedControl(
+                    label = "",
+                    onClick = onVisibilityToggle,
+                    modifier = Modifier.weight(1f),
+                    intent = if (traceVisible) Intent.Accent else Intent.Neutral,
+                    icon = if (traceVisible) JiibIcons.Visibility else JiibIcons.VisibilityOff,
+                    contentDescription = stringResource(R.string.cd_temp_trace_visibility),
+                )
+                OutlinedControl(
+                    label = stringResource(R.string.common_done),
+                    onClick = onDone,
+                    modifier = Modifier.weight(1f),
+                    intent = Intent.Accent,
+                )
+            }
+        },
+    )
 }
 
 /**
@@ -900,10 +910,12 @@ private fun HeaterControlFocus(
     val shown: Int = (scrubLive?.toDouble() ?: seed).roundToInt()
     val dim = if (busy) Modifier.alpha(0.38f) else Modifier
 
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        // ── Value display (live scrubber position while dragging, else the working target) ──
-        // FocusHeroValueText renders value+unit as a single shrink-to-fit layout (Focus-text law 2026-06-29).
-        Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+    FocusStage(
+        modifier = modifier,
+        body = {
+            // ── Value display (live scrubber position while dragging, else the working target) ──
+            // FocusHeroValueText renders value+unit as a single shrink-to-fit layout (Focus-text law 2026-06-29).
+            // No wrapper Box: the Stage body slot IS BoxScope and the zone centers wrap-content children.
             FocusHeroValueText(
                 value = shown.toString(),
                 unit = "°C",
@@ -911,21 +923,22 @@ private fun HeaterControlFocus(
                 valueColor = t.text,
                 unitColor = t.text2,
             )
-        }
-        // ── Scrubber (coarse) — bare track; preview on drag, commit on release ──
-        Scrubber(
-            name = "",
-            value = seed.toFloat(),
-            range = scrubRange,
-            step = 1f,
-            uDp = uDp,
-            bare = true,
-            onValueChange = { scrubLive = it },
-            onSettle = { v -> scrubLive = null; onNudge(v.roundToInt()) },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        // ── ±1 fine adjust (no 1/5/10 picker — the scrubber is the coarse control) ──
-        CompositionLocalProvider(LocalUnitDp provides uDp) {
+        },
+        dock = {
+            // ── Scrubber (coarse) — bare track; preview on drag, commit on release ──
+            Scrubber(
+                name = "",
+                value = seed.toFloat(),
+                range = scrubRange,
+                step = 1f,
+                uDp = uDp,
+                bare = true,
+                onValueChange = { scrubLive = it },
+                onSettle = { v -> scrubLive = null; onNudge(v.roundToInt()) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            // ── ±1 fine adjust (no 1/5/10 picker — the scrubber is the coarse control) ──
+            // FocusFrame already provides LocalUnitDp — no CompositionLocalProvider wrapper needed.
             Row(
                 modifier = Modifier.fillMaxWidth().height(uDp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -947,10 +960,9 @@ private fun HeaterControlFocus(
                     contentDescription = stringResource(R.string.cd_increment),
                 )
             }
-        }
-        // ── Off / Done — 1U row (LocalUnitDp + height(uDp)) so they match the ± buttons; without this
-        // they sized to text height and rendered shorter than the steppers on flox (owner 2026-06-14). ──
-        CompositionLocalProvider(LocalUnitDp provides uDp) {
+            // ── Off / Done — 1U row (.height(uDp)) so they match the ± buttons; without this
+            // they sized to text height and rendered shorter than the steppers on flox (owner 2026-06-14). ──
+            // FocusFrame already provides LocalUnitDp — no CompositionLocalProvider wrapper needed.
             Row(
                 modifier = Modifier.fillMaxWidth().height(uDp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -958,8 +970,8 @@ private fun HeaterControlFocus(
                 OutlinedControl(label = stringResource(R.string.output_off), onClick = onOff, modifier = Modifier.weight(1f), intent = Intent.Warn)
                 OutlinedControl(label = stringResource(R.string.common_done), onClick = onDone, modifier = Modifier.weight(1f), intent = Intent.Accent)
             }
-        }
-    }
+        },
+    )
 }
 
 // ── Icon lookup ────────────────────────────────────────────────────────────────────────────────

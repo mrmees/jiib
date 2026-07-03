@@ -2,7 +2,6 @@ package works.mees.jiib.designsystem.components
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,6 +21,8 @@ import androidx.compose.material3.Text
 import androidx.compose.ui.text.style.TextOverflow
 import works.mees.jiib.R
 import works.mees.jiib.designsystem.control.Intent
+import works.mees.jiib.designsystem.layout.FocusZoneInset
+import works.mees.jiib.designsystem.layout.FocusZones
 import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.compose.FocusHeroValueText
 import works.mees.jiib.theme.compose.LocalTokens
@@ -121,17 +122,11 @@ fun AdjusterPanel(
         }
     }
     val valueColor = lerp(t.text, t.heat, rejectFlash.value)
-    Column(
+    FocusZones(
+        inset = FocusZoneInset.Dense,
         modifier = modifier,
-        verticalArrangement = Arrangement.SpaceBetween,
-    ) {
-        // Zone 1 — Value + inline "was X" baseline (centered, absorbs slack)
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
-            contentAlignment = Alignment.Center,
-        ) {
+        body = {
+            // Zone 1 — Value + inline "was X" baseline (centered, absorbs slack)
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -150,8 +145,8 @@ fun AdjusterPanel(
                     )
                 }
                 // "was X" STACKED directly below the value (owner UAT 2026-06-13): some units make
-                // the inline form too long to share the line. The weight(1f) value zone absorbs the
-                // extra line within the Focus budget. Unit space stripped to match the hero value.
+                // the inline form too long to share the line. FocusZones body absorbs slack via
+                // weight(1f). Unit space stripped to match the hero value.
                 if (shouldShowBaseline(value, baseline, decimals)) {
                     Text(
                         text = stringResource(
@@ -165,18 +160,14 @@ fun AdjusterPanel(
                     )
                 }
             }
-        }
-
-        // Zone 2 — Stepper + IncrementPicker (bottom-docked)
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
+        },
+        dock = {
+            // Zone 2 — Stepper + IncrementPicker (bottom-docked via FocusZones dock Column,
+            // 8dp rhythm between rows supplied by FocusZoneGap — no manual Arrangement needed).
             // The ± stepper is the canonical [StepperRow] (Phase 4): 1U row, LocalUnitDp-provided so
             // the tiles floor at 1U and FILL the row (R26), Decrease/Increase icon tokens, Accent
             // intent. `enabled`/`busy` pass straight through — TRUE disablement dims + announces
-            // disabled, busy dims but stays tappable (taps accumulate). Spacing = gapS (8dp at U=64,
-            // pixel-identical to the prior hand-rolled Row).
+            // disabled, busy dims but stays tappable (taps accumulate).
             StepperRow(
                 onDecrement = onDecrement,
                 onIncrement = onIncrement,
@@ -186,8 +177,8 @@ fun AdjusterPanel(
                 busy = busy,
             )
             incrementPicker()
-        }
-    }
+        },
+    )
 }
 
 /** R10: duration of the one-shot rejection flash (ms) — brief, never looping (Adreno-320 law). */

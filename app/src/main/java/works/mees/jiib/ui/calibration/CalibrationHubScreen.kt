@@ -4,21 +4,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.BasicText
-import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import works.mees.jiib.command.CommandRegistry
 import works.mees.jiib.command.dispatch
@@ -36,16 +31,13 @@ import works.mees.jiib.designsystem.components.ListRow
 import works.mees.jiib.designsystem.components.ListRowIcon
 import works.mees.jiib.designsystem.components.ListRowLabel
 import works.mees.jiib.designsystem.control.Intent
+import works.mees.jiib.designsystem.focus.FocusExplainer
 import works.mees.jiib.designsystem.icons.JiibIcons
-import works.mees.jiib.designsystem.layout.FocusInset
 import works.mees.jiib.designsystem.layout.ListBlock
 import works.mees.jiib.designsystem.layout.ScreenScaffold
 import works.mees.jiib.designsystem.layout.rememberUnitGrid
-import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.ThemeTokens
 import works.mees.jiib.theme.compose.LocalTokens
-import works.mees.jiib.theme.compose.toTextStyle
-import works.mees.jiib.theme.fsSp
 
 /**
  * Thin VM-reading wrapper for the CalibrationHub. Collects `holder.routines` + owns `selected`
@@ -138,12 +130,11 @@ fun CalibrationHubContent(
                         isPrinting = isPrinting,
                         onEmergencyStop = onEmergencyStop,
                         onPanic = onEmergencyStop,
-                        contentInset = FocusInset / 2, // tighter than the 16dp default (owner UAT 2026-06-13)
                     ) {
                         if (selected != null) {
-                            HubRoutineFocus(
-                                routine = selected,
-                                t = t,
+                            FocusExplainer(
+                                text = stringResource(routineDescRes(selected)),
+                                maxSp = 22f, // one notch above the 20sp list standard (owner 2026-06-23)
                             )
                         }
                     }
@@ -200,37 +191,6 @@ fun CalibrationHubContent(
                 },
             )
         }
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Hub Focus content (the FocusFrame interior)
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-private fun HubRoutineFocus(
-    routine: CalibrationRoutine,
-    t: ThemeTokens,
-) {
-    // The description now owns the WHOLE Focus content area — the Open button moved to the Field
-    // foot bar (owner 2026-06-23). The icon + title live in the FocusFrame header. Description is
-    // VERTICALLY CENTERED (owner UAT 2026-06-15: a top-aligned text body floats high on big screens —
-    // centering reads better across device sizes). TextAutoSize caps it at 22sp (one notch above the
-    // 20sp list standard — owner 2026-06-23, using the space the Open button vacated) and SHRINKS to
-    // fit on tight screens — never grows past 22sp.
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        BasicText(
-            text = stringResource(routineDescRes(routine)),
-            style = JiibType.body.toTextStyle(t).copy(
-                color = t.text2,
-            ),
-            autoSize = TextAutoSize.StepBased(
-                minFontSize = fsSp(15f, t.fs).sp, // metadata floor (THEMING type ramp) — shrink stops here
-                maxFontSize = fsSp(22f, t.fs).sp, // one notch above the 20sp list standard — never grows past it
-                stepSize = 1.sp,
-            ),
-            modifier = Modifier.fillMaxWidth(),
-        )
     }
 }
 

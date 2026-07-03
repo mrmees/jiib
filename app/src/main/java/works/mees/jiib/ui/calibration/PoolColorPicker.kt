@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,20 +17,16 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import works.mees.jiib.render.bedMeshPoolColors
 import works.mees.jiib.render.resolveMeshColor
-import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.ThemeTokens
-import works.mees.jiib.theme.compose.toTextStyle
 
 /**
  * Pick a bed-mesh ramp color from the full 8-entry pool (intent colors + data pool).
@@ -38,8 +35,7 @@ import works.mees.jiib.theme.compose.toTextStyle
  * slots). Each tile is backgrounded by [resolveMeshColor] so the swatches track theme changes
  * live. The selected tile shows an accent outline + soft fill (mirrors SpoolPicker.ColorTile).
  *
- * Layout: fill-to-fit row of tiles, orientation-aware (landscape = label left of swatch,
- * portrait = swatch above label).
+ * Layout: fill-to-fit 4×2 grid of color-only swatch tiles (owner UAT 2026-07-02 — no labels).
  *
  * @param selected stored Int selector (0..7).
  * @param onPick   called with the new selector when a tile is tapped.
@@ -53,12 +49,6 @@ internal fun PoolColorPicker(
 ) {
     // Build visible options: all available entries in bedMeshPoolColors (up to 8).
     val options: List<Int> = bedMeshPoolColors(t).indices.toList()
-    val intentLabels = listOf("Accent", "Stop", "Heat", "Go")
-    val labels: Map<Int, String> = buildMap {
-        for (i in options) {
-            put(i, if (i < intentLabels.size) intentLabels[i] else "Pool ${i - intentLabels.size + 1}")
-        }
-    }
 
     BoxWithConstraints(modifier) {
         val landscape = maxWidth > maxHeight
@@ -81,7 +71,6 @@ internal fun PoolColorPicker(
                     rowOptions.forEach { sel ->
                         PoolColorTile(
                             sel = sel,
-                            label = labels[sel] ?: "Accent",
                             isSelected = sel == selected,
                             onPick = onPick,
                             t = t,
@@ -105,7 +94,6 @@ internal fun PoolColorPicker(
 @Composable
 private fun PoolColorTile(
     sel: Int,
-    label: String,
     isSelected: Boolean,
     onPick: (Int) -> Unit,
     t: ThemeTokens,
@@ -120,17 +108,6 @@ private fun PoolColorTile(
         .background(if (isSelected) t.accentSoft else Color.Transparent)
         .clickable { onPick(sel) }
         .padding(8.dp)
-    val labelColor = if (isSelected) t.accent2 else t.text
-
-    @Composable
-    fun TileLabel(mod: Modifier) = Text(
-        text = label,
-        color = labelColor,
-        style = JiibType.caption.toTextStyle(t),
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        modifier = mod,
-    )
 
     @Composable
     fun Swatch(heightFrac: Float) {
@@ -149,23 +126,8 @@ private fun PoolColorTile(
         }
     }
 
-    if (landscape) {
-        Row(
-            tileMod,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            TileLabel(Modifier.weight(1f))
-            Swatch(0.7f)
-        }
-    } else {
-        Column(
-            tileMod,
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically),
-        ) {
-            Swatch(0.6f)
-            TileLabel(Modifier)
-        }
+    // Color-only tiles — no text label (owner UAT 2026-07-02: labels cluttered narrow portrait).
+    Box(tileMod, contentAlignment = Alignment.Center) {
+        Swatch(if (landscape) 0.7f else 0.6f)
     }
 }

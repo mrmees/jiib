@@ -1,25 +1,21 @@
 package works.mees.jiib.ui.increments
 
 import androidx.compose.foundation.basicMarquee
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.unit.dp
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import works.mees.jiib.R
 import works.mees.jiib.command.CommandRegistry
@@ -35,6 +31,8 @@ import works.mees.jiib.designsystem.components.ListRow
 import works.mees.jiib.designsystem.components.ListRowIcon
 import works.mees.jiib.designsystem.control.Intent
 import works.mees.jiib.designsystem.control.OutlinedControl
+import works.mees.jiib.designsystem.focus.FocusExplainer
+import works.mees.jiib.designsystem.focus.FocusForm
 import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.ListBlock
 import works.mees.jiib.designsystem.layout.ScreenScaffold
@@ -43,10 +41,8 @@ import works.mees.jiib.di.AppContainer
 import works.mees.jiib.state.PrintState
 import works.mees.jiib.state.PrinterState
 import works.mees.jiib.theme.JiibType
-import works.mees.jiib.theme.compose.FocusText
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
-import androidx.compose.ui.text.style.TextOverflow
 import works.mees.jiib.ui.screen.TokenTextField
 
 /**
@@ -93,13 +89,7 @@ fun IncrementValuesScreen(
                     onPanic = estop,
                 ) {
                     if (selectedSpec == null) {
-                        FocusText(
-                            text = stringResource(R.string.increment_values_select_hint),
-                            role = JiibType.body,
-                            t = LocalTokens.current,
-                            color = LocalTokens.current.text2,
-                            modifier = Modifier.fillMaxSize(),
-                        )
+                        FocusExplainer(text = stringResource(R.string.increment_values_select_hint))
                     } else {
                         IncrementEditor(
                             spec = selectedSpec,
@@ -165,36 +155,43 @@ private fun IncrementEditor(
     val errorMsg = (parse as? IncrementParse.Error)?.reason
     val t = LocalTokens.current
 
-    Column(modifier.fillMaxSize()) {
-        TokenTextField(
-            value = text,
-            onValueChange = { text = filterIncrementInput(it) },
-            label = stringResource(R.string.increment_values_input_label),
-            // Text IME: the list needs ',' '.' and digits — numeric keyboards can't reliably enter
-            // commas/decimals. filterIncrementInput is the enforcement layer (only digits/./,/space
-            // survive); this is the sanctioned Settings keyboard exception.
-            keyboardType = KeyboardType.Text,
-            isError = !valid,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text = errorMsg ?: stringResource(R.string.increment_values_input_hint),
-            color = if (errorMsg != null) t.stop else t.text2,
-            style = JiibType.caption.toTextStyle(t),
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Spacer(Modifier.weight(1f))
-        OutlinedControl(
-            label = stringResource(R.string.common_save),
-            onClick = { (parse as? IncrementParse.Ok)?.let { onSave(it.canonical) } },
-            icon = JiibIcons.CheckCircle,
-            intent = Intent.Go,
-            enabled = valid,
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
+    FocusForm(
+        modifier = modifier,
+        body = {
+            TokenTextField(
+                value = text,
+                onValueChange = { text = filterIncrementInput(it) },
+                label = stringResource(R.string.increment_values_input_label),
+                // Text IME: the list needs ',' '.' and digits — numeric keyboards can't reliably enter
+                // commas/decimals. filterIncrementInput is the enforcement layer (only digits/./,/space
+                // survive); this is the sanctioned Settings keyboard exception.
+                keyboardType = KeyboardType.Text,
+                isError = !valid,
+                modifier = Modifier.fillMaxWidth(),
+                // Owner UAT: bigger values + label, and accent outline so the input is more obvious.
+                textStyle = JiibType.statValue.toTextStyle(t),
+                labelRole = JiibType.body,
+                borderColor = t.accent,
+            )
+            Text(
+                text = errorMsg ?: stringResource(R.string.increment_values_input_hint),
+                color = if (errorMsg != null) t.stop else t.text2,
+                style = JiibType.body.toTextStyle(t),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
+        dock = {
+            OutlinedControl(
+                label = stringResource(R.string.common_save),
+                onClick = { (parse as? IncrementParse.Ok)?.let { onSave(it.canonical) } },
+                icon = JiibIcons.CheckCircle,
+                intent = Intent.Go,
+                enabled = valid,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+    )
 }
 
 /** Row/Focus label: the control title when present, else a per-key name. */

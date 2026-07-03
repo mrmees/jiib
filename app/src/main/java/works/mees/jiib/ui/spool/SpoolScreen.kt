@@ -52,6 +52,7 @@ import works.mees.jiib.R
 import works.mees.jiib.command.CommandDispatcher
 import works.mees.jiib.command.CommandRegistry
 import works.mees.jiib.command.dispatch
+import works.mees.jiib.designsystem.components.DigestRow
 import works.mees.jiib.designsystem.components.FocusFrame
 
 import works.mees.jiib.designsystem.components.FocusEdge
@@ -66,9 +67,9 @@ import works.mees.jiib.designsystem.components.SortOption
 import works.mees.jiib.designsystem.components.SortRow
 import works.mees.jiib.control.ControlSpecs
 import works.mees.jiib.designsystem.control.Intent
-import works.mees.jiib.designsystem.icons.JiibIcon
-import works.mees.jiib.designsystem.icons.JiibIconView
 import works.mees.jiib.designsystem.icons.JiibIcons
+import works.mees.jiib.designsystem.focus.FocusDigest
+import works.mees.jiib.designsystem.focus.FocusPlaceholder
 import works.mees.jiib.designsystem.layout.ListBlock as DesignListBlock
 import works.mees.jiib.designsystem.layout.ScreenScaffold
 import works.mees.jiib.designsystem.layout.rememberUnitGrid
@@ -808,80 +809,59 @@ private fun SpoolDetailContent(
     t: ThemeTokens,
 ) {
     if (spool == null) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            JiibIconView(
-                JiibIcons.SpoolFilament,
-                tint = t.text3,
-                sizeDp = fsSp(64f, t.fs).dp,
-                contentDescription = stringResource(R.string.cd_spool_empty),
-            )
-        }
+        FocusPlaceholder(icon = JiibIcons.SpoolFilament, contentDescription = stringResource(R.string.cd_spool_empty))
         return
     }
     val filament = spool.filament
-    val iconSp = fsSp(20f, t.fs)
-
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        // The spool's identity now lives in the Focus header (title = material · name, icon tinted to
-        // the spool color); the FillMeter below is the in-card color/fullness visual. No chip row here.
-        // FillMeter — remaining fraction (remaining/original); fallback t.accent when no filament color.
-        val remaining = spool.remainingWeight
-        val original = spool.originalWeight
-        val fillFraction = if (remaining != null && original != null && original > 0.0) {
-            (remaining / original).toFloat()
-        } else if (remaining != null) {
-            0.5f // unknown original — show half as a neutral indicator
-        } else {
-            0f
-        }
-        val fillLabel = buildFillLabel(spool)
-        // The fill bar is the spool's weight visual (label shows remaining/original g · %) AND the
-        // tap target to correct the measured weight (the old standalone weight row was removed).
-        val editWeightCd = stringResource(R.string.cd_spool_weight_edit)
-        val measureInteraction = remember { MutableInteractionSource() }
-        FillMeter(
-            fraction = fillFraction,
-            fillColor = spoolColor ?: t.accent,
-            modifier = Modifier
-                .fillMaxWidth()
-                // Tap target to correct the weight — no rounded clip / indication frame so the
-                // weight line carries no rounded border (owner UAT 2026-06-17).
-                .clickable(
-                    interactionSource = measureInteraction,
-                    indication = null,
-                    onClick = onMeasure,
-                )
-                .semantics { contentDescription = editWeightCd },
-            label = fillLabel,
-        )
-        // Nozzle + bed recommended temps.
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            JiibIconView(JiibIcons.Nozzle, tint = t.text2, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_nozzle_temp))
-            Text(tempText(filament?.settingsExtruderTemp), color = t.text, style = JiibType.dataInline.toTextStyle(t), maxLines = 1)
-            JiibIconView(JiibIcons.HeatBed, tint = t.text2, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_bed_temp))
-            Text(tempText(filament?.settingsBedTemp), color = t.text, style = JiibType.dataInline.toTextStyle(t), maxLines = 1)
-        }
-        // Registration date.
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            JiibIconView(JiibIcons.CalendarAddOn, tint = t.text2, sizeDp = iconSp.dp, contentDescription = stringResource(R.string.cd_spool_registered))
-            Text(
-                text = spool.registered?.substringBefore('T')?.ifBlank { null }
-                    ?: stringResource(R.string.spool_value_unset),
-                color = t.text,
-                style = JiibType.dataInline.toTextStyle(t),
-                maxLines = 1,
-            )
-        }
-        if (spool.archived) {
-            DetailBadge(JiibIcons.Archive, stringResource(R.string.spool_badge_archived), stringResource(R.string.cd_spool_archived), t, iconSp, t.heat)
-        }
+    // FillMeter — remaining fraction (remaining/original); fallback t.accent when no filament color.
+    val remaining = spool.remainingWeight
+    val original = spool.originalWeight
+    val fillFraction = if (remaining != null && original != null && original > 0.0) {
+        (remaining / original).toFloat()
+    } else if (remaining != null) {
+        0.5f // unknown original — show half as a neutral indicator
+    } else {
+        0f
     }
+    val fillLabel = buildFillLabel(spool)
+    // The fill bar is the spool's weight visual (label shows remaining/original g · %) AND the
+    // tap target to correct the measured weight (the old standalone weight row was removed).
+    val editWeightCd = stringResource(R.string.cd_spool_weight_edit)
+    val measureInteraction = remember { MutableInteractionSource() }
+    val rows = buildList {
+        // FillMeter natural height: 6dp track + 4dp gap + ~22.5dp dataMeta label ≈ 32.5dp.
+        // 0.5U (32dp) clips; 0.6U (38.4dp) fits with margin — smallest clean fraction.
+        add(DigestRow.Custom(heightU = 0.6f) {
+            FillMeter(
+                fraction = fillFraction,
+                fillColor = spoolColor ?: t.accent,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(interactionSource = measureInteraction, indication = null, onClick = onMeasure)
+                    .semantics { contentDescription = editWeightCd },
+                label = fillLabel,
+            )
+        })
+        // Temp fields: 2-per-row Duo grid (nozzle left, bed right); packed = start-aligned clusters.
+        add(DigestRow.Duo(
+            left = DigestRow.Line(icon = JiibIcons.Nozzle, label = "", value = tempText(filament?.settingsExtruderTemp), packed = true),
+            right = DigestRow.Line(icon = JiibIcons.HeatBed, label = "", value = tempText(filament?.settingsBedTemp), packed = true),
+        ))
+        // Date + optional archived: Duo grid (registered left, archived right when present).
+        // Registered date renders YY-MM-DD (owner re-gate: drop century digits from YYYY-MM-DD).
+        add(DigestRow.Duo(
+            left = DigestRow.Line(
+                icon = JiibIcons.CalendarAddOn,
+                label = "",
+                value = spool.registered?.substringBefore('T')?.ifBlank { null }
+                    ?.let { if (it.length >= 10) it.substring(2) else it }
+                    ?: stringResource(R.string.spool_value_unset),
+                packed = true,
+            ),
+            right = if (spool.archived) DigestRow.Line(icon = JiibIcons.Archive, label = "", value = stringResource(R.string.spool_badge_archived), valueColor = t.heat, packed = true) else null,
+        ))
+    }
+    FocusDigest(rows = rows, horizontalAlignment = Alignment.Start)
 }
 
 /** Build the FillMeter label string: "remaining/original g · percent" or "remaining g". */
@@ -995,25 +975,6 @@ private fun SpoolRowTrailing(spool: SpoolmanSpool, activeId: Int?, t: ThemeToken
 @Composable
 private fun tempText(temp: Int?): String =
     temp?.let { stringResource(R.string.spool_temp, it) } ?: stringResource(R.string.spool_value_unset)
-
-/** An icon-led detail badge (loaded green / archived amber). */
-@Composable
-private fun DetailBadge(
-    icon: JiibIcon,
-    text: String,
-    contentDescription: String,
-    t: ThemeTokens,
-    iconSp: Float,
-    color: Color,
-) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        JiibIconView(icon, tint = color, sizeDp = iconSp.dp, contentDescription = contentDescription)
-        Text(text, color = color, style = JiibType.body.toTextStyle(t), maxLines = 1)
-    }
-}
 
 /**
  * Parse a (possibly un-normalized) filament hex to a Compose [Color] (D-08); guards via

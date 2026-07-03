@@ -3,8 +3,6 @@ package works.mees.jiib.ui.outputs
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -13,7 +11,6 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -31,10 +28,9 @@ import works.mees.jiib.designsystem.components.ListRowIcon
 import works.mees.jiib.designsystem.components.ListRowLabel
 import works.mees.jiib.designsystem.control.Intent
 import works.mees.jiib.designsystem.icons.JiibIcon
-import works.mees.jiib.designsystem.icons.JiibIconView
 import works.mees.jiib.designsystem.icons.JiibIcons
 import androidx.compose.foundation.layout.BoxWithConstraints
-import works.mees.jiib.designsystem.layout.FocusInset
+import works.mees.jiib.designsystem.focus.FocusExplainer
 import works.mees.jiib.designsystem.layout.ListBlock
 import works.mees.jiib.designsystem.layout.ScreenScaffold
 import works.mees.jiib.designsystem.layout.rememberUnitGrid
@@ -42,7 +38,6 @@ import works.mees.jiib.di.AppContainer
 import works.mees.jiib.outputs.OutputRowVm
 import works.mees.jiib.outputs.OutputsHolder
 import works.mees.jiib.theme.JiibType
-import works.mees.jiib.theme.compose.FocusText
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 
@@ -165,7 +160,6 @@ private fun OutputsContent(
                             isPrinting = isPrinting,
                             onEmergencyStop = onEmergencyStop,
                             onPanic = onEmergencyStop,
-                            contentInset = FocusInset / 2, // shared calibration-focus rhythm
                         ) {
                             // CR-04 (26-rev): key on the selected output's IDENTITY so switching between two
                             // same-family outputs (identical range/step) tears down the previous control's
@@ -198,12 +192,9 @@ private fun OutputsContent(
                         onEmergencyStop = onEmergencyStop,
                         onPanic = onEmergencyStop,
                     ) {
-                        FocusText(
+                        FocusExplainer(
                             text = stringResource(R.string.outputs_select_prompt),
-                            role = JiibType.body,
-                            t = t,
                             color = t.text3,
-                            modifier = Modifier.fillMaxSize(),
                         )
                     }
                 }

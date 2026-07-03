@@ -210,8 +210,8 @@ fun headerShowsEStop(
  *  - Edge: [FocusEdge] — [FocusEdge.Neutral] by default (soft-accent [ThemeTokens.accentLine]);
  *    [FocusEdge.Data] tints it with item data; [FocusEdge.Progress] draws a perimeter bar (deferred).
  *  - Content clip: content is clipped to the rounded bounds — it never overflows the frame.
- *  - Inner inset: [FocusInset] (16dp) on the content area's SIDES + BOTTOM only; the TOP inset is 0
- *    (the 1U header bar already separates), so content sits directly under the header.
+ *  - Inner inset: owned by the Layer-2 archetype via [works.mees.jiib.designsystem.layout.FocusZones]
+ *    (LAW 4) — FocusFrame adds none.
  *
  * ## THEME-01 data carve-out — [FocusEdge.Data]
  * Carries the item's actual physical color hex (e.g. Spoolman colorSwatches). It is item DATA, not a
@@ -234,10 +234,9 @@ fun headerShowsEStop(
  *                         false so all existing non-gated callers are byte-for-byte unchanged.
  * @param onEmergencyStop  firmware E-stop handler; null means no e-stop is ever shown.
  * @param onPanic          optional long-press instant halt (no guard) wired to the e-stop slot.
- * @param contentInset     inner inset on the content area's SIDES + BOTTOM (the TOP is always 0 so
- *                         content sits flush under the header); defaults to [FocusInset] (16dp).
- *                         Screens whose content reads better tighter can pass a smaller value.
- * @param content          column content rendered inside the framed, clipped, padded surface.
+ * @param content          column content rendered inside the framed, clipped surface. Content
+ *                         insets are owned by the Layer-2 archetype via FocusZones (LAW 4) —
+ *                         FocusFrame adds none.
  */
 @Composable
 fun FocusFrame(
@@ -252,7 +251,6 @@ fun FocusFrame(
     safetyActive: Boolean = false,
     onEmergencyStop: (() -> Unit)? = null,
     onPanic: (() -> Unit)? = null,
-    contentInset: Dp = FocusInset,
     trailingActionIcon: JiibIcon? = null,
     onTrailingAction: (() -> Unit)? = null,
     trailingActionContentDescription: String? = null,
@@ -307,7 +305,8 @@ fun FocusFrame(
         // title so centered content reads against a clear top boundary instead of floating in the
         // borderless surface. Sits flush at the 1U header bottom (the content top inset is 0).
         Box(Modifier.fillMaxWidth().height(1.dp).background(t.outline))
-        // Content fills the space below the header; contentInset (FocusInset by default) insets it.
+        // Content fills the space below the header. Insets are owned by the Layer-2 archetype via
+        // FocusZones (LAW 4) — FocusFrame adds none.
         // Provide LocalUnitDp = uDp so EVERY control in the focus body floors at 1U (uDp) and sizes
         // its glyph to the 0.6U tier — matching the foot bar. Without this, a standalone focus button
         // falls to the flat 64dp floor and reads SHORTER than foot-bar buttons on larger screens
@@ -316,10 +315,6 @@ fun FocusFrame(
         val contentModifier = Modifier
             .fillMaxWidth()
             .weight(1f)
-            // TOP inset dropped (owner UAT 2026-06-15): the 1U header bar already separates header
-            // from content, so an extra gap below it only pushed content down — most visibly with
-            // vertically-centered panes. Keep the side + bottom inset for breathing room.
-            .padding(start = contentInset, end = contentInset, bottom = contentInset)
         CompositionLocalProvider(LocalUnitDp provides uDp) {
             Column(modifier = contentModifier, content = content)
         }

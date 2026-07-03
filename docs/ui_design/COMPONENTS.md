@@ -113,14 +113,15 @@ authored **flush** — it adds NO frame padding of its own; the enclosing `Regis
 default in `ScreenScaffold`) owns the 8dp registration frame on all four sides. Callers pass
 **sizing only** (`fillMaxSize`/`weight`) and never add frame padding. (`FocusFramePlacement` is
 **retired** — the region now uniformly owns the frame for all placements.) It **clips its content to bounds** (no
-overflow — graphical content uses `Fit` so it scales rather than clips), and applies the inner
-content inset (the `contentInset` param, **default `FocusInset` = 16dp**) to the content area's
-**sides + bottom only — the TOP inset is 0** (2026-06-15 owner UAT). Content sits flush under the
-header divider (below); the old top gap stacked on top of an already-separated header bar and pushed
-content down, most visibly with vertically-centered panes. A screen whose Focus content reads better
-tighter may pass a smaller `contentInset` value (affects sides + bottom) — the Calibration Hub passes
-`FocusInset / 2` (8dp) to halve the padding around its bottom-docked Open button (2026-06-13 owner
-UAT). Every other screen uses the 16dp default.
+overflow — graphical content uses `Fit` so it scales rather than clips).
+
+**Content insets are ZONE-owned, not frame-owned (Focus content law, 2026-07).** The
+`contentInset` param on `FocusFrame` was **DELETED** — `FocusFrame` adds no content inset of its
+own. The Focus body is a `FocusZones` primitive wrapped by an **archetype**, and the archetype
+picks the inset **tier** (Default 16dp / Dense 8dp / Flush 0). The body **TOP inset is now 8dp**
+for Default + Dense (owner 2026-07-02 amendment — this **supersedes** the earlier 2026-06-15
+"TOP inset = 0" rule), and 0 for Flush. See `LAYOUT.md §"Focus content law (2026-07)" LAW 4` and
+§"Focus archetypes (the closed catalog)" below for which archetype gets which tier.
 
 **Mandatory required params:** `title: String`, `icon: JiibIcon`, `uDp: Dp`, plus the e-stop
 seam: `isPrinting: Boolean`, `onEmergencyStop: () -> Unit`, `onPanic: () -> Unit`. All
@@ -146,7 +147,9 @@ header is always present — idle and printing alike. It contains:
 **Header/content divider (2026-06-15 owner UAT):**
 
 A **full-width 1dp `t.outline` hairline** sits flush at the 1U header's bottom edge (the content top
-inset is 0, so the divider is the boundary), separating the header bar from the content area. It is a
+inset is **8dp** for the Default + Dense tiers — **0 only for the Flush case** (FocusMedia); owner
+2026-07-02 amendment, superseding the earlier "content top inset = 0", see `LAYOUT.md §"Focus content
+law (2026-07)" LAW 4`), separating the header bar from the content area. It is a
 **visual landmark**, app-wide on every `FocusFrame`. Without it, a vertically-centered Focus body
 reads as *floating* — the title sits centered in a tall 1U bar with no boundary beneath it, so the
 eye has nothing to measure "centered" against and the content feels pushed down even when it is
@@ -418,6 +421,119 @@ derive their typeface + base size from the same roles via `TextRole.typeface(con
 
 ---
 
+## 3b. Focus archetypes (the closed catalog)
+
+Everything **inside** a `FocusFrame` body is one of a **closed set of archetypes** (Focus content
+law, 2026-07 — see `LAYOUT.md §"Focus content law (2026-07)"` for the five laws). A screen
+composes a **Layer-2 archetype**; it never hand-rolls Focus-body layout and never reaches under to
+the Layer-1 primitives. Adding a hand-rolled `Column`/`Row`/`Box`/`Text` at Focus-body level is a
+build failure (see Enforcement below).
+
+### The catalog (10 archetypes)
+
+Each archetype owns its **LAW-4 inset tier**. Screen lists are derived from actual call sites in
+`app/src/main` (`designsystem/` + `preview/` excluded).
+
+| Archetype | Definition | Inset tier | Screens |
+|---|---|---|---|
+| **`FocusExplainer`** | One centered prose block (LAW-1 Body; LAW-2 shrink via `FocusText`); optional watermark glyph + Dock. Two overloads (`String` + `AnnotatedString`). | **Dense when docked, else Default** (`focusZoneInsetFor(hasDock)`) | AppSettings, BookmarkedMacros, CalibrationHub, HeatPresets, IncrementValues, Move, Outputs, PowerReset, PrinterFind, Printers, Probe, SystemPage, Theme |
+| **`FocusPlaceholder`** | Empty/placeholder state: proportional `FocusGlyph` (LAW-3) + optional headline/prompt. | **Default** | Files, PrinterSettings, Spool |
+| **`FocusDigest`** | Labelled data digest built on `DigestColumn` (LAW-5 degrade). Carries the `maxScale` grow-to-cap opt-in. | **Default ALWAYS** — the LAW-4 carve-out: stays Default *even when docked* | DeviceFocus, HeatPresets, PrinterConnectionEditor, PrinterSettings, PrintStatusFocus (HomeDigest), Spool |
+| **`FocusInfoCard`** | Fill-to-fit stat block; one shared `infoCardScale` pass feeds both styles (`IconRows` / `CenteredBlock`). | **Default** | Files, PrintStatusFocus |
+| **`AdjusterPanel`** | Two-zone adjuster (value zone Body + ± stepper/IncrementPicker Dock); the shared sketch-003 adjustment archetype. | **Dense** | FineTune |
+| **`FocusMedia`** | Flush-fill media/canvas host (temp graph, console scrollback, bed-mesh heatmap); optional overlay. | **Flush ALWAYS** | Console |
+| **`FocusStage`** | Spatial/interactive surface — Cap / centered Body / Dock (jog pads, sliders, wheels). | **Dense** | BedMesh, Extrude, Move, OutputFocusControl, OutputToggleControl, Probe, ScrewsTilt, Temperature, Theme, Tilt |
+| **`FocusForm`** | **Top-FLOW** rows of classed controls (the named LAW-1 body exception — labels-above-controls) + a docked action. | **Dense** | BedMesh, BookmarkedMacros, FontPicker, HeatPresetWizard, IncrementValues, PrinterConnectionEditor, Temperature |
+| **`HardLockStatusCard`** | Centered `focusHero` label while a HardLock op runs (e.g. homing); static only. | **Default** | BedMesh, Move, Probe, ScrewsTilt, Tilt |
+| **`UnknownStatusCard`** | Title + message + Dismiss when a HardLock exits abnormally; forces an ack. | **Default** | BedMesh, Move, Probe, ScrewsTilt, Tilt |
+
+Files: the first eight live in `designsystem/focus/`; `AdjusterPanel` in
+`designsystem/components/AdjusterPanel.kt`; the two StatusCards in
+`designsystem/components/GatingIndicators.kt`.
+
+### FocusDigest — the `DigestRow` vocabulary
+
+`FocusDigest` renders a `List<DigestRow>` (sealed interface, `designsystem/components/DigestColumn.kt`):
+
+- **`Line`** — label + value (+ optional icon/tint, `emphasis`, `valueColor`/`labelColor`). Scales
+  (LAW-5). Icon 0.6U, weighted label ellipsizes, end-aligned **tabular Mono** value. `packed = true`
+  → a start-aligned icon→label→value cluster with a trailing spacer (used inside `Duo` grid cells).
+- **`Note`** — full-width single text line; `role` (default `dataInline`), `textAlign`, and
+  `marquee` (a **named motion-law exception** — single-line overflow-only, the ConnSummary URL
+  precedent). Scales like `Line`.
+- **`Duo`** — two `Line` cells in a weighted 1:1 Row (right `null` → left full width + spacer).
+- **`Custom(heightU, content)`** — holds its `U` height, contributes nothing to the scale floor;
+  rendered in a fixed-height Box. Its interior is a slot (F3 boundary — see Enforcement).
+
+**`maxScale: Float = 1f`** (on `FocusDigest`, passed to `DigestColumn`): `> 1f` opts into
+**grow-to-cap** (LAW-5) — scale UP when the zone has room. Exactly three sites pass `1.5f`:
+**HeatPresets**, **HomeDigest** (`PrintStatusFocus.HomeFocus`), **PrinterSettings**.
+
+### FocusInfoCard — scale scope note
+
+`enum InfoCardStyle { IconRows, CenteredBlock }`. `infoCardScale(...)` is the internal uniform-scale
+pass (widest row fits `availW*0.96`, stacked height fits `availH`, clamped). Params **`rowsMinFrac`
+(0.7f) / `rowsMaxFrac` (2.4f) scope to `IconRows` ONLY** — `CenteredBlock` ignores them (its bounds
+are the ported sp constraints: data/name ∈ [15sp, 46sp], filename ×1.2). Both use the defaults at
+every current call site; there are no external `infoCardScale`/`rows*Frac` overrides.
+
+### Layer-1 primitives (archetype-internal — never call from `ui/`)
+
+These are the substrate the archetypes are built from. **A `ui/` file calling `FocusZones`,
+`DigestColumn`, or `DigestLine` is a build failure** (`FocusLayerContainmentTest`, below).
+
+- **`FocusZones(inset, cap?, dock?, body)`** (`designsystem/layout/FocusZones.kt`) — the LAW-1 body
+  skeleton. **Cap** = fixed 1U strip (`height(uDp)`, centered); **Body** = `weight(1f)`, centered
+  both axes; **Dock** = bottom column on the `FocusZoneGap` (= `ListFrameInset` = 8dp) rhythm.
+  `uDp = LocalUnitDp.current ?: 64.dp`. Insets from `FocusZoneInset`: **Default = `FocusInset` = 16dp
+  / Dense = `FocusInset/2` = 8dp / Flush = 0**; the **TOP inset = 8dp for Default+Dense, 0 for
+  Flush** (owner 2026-07-02 — supersedes the 2026-06-15 zero-top rule).
+- **`DigestLine(label, value, icon?, iconTint?, emphasis, valueColor?, labelColor?, scale, packed)`**
+  — one labelled data row.
+- **`DigestColumn(rows, horizontalAlignment, maxScale)`** — the LAW-5 fit engine. Pure helpers:
+  `digestFit(availablePx, totalHeightAt, minScale, maxScale, stepDown=0.05f)` and
+  `digestMinScale(rows)`. **`digestFit` semantics: candidates are multiply-from-base (walked down
+  from `maxScale` in `stepDown` steps, Double math); a candidate "fits" within a `+0.5f` px
+  tolerance.** Returns `Natural` (only when `maxScale == 1f` and 1.0 fits) / `Scaled(scale)` /
+  `Scroll` (when even `minScale` overflows). Per-role floor = 15sp.
+- **`FocusGlyph(icon, fraction=0.5f, tint?, contentDescription?)`**
+  (`designsystem/components/FocusGlyph.kt`) — LAW-3 proportional glyph;
+  `focusGlyphSideDp = minOf(maxWidth, maxHeight) * fraction` (rotation-safe). **`FocusGlyph` is
+  SLOT-LEGAL** — like the LAW-2 text classes it is usable *inside* an archetype's slot content, so
+  it is deliberately **NOT** an archetype and **NOT** in the containment list.
+
+### Enforcement (two tests + a suppression tag)
+
+- **`FocusArchetypeConformanceTest`** (mechanism 1) — walks every `ui/` `.kt`; for each `FocusFrame(`
+  the body **must be a trailing lambda**. Passing the body as a named **`content =` arg is an
+  offender outright** (it would hide the body from the scanner). The body scanner (`FocusScan.kt`)
+  flags a fixed forbidden set at visible body level — `Column, Row, Box, BoxWithConstraints,
+  LazyColumn, Spacer, Text, BasicText, Image, AsyncImage, Icon`, plus `.padding(`. **Parenless block
+  detection** (`Column { }` with no parens) is caught by a separate `BLOCK` regex. **F3 boundary:
+  slot interiors** (Stage/Form bodies, watermarks, `DigestRow.Custom`) are **masked** — they are
+  governed by the LAW-2 `FocusTextConformanceTest` + the component-class law, **not** the archetype
+  scanner. Control-flow braces (`when`/`if`/`for`/…) stay visible, so a hand-rolled `Column{}` inside
+  a `when` branch IS caught.
+- **`FocusLayerContainmentTest`** (mechanism 2) — the exact 3-name Layer-1 list is
+  **`FocusZones, DigestColumn, DigestLine`**; any call from a `ui/` file fails. Word-boundary regex,
+  so `DigestRow.Line(` does not match `DigestLine`. `FocusGlyph` is deliberately excluded (slot-legal).
+- **`// focus-archetype-exempt:` tag** — a per-line suppression for a future owner ruling; both
+  offender paths honour it. **Zero uses in `app/src/main` at ship** (verified).
+
+### The NEW-ARCHETYPE procedure (~30 min — NEVER inline layout)
+
+When a Focus needs a shape the ten archetypes can't express:
+
+1. Add the class in `designsystem/focus/` (or `designsystem/components/` for status/adjuster kin),
+   built on `FocusZones` + the Layer-1 primitives — pick its LAW-4 inset tier.
+2. Add its name to the `FocusArchetypeConformanceTest` registry allowlist.
+3. Add a row to the catalog table above.
+
+Never hand-roll Focus-body layout in a `ui/` screen to dodge this — the tests will fail the build,
+and the whole point of the closed catalog is that every Focus reads as one app.
+
+---
+
 ## 4. The unit `U`
 
 All component heights are expressed in units of `U`. The unit grid derivation lives in
@@ -578,10 +694,12 @@ AdjusterPanel.
   owner UAT 2026-06-13 — multi-word units like mm/s² made the inline form too long; the
   weight-1f zone is the correct fix.)*
 
-**Content inset:** adjuster Focuses use `contentInset = FocusInset / 2` (8dp) — the same as the
-Calibration Hub — to give the bottom-docked control group sufficient breathing room without
-wasting vertical space on the value zone. This is the canonical **"Focus with a docked action
-region"** pattern; see `LAYOUT.md §"Focus with a docked action region"`.
+**Content inset — refit on `FocusZones` (Focus content law, 2026-07).** `AdjusterPanel` is now the
+**Adjuster archetype**: its value zone is the `FocusZones` **Body** and its ± stepper / IncrementPicker
+is the **Dock**. The old `contentInset = FocusInset / 2` is expressed by the archetype's **Dense (8dp)**
+inset tier — no per-call inset param. The weighted-body-over-bottom-docked-controls shape is the
+`FocusZones` Body + Dock law; see `LAYOUT.md §"Focus content law (2026-07)"` and §"Focus archetypes
+(the closed catalog)" below.
 
 **IncrementPicker selected tile — `accentSoft` fill + accent outline (owner UAT 2026-06-13):**
 
@@ -674,7 +792,7 @@ for these; where prose and this table disagree, this table wins.
 | Element | Value (dp) |
 |---|---|
 | `ListRow` border — unselected / selected | 1.5 / 2 |
-| `FocusFrame` edge — Neutral / Data / inner padding (`contentInset`, default `FocusInset`; Calibration Hub + adjuster Focuses use 8) | 1.5 / 3 / 16 |
+| `FocusFrame` edge — Neutral / Data / body inset (zone-owned tiers: Default 16 / Dense 8 / Flush 0; top inset 8 for Default+Dense, 0 Flush — `contentInset` param deleted, see §"Focus archetypes") | 1.5 / 3 / 16·8·0 |
 | `FocusFrame` header height / icon+e-stop slot / idle identity glyph | 1U / 0.7U (min 64) / 0.82× slot |
 | `OutlinedControl` border / min height | 2 / 64 |
 | `FillMeter` track height | 6 (pill) |

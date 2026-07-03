@@ -13,8 +13,6 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.runtime.CompositionLocalProvider
-import works.mees.jiib.designsystem.layout.LocalUnitDp
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
@@ -61,7 +59,10 @@ import works.mees.jiib.designsystem.Severity
 import works.mees.jiib.designsystem.SeverityToast
 import works.mees.jiib.designsystem.components.FootAction
 import works.mees.jiib.designsystem.components.FocusFrame
+import works.mees.jiib.designsystem.components.FocusGlyph
 import works.mees.jiib.designsystem.components.FootButtonBar
+import works.mees.jiib.designsystem.focus.FocusForm
+import works.mees.jiib.designsystem.focus.FocusStage
 import works.mees.jiib.designsystem.components.ListRow
 import works.mees.jiib.designsystem.components.footAction
 import works.mees.jiib.designsystem.components.ListRowLabel
@@ -70,7 +71,6 @@ import works.mees.jiib.designsystem.control.Intent
 import works.mees.jiib.designsystem.icons.JiibIconView
 import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.controlHeight
-import works.mees.jiib.designsystem.layout.FocusInset
 import works.mees.jiib.designsystem.layout.ListBlock
 import works.mees.jiib.designsystem.layout.ScreenScaffold
 import works.mees.jiib.designsystem.layout.rememberUnitGrid
@@ -91,7 +91,6 @@ import works.mees.jiib.theme.ThemeTokens
 import works.mees.jiib.theme.compose.FocusText
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
-import works.mees.jiib.theme.fsSp
 import works.mees.jiib.command.BedMeshRenameArgs
 import works.mees.jiib.designsystem.control.OutlinedControl
 
@@ -467,7 +466,6 @@ internal fun BedMeshContent(
                         safetyActive = gating !is GatingState.Idle,
                         onEmergencyStop = onEmergencyStop,
                         onPanic = onEmergencyStop,
-                        contentInset = FocusInset / 2,
                         trailingActionIcon = if (!isPrinting && !isLocked && fieldMode !is MeshFieldMode.MeshConfig && fieldMode !is MeshFieldMode.MeshConfigEditor) JiibIcons.Edit else null,
                         onTrailingAction = if (!isPrinting && !isLocked && fieldMode !is MeshFieldMode.MeshConfig && fieldMode !is MeshFieldMode.MeshConfigEditor) onEditOpen else null,
                         trailingActionContentDescription = "Edit mesh profile",
@@ -515,7 +513,7 @@ internal fun BedMeshContent(
                                     onSetHighColorSel = onSetHighColorSel,
                                     onSetLowColorSel = onSetLowColorSel,
                                     uDp = grid.uDp,
-                                    modifier = Modifier.fillMaxSize().padding(8.dp),
+                                    modifier = Modifier.fillMaxSize(),
                                 )
                             }
                             else -> {
@@ -524,7 +522,7 @@ internal fun BedMeshContent(
                                     selectedProfile = selectedProfile,
                                     tokens = t,
                                     uDp = grid.uDp,
-                                    modifier = Modifier.fillMaxSize().padding(8.dp),
+                                    modifier = Modifier.fillMaxSize(),
                                 )
                             }
                         }
@@ -962,6 +960,31 @@ private fun BedMeshFocusRegion(
     uDp: Dp,
     modifier: Modifier = Modifier,
 ) {
+    FocusStage(modifier = modifier, body = {
+        BedMeshFocusContent(
+            vm = vm,
+            selectedProfile = selectedProfile,
+            tokens = tokens,
+            uDp = uDp,
+            modifier = Modifier.fillMaxSize(),
+        )
+    })
+}
+
+/**
+ * The Stage-agnostic inner content of [BedMeshFocusRegion] — the renderModel resolution + the
+ * aspect-ratio heatmap/empty Box. Called directly (WITHOUT its own [FocusStage]) from
+ * [MeshConfigEditorFocus]'s PREVIEW branch, which is already inside a Stage, so both paths carry
+ * exactly ONE Dense Stage inset.
+ */
+@Composable
+private fun BedMeshFocusContent(
+    vm: BedMeshVm,
+    selectedProfile: String?,
+    tokens: ThemeTokens,
+    uDp: Dp,
+    modifier: Modifier = Modifier,
+) {
     val t = LocalTokens.current
     // Resolve the model to render: if a saved profile is selected AND it differs from the active
     // mesh, preview that profile. Otherwise render the live model.
@@ -986,8 +1009,14 @@ private fun BedMeshFocusRegion(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
                 ) {
-                    // 27-review WR-04: registry-backed empty-state glyph (same grid_off, promoted verbatim).
-                    JiibIconView(icon = JiibIcons.MeshEmpty, tint = t.text3, sizeDp = fsSp(48f, t.fs).dp)
+                    // 27-review WR-04: registry-backed empty-state glyph — proportional sizing via
+                    // FocusGlyph (fraction = 0.25 of min-side), rotation-safe.
+                    FocusGlyph(
+                        icon = JiibIcons.MeshEmpty,
+                        modifier = Modifier.fillMaxWidth().weight(1f),
+                        fraction = 0.25f,
+                        tint = t.text3,
+                    )
                     FocusText(
                         text = stringResource(R.string.mesh_no_active_mesh),
                         role = JiibType.focusHeader,
@@ -1041,7 +1070,7 @@ private fun BedMeshFocusRegion(
  * Dispatches to the appropriate editor based on [item]:
  * - VIEW_TYPE → [ViewTypeSelector] (description + 3 icon-only foot buttons)
  * - HIGH_COLOR / LOW_COLOR → [PoolColorPicker] (data-pool swatch grid)
- * - PREVIEW → [BedMeshFocusRegion] with current settings (selectedProfile=null → live mesh)
+ * - PREVIEW → [BedMeshFocusContent] with current settings (selectedProfile=null → live mesh)
  */
 @Composable
 private fun MeshConfigEditorFocus(
@@ -1055,34 +1084,38 @@ private fun MeshConfigEditorFocus(
     uDp: Dp,
     modifier: Modifier = Modifier,
 ) {
-    when (item) {
-        MeshConfigItem.VIEW_TYPE -> ViewTypeSelector(
-            current = vm.viewType,
-            onPick = onSetViewType,
-            t = tokens,
-            uDp = uDp,
-            modifier = modifier,
-        )
-        MeshConfigItem.HIGH_COLOR -> PoolColorPicker(
-            selected = vm.highColorSel,
-            onPick = onSetHighColorSel,
-            t = tokens,
-            modifier = modifier,
-        )
-        MeshConfigItem.LOW_COLOR -> PoolColorPicker(
-            selected = vm.lowColorSel,
-            onPick = onSetLowColorSel,
-            t = tokens,
-            modifier = modifier,
-        )
-        MeshConfigItem.PREVIEW -> BedMeshFocusRegion(
-            vm = vm,
-            selectedProfile = null,  // always preview with current settings
-            tokens = tokens,
-            uDp = uDp,
-            modifier = modifier,
-        )
-    }
+    FocusStage(modifier = modifier, body = {
+        when (item) {
+            MeshConfigItem.VIEW_TYPE -> ViewTypeSelector(
+                current = vm.viewType,
+                onPick = onSetViewType,
+                t = tokens,
+                uDp = uDp,
+                modifier = Modifier.fillMaxSize(),
+            )
+            MeshConfigItem.HIGH_COLOR -> PoolColorPicker(
+                selected = vm.highColorSel,
+                onPick = onSetHighColorSel,
+                t = tokens,
+                modifier = Modifier.fillMaxSize(),
+            )
+            MeshConfigItem.LOW_COLOR -> PoolColorPicker(
+                selected = vm.lowColorSel,
+                onPick = onSetLowColorSel,
+                t = tokens,
+                modifier = Modifier.fillMaxSize(),
+            )
+            // Direct content call (no nested Stage) — this branch is already inside the Stage
+            // above, so the preview heatmap carries exactly one Dense inset like the else-branch.
+            MeshConfigItem.PREVIEW -> BedMeshFocusContent(
+                vm = vm,
+                selectedProfile = null,  // always preview with current settings
+                tokens = tokens,
+                uDp = uDp,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+    })
 }
 
 /**
@@ -1261,20 +1294,17 @@ private fun MeshEditForm(
     val nameValid = PrinterCommands.isValidProfileName(name)
     val nameChanged = name != targetName
 
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        MeshNameField(
-            value = name,
-            onValueChange = { name = it },
-            readOnly = readOnly,
-            t = t,
-        )
-        Spacer(modifier = Modifier.weight(1f))
-
-        // Primary action row: Apply (preview) or Save (active unsaved/saved) — 1U docked buttons.
-        CompositionLocalProvider(LocalUnitDp provides uDp) {
+    FocusForm(
+        body = {
+            MeshNameField(
+                value = name,
+                onValueChange = { name = it },
+                readOnly = readOnly,
+                t = t,
+            )
+        },
+        dock = {
+            // Primary action row: Apply (preview) or Save (active unsaved/saved) — 1U docked buttons.
             Row(
                 modifier = Modifier.fillMaxWidth().controlHeight(uDp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1322,11 +1352,9 @@ private fun MeshEditForm(
                     contentDescription = stringResource(R.string.common_cancel),
                 )
             }
-        }
 
-        // Delete row — shown for any saved-profile target (active saved or previewing non-active).
-        if (kind != MeshEditKind.ACTIVE_UNSAVED) {
-            CompositionLocalProvider(LocalUnitDp provides uDp) {
+            // Delete row — shown for any saved-profile target (active saved or previewing non-active).
+            if (kind != MeshEditKind.ACTIVE_UNSAVED) {
                 Row(
                     modifier = Modifier.fillMaxWidth().controlHeight(uDp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1341,6 +1369,6 @@ private fun MeshEditForm(
                     )
                 }
             }
-        }
-    }
+        },
+    )
 }

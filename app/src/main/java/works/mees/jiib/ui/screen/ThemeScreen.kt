@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -47,8 +46,9 @@ import works.mees.jiib.designsystem.control.OutlinedControl
 import works.mees.jiib.designsystem.icons.JiibIcon
 import works.mees.jiib.designsystem.icons.JiibIconView
 import works.mees.jiib.designsystem.icons.JiibIcons
+import works.mees.jiib.designsystem.focus.FocusExplainer
+import works.mees.jiib.designsystem.focus.FocusStage
 import works.mees.jiib.designsystem.layout.ListBlock
-import works.mees.jiib.designsystem.layout.LocalUnitDp
 import works.mees.jiib.designsystem.layout.ScreenScaffold
 import works.mees.jiib.designsystem.layout.rememberUnitGrid
 import works.mees.jiib.di.AppContainer
@@ -259,76 +259,111 @@ private fun ThemeFocus(
     editingSwatch: ThemeSwatch?, onEditSwatch: (ThemeSwatch?) -> Unit, onCloseEditor: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val t = LocalTokens.current
-
-    @Composable
-    fun frame(title: String, icon: JiibIcon, body: @Composable ColumnScope.() -> Unit) {
-        FocusFrame(title = title, icon = icon, uDp = uDp, modifier = modifier,
-            isPrinting = isPrinting, onEmergencyStop = onEmergencyStop, onPanic = onEmergencyStop, content = body)
-    }
-
+    // NOTE: no local `frame(...)` wrapper — a helper that forwards a body lambda would hide each
+    // Focus body from FocusArchetypeConformanceTest (see its KNOWN LIMITATION). Every FocusFrame is
+    // inlined below so its trailing-lambda body is directly scannable.
     @Composable
     fun explainer(text: String) {
-        FocusText(text = text, role = JiibType.body, t = t, color = t.text2, modifier = Modifier.fillMaxSize())
+        FocusExplainer(text = text)
     }
 
     when (selected) {
-        null -> frame(stringResource(R.string.theme_screen_title), JiibIcons.Palette) {
+        null -> FocusFrame(title = stringResource(R.string.theme_screen_title), icon = JiibIcons.Palette,
+            uDp = uDp, modifier = modifier, isPrinting = isPrinting,
+            onEmergencyStop = onEmergencyStop, onPanic = onEmergencyStop,
+        ) {
             explainer(stringResource(R.string.theme_intro))
         }
-        ThemeRow.DarkLight -> frame(stringResource(R.string.theme_row_dark_light), JiibIcons.Contrast) {
+        ThemeRow.DarkLight -> FocusFrame(title = stringResource(R.string.theme_row_dark_light), icon = JiibIcons.Contrast,
+            uDp = uDp, modifier = modifier, isPrinting = isPrinting,
+            onEmergencyStop = onEmergencyStop, onPanic = onEmergencyStop,
+        ) {
             explainer(stringResource(R.string.theme_dark_light_focus))
         }
-        ThemeRow.PaletteMode -> frame(stringResource(R.string.theme_row_palette_mode), JiibIcons.InvertColors) {
-            FocusText(text = stringResource(R.string.theme_palette_mode_focus), role = JiibType.body, t = t, color = t.text2, modifier = Modifier.fillMaxWidth().weight(1f))
-            PaletteModeSegment(working.paletteMode, onPaletteMode, uDp)
+        ThemeRow.PaletteMode -> FocusFrame(title = stringResource(R.string.theme_row_palette_mode), icon = JiibIcons.InvertColors,
+            uDp = uDp, modifier = modifier, isPrinting = isPrinting,
+            onEmergencyStop = onEmergencyStop, onPanic = onEmergencyStop,
+        ) {
+            FocusExplainer(
+                text = stringResource(R.string.theme_palette_mode_focus),
+                dock = { PaletteModeSegment(working.paletteMode, onPaletteMode, uDp) },
+            )
         }
-        ThemeRow.Seed -> frame(stringResource(R.string.theme_row_seed), JiibIcons.Colors) {
+        ThemeRow.Seed -> FocusFrame(title = stringResource(R.string.theme_row_seed), icon = JiibIcons.Colors,
+            uDp = uDp, modifier = modifier, isPrinting = isPrinting,
+            onEmergencyStop = onEmergencyStop, onPanic = onEmergencyStop,
+        ) {
             val hue = seedHexToHue(working.seedHex)
-            Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                works.mees.jiib.designsystem.HueSlider(
-                    hue = hue,
-                    onHandleMove = { h ->
-                        container?.updateThemeDraft { (it ?: working).copy(seedHex = hueToHex(h)) }
-                    },
-                    onSettle = { h ->
-                        container?.updateThemeDraft { (it ?: working).copy(seedHex = hueToHex(h)) }
-                    },
-                )
-            }
-            OutlinedControl(
-                label = stringResource(R.string.theme_save),
-                onClick = { container?.commitThemeDraft(hasActive); onCloseEditor() },
-                modifier = Modifier.fillMaxWidth(), intent = Intent.Go,
+            FocusStage(
+                body = {
+                    works.mees.jiib.designsystem.HueSlider(
+                        hue = hue,
+                        onHandleMove = { h ->
+                            container?.updateThemeDraft { (it ?: working).copy(seedHex = hueToHex(h)) }
+                        },
+                        onSettle = { h ->
+                            container?.updateThemeDraft { (it ?: working).copy(seedHex = hueToHex(h)) }
+                        },
+                    )
+                },
+                dock = {
+                    OutlinedControl(
+                        label = stringResource(R.string.theme_save),
+                        onClick = { container?.commitThemeDraft(hasActive); onCloseEditor() },
+                        modifier = Modifier.fillMaxWidth(), intent = Intent.Go,
+                    )
+                },
             )
         }
         ThemeRow.Colors -> {
             val ed = editingSwatch
             if (ed == null) {
-                frame(stringResource(R.string.theme_row_colors), JiibIcons.Palette) {
+                FocusFrame(title = stringResource(R.string.theme_row_colors), icon = JiibIcons.Palette,
+                    uDp = uDp, modifier = modifier, isPrinting = isPrinting,
+                    onEmergencyStop = onEmergencyStop, onPanic = onEmergencyStop,
+                ) {
                     val tk = LocalTokens.current
-                    ThemeSwatchGrid(tk, working, onTap = { onEditSwatch(it) })
-                    // FIX B: ONE action row of three (5U budget) — Randomize · Revert · Save.
-                    // Icon-only (owner UAT 2026-06-18): blank label + contentDescription = a11y label.
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedControl("",
-                            onClick = {
-                                container?.updateThemeDraft {
-                                    (it ?: working).copy(poolOverrides = emptyMap(), statusOverrides = emptyMap(),
-                                        accentOverride = null, poolShift = nextShift(working.poolShift))
+                    FocusStage(
+                        body = {
+                            // Inner swatch grid — two rows of cells; FocusStage body centers them.
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    tk.pool.take(4).forEachIndexed { i, c ->
+                                        SwatchCell(c, uDp, Modifier.weight(1f), number = i + 1) { onEditSwatch(ThemeSwatch.Pool(i)) }
+                                    }
                                 }
-                            },
-                            modifier = Modifier.weight(1f), intent = Intent.Warn, icon = JiibIcons.Shuffle,
-                            contentDescription = stringResource(R.string.theme_randomize))
-                        OutlinedControl("",
-                            onClick = { container?.clearThemeDraft() },
-                            modifier = Modifier.weight(1f), intent = Intent.Warn, icon = JiibIcons.Revert,
-                            contentDescription = stringResource(R.string.theme_revert))
-                        OutlinedControl("",
-                            onClick = { container?.commitThemeDraft(hasActive); onCloseEditor() },
-                            modifier = Modifier.weight(1f), intent = Intent.Go, icon = JiibIcons.Save,
-                            contentDescription = stringResource(R.string.theme_save))
-                    }
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    SwatchCell(tk.accent, uDp, Modifier.weight(1f), symbol = JiibIcons.Star) { onEditSwatch(ThemeSwatch.Accent) }
+                                    SwatchCell(statusFill(StatusSlot.Stop, working, tk), uDp, Modifier.weight(1f), symbol = JiibIcons.StatusStop) { onEditSwatch(ThemeSwatch.Status(StatusSlot.Stop)) }
+                                    SwatchCell(statusFill(StatusSlot.Caution, working, tk), uDp, Modifier.weight(1f), symbol = JiibIcons.Warning) { onEditSwatch(ThemeSwatch.Status(StatusSlot.Caution)) }
+                                    SwatchCell(statusFill(StatusSlot.Go, working, tk), uDp, Modifier.weight(1f), symbol = JiibIcons.CheckCircle) { onEditSwatch(ThemeSwatch.Status(StatusSlot.Go)) }
+                                }
+                            }
+                        },
+                        dock = {
+                            // FIX B: ONE action row of three (5U budget) — Randomize · Revert · Save.
+                            // Icon-only (owner UAT 2026-06-18): blank label + contentDescription = a11y label.
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedControl("",
+                                    onClick = {
+                                        container?.updateThemeDraft {
+                                            (it ?: working).copy(poolOverrides = emptyMap(), statusOverrides = emptyMap(),
+                                                accentOverride = null, poolShift = nextShift(working.poolShift))
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f), intent = Intent.Warn, icon = JiibIcons.Shuffle,
+                                    contentDescription = stringResource(R.string.theme_randomize))
+                                OutlinedControl("",
+                                    onClick = { container?.clearThemeDraft() },
+                                    modifier = Modifier.weight(1f), intent = Intent.Warn, icon = JiibIcons.Revert,
+                                    contentDescription = stringResource(R.string.theme_revert))
+                                OutlinedControl("",
+                                    onClick = { container?.commitThemeDraft(hasActive); onCloseEditor() },
+                                    modifier = Modifier.weight(1f), intent = Intent.Go, icon = JiibIcons.Save,
+                                    contentDescription = stringResource(R.string.theme_save))
+                            }
+                        },
+                    )
                 }
             } else {
                 // FIX A: snapshot the swatch's override AS IT WAS when the editor opened. Cancel restores
@@ -390,30 +425,14 @@ private fun paletteModeLabelRes(mode: String): Int = when (mode) {
 internal fun hasCustomColors(t: ThemePrefs.ThemeTuple): Boolean =
     t.poolOverrides.isNotEmpty() || t.statusOverrides.isNotEmpty() || t.accentOverride != null
 
-@Composable
-private fun ColumnScope.ThemeSwatchGrid(
-    t: ThemeTokens, working: ThemePrefs.ThemeTuple, onTap: (ThemeSwatch) -> Unit,
-) {
-    // 1U-capped wide cells, 4 columns × 2 rows. Pool = number; intent = symbol. No captions.
-    // Pool + accent come from the baked tokens (overrides already applied in all modes); STATUS uses the
-    // literal draft override (statusFill) because t.stop/heat/go are mode-gated (Codex fix).
-    val uDp = LocalUnitDp.current ?: 64.dp
-    Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                t.pool.take(4).forEachIndexed { i, c -> SwatchCell(c, uDp, Modifier.weight(1f), number = i + 1) { onTap(ThemeSwatch.Pool(i)) } }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SwatchCell(t.accent, uDp, Modifier.weight(1f), symbol = JiibIcons.Star) { onTap(ThemeSwatch.Accent) }
-                SwatchCell(statusFill(StatusSlot.Stop, working, t), uDp, Modifier.weight(1f), symbol = JiibIcons.StatusStop) { onTap(ThemeSwatch.Status(StatusSlot.Stop)) }
-                SwatchCell(statusFill(StatusSlot.Caution, working, t), uDp, Modifier.weight(1f), symbol = JiibIcons.Warning) { onTap(ThemeSwatch.Status(StatusSlot.Caution)) }
-                SwatchCell(statusFill(StatusSlot.Go, working, t), uDp, Modifier.weight(1f), symbol = JiibIcons.CheckCircle) { onTap(ThemeSwatch.Status(StatusSlot.Go)) }
-            }
-        }
-    }
-}
-
-/** Literal status fill for the grid: the draft override if set, else the (mode-gated) baked token. */
+/**
+ * Literal status fill for the grid: the draft override if set, else the (mode-gated) baked token.
+ *
+ * CODEX-FIX RATIONALE (T26): the STATUS swatches read the draft `statusOverrides` LITERALLY rather
+ * than through `t.stop`/`t.heat`/`t.go`, because those role tokens are **mode-gated** — they resolve
+ * against the committed (dark/light) theme, so a live draft edit would not surface in the swatch
+ * until saved. Reading the working tuple's override first keeps the preview honest.
+ */
 private fun statusFill(slot: StatusSlot, working: ThemePrefs.ThemeTuple, t: ThemeTokens): Color =
     working.statusOverrides[slot.key]?.toComposeColor() ?: when (slot) {
         StatusSlot.Stop -> t.stop
@@ -461,27 +480,31 @@ private fun ThemeSwatchEditor(
         // FIX A: the header edge reads out the LIVE picked color (recomputes as the sliders move).
         edge = FocusEdge.Data(Color(hsvToArgbLong(h, s, v).toInt())),
     ) {
-        Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-            works.mees.jiib.designsystem.HsvSliders(
-                hue = h, sat = s, value = v,
-                onMove = { nh, ns, nv -> h = nh; s = ns; v = nv; onMovePreview(hsvToArgbLong(nh, ns, nv)) },
-                onSettle = { nh, ns, nv -> h = nh; s = ns; v = nv; onMovePreview(hsvToArgbLong(nh, ns, nv)) },
-            )
-        }
-        if (swatch is ThemeSwatch.Status && t.mode != PaletteMode.Colorful) {
-            val modeLabel = stringResource(when (t.mode) {
-                PaletteMode.Simple -> R.string.theme_mode_simple
-                PaletteMode.HighContrast -> R.string.theme_mode_high_contrast
-                else -> R.string.theme_mode_colorful
-            })
-            FocusText(text = stringResource(R.string.theme_status_saved_for_colorful, modeLabel),
-                role = JiibType.caption, t = t, color = t.text3, modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Start)
-        }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedControl(stringResource(R.string.theme_cancel), onClick = onCancel, modifier = Modifier.weight(1f), intent = Intent.Danger)
-            OutlinedControl(stringResource(R.string.theme_save), onClick = onSave, modifier = Modifier.weight(1f), intent = Intent.Go)
-        }
+        FocusStage(
+            body = {
+                works.mees.jiib.designsystem.HsvSliders(
+                    hue = h, sat = s, value = v,
+                    onMove = { nh, ns, nv -> h = nh; s = ns; v = nv; onMovePreview(hsvToArgbLong(nh, ns, nv)) },
+                    onSettle = { nh, ns, nv -> h = nh; s = ns; v = nv; onMovePreview(hsvToArgbLong(nh, ns, nv)) },
+                )
+            },
+            dock = {
+                if (swatch is ThemeSwatch.Status && t.mode != PaletteMode.Colorful) {
+                    val modeLabel = stringResource(when (t.mode) {
+                        PaletteMode.Simple -> R.string.theme_mode_simple
+                        PaletteMode.HighContrast -> R.string.theme_mode_high_contrast
+                        else -> R.string.theme_mode_colorful
+                    })
+                    FocusText(text = stringResource(R.string.theme_status_saved_for_colorful, modeLabel),
+                        role = JiibType.caption, t = t, color = t.text3, modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Start)
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedControl(stringResource(R.string.theme_cancel), onClick = onCancel, modifier = Modifier.weight(1f), intent = Intent.Danger)
+                    OutlinedControl(stringResource(R.string.theme_save), onClick = onSave, modifier = Modifier.weight(1f), intent = Intent.Go)
+                }
+            },
+        )
     }
 }
 

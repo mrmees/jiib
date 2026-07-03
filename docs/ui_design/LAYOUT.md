@@ -170,7 +170,77 @@ Leading type-icons identify a group; text labels for grouping are non-conformant
 
 ---
 
+## Focus content law (2026-07)
+
+The **closed grammar for what goes *inside* a `FocusFrame` body.** Established across the Focus
+Content Law effort (Tasks 1–30) and enforced by `FocusArchetypeConformanceTest` +
+`FocusLayerContainmentTest` (see `COMPONENTS.md §"Focus archetypes (the closed catalog)"`). Every
+Focus body is a Layer-1 zone primitive (`FocusZones`) wrapped by a Layer-2 **archetype** — never
+hand-rolled layout. Five laws govern it.
+
+### LAW 1 — Three zones (Cap / Body / Dock)
+
+`FocusZones` divides the Focus body into up to three vertical zones:
+
+- **Cap** — *optional*, top. A **FIXED 1U strip** (owner, 2026-07-02): autosize content in the Cap
+  must **not** be allowed to pump the Body height. The 1U is reserved whether or not it is filled.
+- **Body** — *required*. **Weight-fills** the remaining space; its content is centered on **both
+  axes as a block**.
+- **Dock** — *optional*, bottom. A bottom-pinned control/action region on an **8dp rhythm**; its
+  rows **self-cap at 1U** (UAT-5).
+
+**Named exception:** `FocusForm`'s body is **top-flow** (labels-above-controls, flows from the
+top) rather than center-blocked. This is owned by the class — not a general license to deviate.
+
+### LAW 2 — Text always fits
+
+All Focus-**body** text routes through the **bounded text classes** —
+`FocusText` / `FocusHeroText` / `FocusHeroValueText` / `DigestLine` / `Note`. They measure in a
+constrained box and shrink-to-fit; **raw unbounded text in a Focus body is non-conformant.** The
+**15sp ramp floor holds everywhere** (Probe's last 12sp autosize floor was resolved up to 15sp).
+
+### LAW 3 — Glyphs are proportional
+
+In-Focus glyphs use `FocusGlyph`, sized via `focusGlyphSideDp` as a **fraction of the min
+dimension** of their slot — never a hardcoded dp. `FocusGlyph` is **slot-legal**: like the bounded
+text classes it is usable *inside* an archetype's slot content (it is not itself an archetype).
+
+### LAW 4 — Inset tiers (archetype-owned)
+
+The Focus body inset is chosen by the **archetype**, from three tiers:
+
+| Tier | Side + bottom inset | Top inset | Who uses it |
+|---|---|---|---|
+| **Default** | 16dp | 8dp | display archetypes (FocusExplainer, FocusInfoCard, **FocusDigest**) |
+| **Dense** | 8dp | 8dp | Stage / Form / Adjuster **and** display-with-dock — **EXCEPT FocusDigest, which stays Default even when docked** (owner carve-out) |
+| **Flush** | 0 | 0 | media (FocusMedia) |
+
+- The **TOP inset is 8dp** for Default and Dense (owner, 2026-07-02 amendment — this
+  **supersedes** the 2026-06-15 "TOP inset = 0" rule) and **0** for Flush.
+- **`FocusFrame` adds NO content insets** — the `contentInset` param was **deleted**. Insets are
+  owned entirely by the archetype's `FocusZones` tier.
+
+### LAW 5 — Deterministic degrade
+
+When content is too large or too small for its zone, degrade in a fixed order:
+
+1. **Grow-to-cap when roomy** — archetype **opt-in** via a `maxScale` (e.g. HeatPresets /
+   PrinterSettings / HomeDigest pass `1.5f`); absent an opt-in, content does not grow past natural.
+2. **Natural** size.
+3. **Shrink** toward the **15sp floor**.
+4. **Scroll** — the LAST resort only.
+
+**`digestFit` semantics:** candidate scales are **multiply-from-base** (base size × candidate), and
+a candidate "fits" within a **0.5px tolerance**.
+
+---
+
 ## Focus with a docked action region
+
+> **SUBSUMED (2026-07) by the Dock zone (LAW 1) of the Focus content law above.** The
+> weighted-body-over-bottom-docked-controls pattern described here is now expressed as
+> `FocusZones` **Body + Dock** (Dense tier), and adjuster Focuses are the `AdjusterPanel`
+> archetype. This section is retained for historical context; build via `FocusZones`/archetypes.
 
 A Focus whose content is a single adjustable value (adjuster/detail Focuses — Fine-Tune
 parameters, Temperature sensors, Output controls) follows this two-part layout:
@@ -181,6 +251,12 @@ parameters, Temperature sensors, Output controls) follows this two-part layout:
 2. **Bottom-docked controls** — the control group (± stepper row, IncrementPicker, or equivalent)
    is pinned to the BOTTOM of the Focus content area (`Arrangement.Bottom` or a trailing
    `Spacer` before the control group). It does NOT float in the center alongside the value.
+
+> **SUPERSEDED (2026-07): FocusFrame no longer takes `contentInset`; archetypes own their insets
+> — see §"Focus content law (2026-07)" → LAW 4 (Inset tiers).** The `contentInset` param was
+> deleted; adjuster Focuses are the `AdjusterPanel` archetype and get the **Dense** tier (8dp side +
+> bottom, 8dp top) from their `FocusZones` — not a `FocusInset / 2` on the frame. The paragraph
+> below is retained for historical context only.
 
 **Shared `contentInset = FocusInset / 2` (8dp):** adjuster Focuses use the halved inset (matching
 the Calibration Hub, 2026-06-13 owner UAT) so the bottom-docked control group sits 8dp from the
@@ -342,6 +418,12 @@ Portrait shows more unit-rows (scrolls); landscape shows the same number side-by
 ---
 
 ## Content-display rules
+
+> **These rules are now realized through the Focus content-law archetypes** (see §"Focus content
+> law (2026-07)" above and `COMPONENTS.md §"Focus archetypes (the closed catalog)"`). The
+> image-backed info card = `FocusInfoCard`; a state digest = `FocusDigest`; an adjustable value =
+> `AdjusterPanel`; full-bleed media = `FocusMedia`. Author the appropriate archetype rather than
+> hand-laying the rules below; they remain the *intent* each archetype encodes.
 
 - **Primary value display:** show `CURRENT / SETPOINT` for items with a separate sensor and
   controller (heaters); show `SETPOINT` only for output-only values (fans, LEDs).

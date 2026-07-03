@@ -11,15 +11,17 @@ import androidx.compose.runtime.remember
 import kotlin.math.ceil
 import kotlin.math.roundToInt
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
@@ -168,25 +170,78 @@ fun BoxScope.FocusHeroValueText(
 }
 
 /**
- * Bounded Focus-body text (Focus-text law, 2026-06-29). Renders [text] in [role] and SHRINKS the font
- * (role base size → [minSp], never below) so the RENDERED content fits the HEIGHT budget without
- * overflowing the FocusFrame clip. The general (non-hero) sibling of [FocusHeroText]; the sanctioned
- * replacement for raw `Text(..., style = role.toTextStyle(t))` in a Focus body.
+ * Result of the [focusTextFit] size-selection walk: the chosen font size (an ALREADY fs-scaled sp
+ * value, ready to hand to `.sp`) and the `maxLines` to render with ([Int.MAX_VALUE] = unbounded,
+ * because the text was proven to fit fully at [sizeSp]).
+ */
+data class FocusTextFit(val sizeSp: Int, val maxLines: Int)
+
+/**
+ * The pure size-selection walk behind [FocusText] (measurement-based height-fit). Walks candidate
+ * font sizes from [maxSp] down to [minSp] in 1sp steps and picks the FIRST (largest) size whose
+ * measured full-wrap height ([fullHeightAt]) fits [maxHeightPx] (within [tolerancePx], the same
+ * sub-pixel forgiveness `digestFit` uses). If even [minSp] overflows, it renders at [minSp] and caps
+ * `maxLines` at `floor(maxHeightPx / singleLineHeightAt(minSp))` (≥ 1) — as-many-lines-as-fit
+ * truncation whose budget reflects the ACTUAL line height at the rendered size.
  *
- * **Mechanism:** Uses [BoxWithConstraints] to read the bounded pixel height, then derives a line-count
- * budget (`maxLines`) from the max font size using a conservative line-height factor of 2.0×. This
- * lets [TextAutoSize.StepBased] shrink via `didExceedMaxLines` — the mechanism that actually works for
- * soft-wrapped text (`didOverflowHeight` alone does NOT trigger autosize shrinkage in Compose
- * foundation 1.11.x). With `maxLines` computed at the MAX font size and rendered at any SMALLER
- * auto-chosen size, the rendered line height is always ≤ the estimated budget, so `didOverflowHeight`
- * stays false. When text is too long to fit fully (very long strings in small boxes), the composable
- * displays as many lines as the height allows at the smallest readable size.
+ * Kept as a plain (non-Composable) function with measurement injected as closures so it is unit
+ * testable with no Compose runtime — precedent: `digestFit`.
+ */
+fun focusTextFit(
+    maxHeightPx: Float,
+    minSp: Int,
+    maxSp: Int,
+    fullHeightAt: (Int) -> Float,
+    singleLineHeightAt: (Int) -> Float,
+    tolerancePx: Float = 0.5f,
+): FocusTextFit {
+    var sp = maxSp
+    while (sp >= minSp) {
+        if (fullHeightAt(sp) <= maxHeightPx + tolerancePx) return FocusTextFit(sp, Int.MAX_VALUE)
+        sp--
+    }
+    val lineHeightPx = singleLineHeightAt(minSp)
+    val maxLines = if (lineHeightPx > 0f) (maxHeightPx / lineHeightPx).toInt().coerceAtLeast(1) else 1
+    return FocusTextFit(minSp, maxLines)
+}
+
+/**
+ * Converts fs-scaled float sp values to the Int range consumed by [focusTextFit], guaranteeing the
+ * range is never inverted. Both ends are rounded consistently ([Float.roundToInt]) and [minSp] is
+ * clamped to at most [maxSp], so a sub-1sp difference between the scaled values (e.g. caption role
+ * at M font-scale: fsSp(15, 1.15) = 17.25 for both → old ceil/round produced 18/17, inverted) can
+ * never produce a zero-iteration walk that silently falls through to the line-cap truncation path.
  *
- * The factor is 2.0× (rather than a tighter Geist-specific 1.5×) because this app exposes a
- * user-selectable font library (16 UI + 10 Data faces). Latin faces with taller natural metrics can
- * carry line-height ratios above 1.5×; a face that exceeds the factor would force mid-line clipping
- * instead of a clean line boundary. 2.0× is a safe upper bound for the full bundled library — the
- * `heightIn(max = this.maxHeight)` safety net below remains as a visual backstop regardless.
+ * Extracted from [FocusText] to make the conversion unit-testable (see FocusTextFitTest).
+ */
+fun focusTextSpRange(minScaledSp: Float, maxScaledSp: Float): Pair<Int, Int> {
+    val maxSp = maxScaledSp.roundToInt()
+    val minSp = minScaledSp.roundToInt().coerceAtMost(maxSp)
+    return Pair(minSp, maxSp)
+}
+
+/**
+ * Bounded Focus-body text (Focus-text law, 2026-06-29; measurement rewrite 2026-07-02). Renders
+ * [text] in [role] and SHRINKS the font (role base size → [minSp], never below) so the RENDERED
+ * content fits the HEIGHT budget without overflowing the FocusFrame clip. The general (non-hero)
+ * sibling of [FocusHeroText]; the sanctioned replacement for raw `Text(..., style =
+ * role.toTextStyle(t))` in a Focus body.
+ *
+ * **Mechanism (measurement-based fit):** Inside [BoxWithConstraints], when the height is bounded, a
+ * [rememberTextMeasurer] actually LAYS OUT the full soft-wrapped text (at the real resolved
+ * `fontFamily`/`weight`, against `constraints.maxWidth`) at each candidate size from max down to
+ * [minSp], and picks the largest whose measured height fits — see [focusTextFit]. The chosen size is
+ * rendered directly (no `TextAutoSize`); the choice is now ours and deterministic. This replaces the
+ * earlier estimate — a `maxLines` budget derived from the MAX font size × a conservative 2.0×
+ * line-height factor — which massively under-counted the box's real capacity at the auto-chosen
+ * smaller size and could truncate text that would have fit (owner UAT U2: System→About lost its
+ * entire second paragraph). The walk is ≤ ~25 layout-time measures and is cached (Adreno-320 budget:
+ * fine — same precedent as `DigestColumn`/`digestFit`).
+ *
+ * When [text] is too long to fit fully even at [minSp], it renders at [minSp] and shows as many lines
+ * as the height allows (line budget from the ACTUAL single-line height at [minSp], not 2.0×max). The
+ * `heightIn(max = this.maxHeight)` backstop and the unbounded-height branch (render at max size,
+ * `maxLines = Int.MAX_VALUE`) are unchanged.
  *
  * Vertical budget (use one): [maxHeightU] caps at N unit-grid heights (U from [LocalUnitDp]); or pass
  * `Modifier.weight(1f)`/`fillMaxSize()` in [modifier] to fill the leftover slot.
@@ -206,46 +261,90 @@ fun FocusText(
     textAlign: TextAlign = TextAlign.Center,
     minSp: Float = 15f,
     maxSp: Float? = null,
+) = FocusText(AnnotatedString(text), role, t, color, modifier, maxHeightU, textAlign, minSp, maxSp)
+
+/**
+ * Bounded Focus-body text — [AnnotatedString] overload (Focus-text law, 2026-07-02). Same bounding
+ * contract and measurement mechanism as the [String] overload (which delegates here); [BasicText]
+ * accepts [AnnotatedString] directly. Use when the caller needs inline spans (bold run, color run,
+ * etc.) inside a shrink-to-fit Focus body block.
+ */
+@Composable
+fun FocusText(
+    text: AnnotatedString,
+    role: TextRole,
+    t: ThemeTokens,
+    color: Color,
+    modifier: Modifier = Modifier,
+    maxHeightU: Float? = null,
+    textAlign: TextAlign = TextAlign.Center,
+    minSp: Float = 15f,
+    maxSp: Float? = null,
 ) {
     val uDp = LocalUnitDp.current ?: 64.dp   // LocalUnitDp is Dp? (null until a U-aware container provides it)
+    val density = LocalDensity.current        // keyed into remember so density changes invalidate the fit
     val boxMod = modifier.then(
         if (maxHeightU != null) Modifier.heightIn(max = uDp * maxHeightU) else Modifier,
     )
+    val measurer = rememberTextMeasurer()
     BoxWithConstraints(modifier = boxMod, contentAlignment = Alignment.Center) {
-        val density = LocalDensity.current
-        val maxFontSizeSp = fsSp(maxSp ?: role.baseSp, t.fs)
-        // Compute a line-count budget from the height constraint. Factor 2.0 is a safe upper bound
-        // for the line-height-to-font-size ratio across the full user-selectable font library (16 UI
-        // + 10 Data faces). Geist actual ≈ 1.4×, but faces with taller metrics can exceed 1.5×;
-        // using 2.0× ensures that N rendered lines at ANY bundled font ≤ maxSp will not exceed the
-        // box height — because rendered_height ≤ N × actual_lineHeight ≤ N × factor × maxSp_px
-        // ≤ floor(maxHeight / (factor × maxSp_px)) × factor × maxSp_px ≤ maxHeight.
-        val maxLines = if (constraints.hasBoundedHeight) {
-            val lineHeightPx = with(density) { (maxFontSizeSp * 2.0f).sp.toPx() }
-            (constraints.maxHeight.toFloat() / lineHeightPx).toInt().coerceAtLeast(1)
-        } else Int.MAX_VALUE
+        val family = if (role.role == TypeRole.Ui) t.uiFont else t.dataFont
+        val maxScaledSp = fsSp(maxSp ?: role.baseSp, t.fs)
+        val minScaledSp = fsSp(minSp, t.fs)
+        val bounded = constraints.hasBoundedHeight
+        val widthBudget = constraints.maxWidth
+        val maxHeightPx = constraints.maxHeight
+
+        // Measure-based fit, cached: re-run the walk only when a measurement-affecting input changes
+        // (text/role/font/size-range/width/height/density), not on every color or token recomposition.
+        val fit = remember(text, role, family, maxScaledSp, minScaledSp, widthBudget, maxHeightPx, bounded, density) {
+            // focusTextSpRange converts the float sp values to a consistent Int range that can never
+            // invert (e.g. caption role at M fs: both inputs = 17.25 → old ceil/round gave 18/17).
+            val (minSpInt, maxSpInt) = focusTextSpRange(minScaledSp, maxScaledSp)
+            if (!bounded) {
+                FocusTextFit(maxSpInt, Int.MAX_VALUE)
+            } else {
+                val measureStyle = TextStyle(fontFamily = family.family, fontWeight = role.weight)
+                focusTextFit(
+                    maxHeightPx = maxHeightPx.toFloat(),
+                    minSp = minSpInt,
+                    maxSp = maxSpInt,
+                    fullHeightAt = { sp ->
+                        measurer.measure(
+                            text = text,
+                            style = measureStyle.copy(fontSize = sp.sp),
+                            softWrap = true,
+                            constraints = Constraints(maxWidth = widthBudget),
+                        ).size.height.toFloat()
+                    },
+                    singleLineHeightAt = { sp ->
+                        measurer.measure(
+                            text = text,
+                            style = measureStyle.copy(fontSize = sp.sp),
+                            softWrap = false,
+                            maxLines = 1,
+                            constraints = Constraints(maxWidth = widthBudget),
+                        ).size.height.toFloat()
+                    },
+                )
+            }
+        }
 
         BasicText(
             text = text,
             style = TextStyle(
-                fontFamily = (if (role.role == TypeRole.Ui) t.uiFont else t.dataFont).family,
+                fontFamily = family.family,
                 fontWeight = role.weight,
                 color = color,
+                fontSize = fit.sizeSp.sp,
                 textAlign = textAlign,
             ),
             softWrap = true,
-            maxLines = maxLines,
-            autoSize = TextAutoSize.StepBased(
-                minFontSize = fsSp(minSp, t.fs).sp,
-                maxFontSize = maxFontSizeSp.sp,
-                stepSize = 1.sp,
-            ),
-            // fillMaxWidth gives bounded width for text wrapping.
-            // heightIn caps the BasicText at the box height so didOverflowHeight reflects the
-            // bounded constraint rather than defaulting to Infinity (always-false).
+            maxLines = fit.maxLines,
+            // heightIn caps the BasicText at the box height as a visual backstop against any
+            // residual overflow (very tall custom fonts) regardless of the chosen size.
             modifier = Modifier.fillMaxWidth().then(
-                if (constraints.hasBoundedHeight) Modifier.heightIn(max = this.maxHeight)
-                else Modifier
+                if (bounded) Modifier.heightIn(max = this.maxHeight) else Modifier
             ),
         )
     }

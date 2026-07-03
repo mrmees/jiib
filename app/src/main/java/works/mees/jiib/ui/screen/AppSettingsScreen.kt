@@ -4,10 +4,7 @@ import android.content.Context
 import android.net.Uri
 import android.os.PowerManager
 import android.provider.Settings
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,7 +16,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -34,6 +30,7 @@ import works.mees.jiib.R
 import works.mees.jiib.command.CommandRegistry
 import works.mees.jiib.command.dispatch
 import works.mees.jiib.designsystem.components.FocusFrame
+import works.mees.jiib.designsystem.focus.FocusExplainer
 import works.mees.jiib.designsystem.components.FootAction
 import works.mees.jiib.designsystem.components.FootButtonBar
 import works.mees.jiib.designsystem.components.ListRow
@@ -55,7 +52,6 @@ import works.mees.jiib.theme.AppFont
 import works.mees.jiib.theme.FontCatalog
 import works.mees.jiib.theme.JiibType
 import works.mees.jiib.theme.FontScale
-import works.mees.jiib.theme.compose.FocusText
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.previewTextStyle
 import works.mees.jiib.theme.compose.toTextStyle
@@ -460,16 +456,7 @@ private fun AppSettingsFocus(
             onEmergencyStop = onEmergencyStop,
             onPanic = onEmergencyStop,
         ) {
-            Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                FocusText(text = description, role = JiibType.body, t = t, color = t.text2, modifier = Modifier.fillMaxWidth())
-            }
-            if (control != null) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    content = control,
-                )
-            }
+            FocusExplainer(text = description, dock = control)
         }
     }
 

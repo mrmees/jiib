@@ -6,10 +6,13 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import works.mees.jiib.theme.JiibType
+import works.mees.jiib.theme.TextRole
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 
@@ -26,14 +29,15 @@ import works.mees.jiib.theme.compose.toTextStyle
  * (the THEME-01 "never raw color" contract).
  *
  * Token → Material mapping:
- *  - unfocused border  → `outline`        (the affordance edge at rest)
+ *  - unfocused border  → `outline` (or [borderColor] override — caller can pass `t.accent` for a
+ *                         more prominent affordance, still a token, never a raw literal)
  *  - focused border    → `accentLine`     (the accent signature on focus — matches Intent.Accent)
  *  - cursor            → `accent`         (signature blue motion color)
  *  - text + container  → `text` / `surface` roles (strong text on the raised screen body)
  *  - label / muted     → `text2`          (the muted-text role)
  *
  * Type routes through [works.mees.jiib.theme.JiibType] roles so the field honors the S/M/L
- * `--fs` text-size setting (label → caption, input → dataInline).
+ * `--fs` text-size setting (label → [labelRole] or caption, input → [textStyle] or dataInline).
  *
  * @param value the current field text.
  * @param onValueChange invoked on every edit.
@@ -42,6 +46,11 @@ import works.mees.jiib.theme.compose.toTextStyle
  * @param keyboardType the system keyboard variant (Text / Number / Password) — PRIM-02.
  * @param isPassword when true, masks the input with a [PasswordVisualTransformation] (the API key).
  * @param isError when true, paints the border/label with the `stop` role (an inline validation error).
+ * @param textStyle optional override for the value text style; defaults to [JiibType.dataInline].
+ *   Must be a token-derived style — callers MUST NOT pass raw font/size literals.
+ * @param labelRole optional override for the label [TextRole]; defaults to [JiibType.caption].
+ * @param borderColor optional override for the unfocused border color; defaults to `t.outline`.
+ *   Callers must pass a token color (e.g. `t.accent`) — never a raw [Color] literal (THEME-01).
  */
 @Composable
 fun TokenTextField(
@@ -52,6 +61,9 @@ fun TokenTextField(
     keyboardType: KeyboardType = KeyboardType.Text,
     isPassword: Boolean = false,
     isError: Boolean = false,
+    textStyle: TextStyle? = null,
+    labelRole: TextRole? = null,
+    borderColor: Color? = null,
 ) {
     val t = LocalTokens.current
     OutlinedTextField(
@@ -61,20 +73,21 @@ fun TokenTextField(
         label = {
             Text(
                 text = label,
-                style = JiibType.caption.toTextStyle(t), // R11 floor
+                style = (labelRole ?: JiibType.caption).toTextStyle(t), // R11 floor
             )
         },
         singleLine = true,
         isError = isError,
-        // Input is connection/API-key DATA — monospace data role.
-        textStyle = JiibType.dataInline.toTextStyle(t),
+        // Value text: caller override (e.g. statValue for the increment editor) or the monospace
+        // data role default (connection/API-key DATA).
+        textStyle = textStyle ?: JiibType.dataInline.toTextStyle(t),
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         visualTransformation =
             if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
         // Every color derives from LocalTokens (review #7 / THEME-01) — no raw Color literal.
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = t.accentLine,
-            unfocusedBorderColor = t.outline,
+            unfocusedBorderColor = borderColor ?: t.outline,
             errorBorderColor = t.stop,
             cursorColor = t.accent,
             errorCursorColor = t.stop,

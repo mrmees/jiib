@@ -27,6 +27,7 @@ import works.mees.jiib.designsystem.components.ListRow
 import works.mees.jiib.designsystem.components.ListRowIcon
 import works.mees.jiib.designsystem.components.ListRowLabel
 import works.mees.jiib.designsystem.control.Intent
+import works.mees.jiib.designsystem.focus.FocusExplainer
 import works.mees.jiib.designsystem.icons.JiibIcon
 import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.ListBlock
@@ -37,11 +38,11 @@ import works.mees.jiib.systeminfo.SystemInfo
 import works.mees.jiib.systeminfo.SystemInfoHolder
 import works.mees.jiib.systeminfo.hostActionAvailability
 import works.mees.jiib.theme.JiibType
-import works.mees.jiib.theme.compose.FocusText
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 
 // =============================================================================
 // Data model — self-contained, no dependency on SystemInfo HostAction/McuAction
@@ -293,15 +294,7 @@ fun PowerResetContent(
                     onEmergencyStop = onEmergencyStop,
                     onPanic = onEmergencyStop,
                 ) {
-                    val t = LocalTokens.current
-                    FocusText(
-                        text = stringResource(R.string.power_reset_blurb),
-                        role = JiibType.body,
-                        t = t,
-                        color = t.text2,
-                        modifier = Modifier.fillMaxWidth(),
-                        maxHeightU = 3f,
-                    )
+                    FocusExplainer(text = stringResource(R.string.power_reset_blurb))
                 }
             },
             field = {

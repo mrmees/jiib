@@ -28,10 +28,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -49,7 +47,10 @@ import works.mees.jiib.designsystem.ConfirmGuard
 import works.mees.jiib.designsystem.Severity
 import works.mees.jiib.designsystem.SeverityToast
 import works.mees.jiib.designsystem.components.FocusFrame
-
+import works.mees.jiib.designsystem.focus.FocusInfoCard
+import works.mees.jiib.designsystem.focus.FocusPlaceholder
+import works.mees.jiib.designsystem.focus.InfoCardStyle
+import works.mees.jiib.designsystem.focus.InfoStat
 import works.mees.jiib.designsystem.components.FootAction
 import works.mees.jiib.designsystem.components.FootButtonBar
 import works.mees.jiib.designsystem.components.ListRow
@@ -407,7 +408,6 @@ private fun FilesContent(
                 ) {
                     FilesDetailContent(
                         state = state,
-                        t = t,
                     )
                 }
                 // D-06: date + size sort row (one active at a time; re-tap flips direction).
@@ -450,7 +450,6 @@ private fun FilesContent(
 @Composable
 private fun FilesDetailContent(
     state: FilesScreenState,
-    t: ThemeTokens,
 ) {
     val selected = state.selectedFile
     val preview = state.selectedPreview
@@ -469,171 +468,55 @@ private fun FilesDetailContent(
     } else null
 
     if (selected == null) {
-        // Nothing selected — empty-state glyph centered in the card.
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            JiibIconView(
-                icon = JiibIcons.LauncherFiles,
-                tint = t.text3,
-                sizeDp = fsSp(64f, t.fs).dp,
-                contentDescription = null,
-            )
-        }
+        FocusPlaceholder(icon = JiibIcons.LauncherFiles)
         return
     }
 
-    // Thumbnail background (dimmed — the same ContentScale.Fit/alpha 0.3f pattern as LastJobCard).
-    Box(Modifier.fillMaxSize()) {
-        if (url != null) {
-            AsyncImage(
-                model = ImageRequest.Builder(context)
-                    .data(url)
-                    .size(FileThumbnailLoader.ROW_THUMBNAIL_SIZE_PX * 3, FileThumbnailLoader.ROW_THUMBNAIL_SIZE_PX * 3)
-                    .build(),
-                contentDescription = null,
-                contentScale = ContentScale.Fit,
-                alpha = 0.3f,
-                modifier = Modifier.matchParentSize(),
-            )
-        } else if (inInspection) {
-            // D-05 preview-safe placeholder — Coil AsyncImage is unsafe in inspection mode.
-            PreviewPlaceholderBox(
-                label = "Thumbnail",
-                modifier = Modifier.matchParentSize(),
-            )
+    // FOREGROUND — future-print stats as a fill-to-fit, vertically-centered data block. The
+    // filename lives in the FocusFrame header; these rows grow into spare room (and shrink when
+    // cramped) so the block always reads at the largest size that fits — same treatment as the
+    // active-print Focus data block.
+    val lines: List<InfoStat> = buildList {
+        preview?.let { p ->
+            p.estimatedTime?.let { add(InfoStat(JiibIcons.TimerDown, stringResource(R.string.files_stat_est_time), formatDuration(it))) }
+            p.filamentTotal?.let { ft ->
+                val w = p.filamentWeightTotal?.let { g -> " · ${"%.1f".format(Locale.US, g)} g" }.orEmpty()
+                add(InfoStat(JiibIcons.Layers, stringResource(R.string.files_stat_filament), "${ft.toInt()} mm$w"))
+            }
+            p.layerCount?.let { add(InfoStat(JiibIcons.Layers, stringResource(R.string.files_stat_layers), it.toString())) }
+            p.objectHeight?.let { add(InfoStat(JiibIcons.Altitude, stringResource(R.string.files_stat_height), "${"%.1f".format(Locale.US, it)} mm")) }
         }
-
-        // FOREGROUND — future-print stats as a fill-to-fit, vertically-centered data block. The
-        // filename lives in the FocusFrame header; these rows grow into spare room (and shrink when
-        // cramped) so the block always reads at the largest size that fits — same treatment as the
-        // active-print Focus data block.
-        val lines: List<FileStat> = buildList {
-            preview?.let { p ->
-                p.estimatedTime?.let { add(FileStat(JiibIcons.TimerDown, stringResource(R.string.files_stat_est_time), formatDuration(it))) }
-                p.filamentTotal?.let { ft ->
-                    val w = p.filamentWeightTotal?.let { g -> " · ${"%.1f".format(Locale.US, g)} g" }.orEmpty()
-                    add(FileStat(JiibIcons.Layers, stringResource(R.string.files_stat_filament), "${ft.toInt()} mm$w"))
-                }
-                p.layerCount?.let { add(FileStat(JiibIcons.Layers, stringResource(R.string.files_stat_layers), it.toString())) }
-                p.objectHeight?.let { add(FileStat(JiibIcons.Altitude, stringResource(R.string.files_stat_height), "${"%.1f".format(Locale.US, it)} mm")) }
-            }
-            (preview?.sizeBytes ?: selected.sizeBytes)?.let {
-                add(FileStat(JiibIcons.Scale, stringResource(R.string.files_stat_size), formatBytes(it)))
-            }
-            (preview?.modifiedEpochSeconds ?: selected.modifiedEpochSeconds)?.let {
-                add(FileStat(JiibIcons.CalendarClock, stringResource(R.string.files_stat_modified), formatDate(it)))
-            }
-            if (preview == null) {
-                add(FileStat(JiibIcons.TimerDown, stringResource(R.string.files_stat_preview), stringResource(R.string.files_stat_preview_loading)))
-            }
+        (preview?.sizeBytes ?: selected.sizeBytes)?.let {
+            add(InfoStat(JiibIcons.Scale, stringResource(R.string.files_stat_size), formatBytes(it)))
         }
-
-        FilesFocusStats(
-            lines = lines,
-            t = t,
-            modifier = Modifier
-                .matchParentSize()
-                .padding(8.dp),
-        )
-    }
-}
-
-/** One future-print stat line: icon + dim label + GeistMono value. */
-private data class FileStat(
-    val icon: works.mees.jiib.designsystem.icons.JiibIcon,
-    val label: String,
-    val value: String,
-)
-
-/** Inter-row spacing in the fill-to-fit focus stat block (fixed — does NOT scale with the text). */
-private val StatRowGap: Dp = 4.dp
-
-/**
- * The future-print stat block: vertically centered and uniformly scaled to fill the focus area.
- *
- * One scale fits the WIDEST row to the available width AND all rows (+ fixed gaps) to the available
- * height — growing into spare room as well as shrinking when cramped (mirrors the active-print Focus
- * data block). The scale is keyed on line LENGTHS, not contents, so live-value churn never re-sizes
- * the block (no jitter). Clamped so text never runs away or drops below a readable floor.
- */
-@Composable
-private fun FilesFocusStats(
-    lines: List<FileStat>,
-    t: ThemeTokens,
-    modifier: Modifier = Modifier,
-) {
-    if (lines.isEmpty()) return
-    val measurer = rememberTextMeasurer()
-    val density = LocalDensity.current
-
-    BoxWithConstraints(modifier) {
-        val labelStyle = JiibType.caption.toTextStyle(t, fsSp(15f, t.fs))
-        val valueStyle = JiibType.dataInline.toTextStyle(t, fsSp(20f, t.fs))
-        val availW = with(density) { maxWidth.toPx() }
-        val availH = with(density) { maxHeight.toPx() }
-        val iconRefPx = with(density) { fsSp(18f, t.fs).dp.toPx() }
-        val innerGapPx = with(density) { 8.dp.toPx() }   // intra-row icon/label/value gaps (×2)
-        val rowGapPx = with(density) { StatRowGap.toPx() }
-
-        val key = lines.joinToString("¦") { "${it.label.length},${it.value.length}" } + "|$availW|$availH|${t.fs}"
-        val scale = remember(key) {
-            var widest = 0f
-            var textH = 0f
-            lines.forEach { ln ->
-                val l = measurer.measure(ln.label, labelStyle, maxLines = 1, softWrap = false)
-                val v = measurer.measure(ln.value, valueStyle, maxLines = 1, softWrap = false)
-                widest = maxOf(widest, iconRefPx + innerGapPx + l.size.width + innerGapPx + v.size.width)
-                textH += maxOf(iconRefPx, l.size.height.toFloat(), v.size.height.toFloat())
-            }
-            val gaps = rowGapPx * (lines.size - 1)
-            val wFrac = if (widest > 0f && availW > 0f) (availW * 0.96f) / widest else 1f
-            val hFrac = if (textH > 0f && availH > 0f) (availH - gaps).coerceAtLeast(0f) / textH else 1f
-            minOf(wFrac, hFrac).coerceIn(0.7f, 2.4f)
+        (preview?.modifiedEpochSeconds ?: selected.modifiedEpochSeconds)?.let {
+            add(InfoStat(JiibIcons.CalendarClock, stringResource(R.string.files_stat_modified), formatDate(it)))
         }
-
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .align(Alignment.Center),
-            verticalArrangement = Arrangement.spacedBy(StatRowGap),
-        ) {
-            lines.forEach { FileStatRow(it.icon, it.label, it.value, t, scale) }
+        if (preview == null) {
+            add(InfoStat(JiibIcons.TimerDown, stringResource(R.string.files_stat_preview), stringResource(R.string.files_stat_preview_loading)))
         }
     }
-}
 
-/** One icon-led stat line in the future-print card: icon + dim label + GeistMono value. */
-@Composable
-private fun FileStatRow(
-    icon: works.mees.jiib.designsystem.icons.JiibIcon,
-    label: String,
-    value: String,
-    t: ThemeTokens,
-    scale: Float = 1f,
-) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        JiibIconView(icon, tint = t.text2, sizeDp = (fsSp(18f, t.fs) * scale).dp, contentDescription = null)
-        // Single-line / no-wrap matches how FilesFocusStats MEASURES these rows (softWrap = false). A
-        // wrapping label would blow past the measured height and overflow the fill-to-fit block.
-        Text(
-            label,
-            color = t.text2,
-            style = JiibType.caption.toTextStyle(t, fsSp(15f, t.fs) * scale),
-            maxLines = 1,
-            softWrap = false,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Text(
-            value,
-            color = t.text,
-            style = JiibType.dataInline.toTextStyle(t, fsSp(20f, t.fs) * scale),
-            maxLines = 1,
-            softWrap = false,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
+    FocusInfoCard(
+        stats = lines,
+        style = InfoCardStyle.IconRows,
+        background = {
+            if (url != null) {
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(url)
+                        .size(FileThumbnailLoader.ROW_THUMBNAIL_SIZE_PX * 3, FileThumbnailLoader.ROW_THUMBNAIL_SIZE_PX * 3)
+                        .build(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    alpha = 0.3f,
+                    modifier = Modifier.matchParentSize(),
+                )
+            } else if (inInspection) {
+                PreviewPlaceholderBox(label = "Thumbnail", modifier = Modifier.matchParentSize())
+            }
+        },
+    )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

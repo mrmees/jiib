@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
@@ -23,6 +24,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.collections.immutable.persistentListOf
 import works.mees.jiib.R
+import works.mees.jiib.designsystem.control.OutlinedControl
+import works.mees.jiib.designsystem.focus.FocusDigest
+import works.mees.jiib.designsystem.focus.FocusExplainer
+import works.mees.jiib.designsystem.focus.FocusForm
+import works.mees.jiib.designsystem.focus.FocusInfoCard
+import works.mees.jiib.designsystem.focus.FocusPlaceholder
+import works.mees.jiib.designsystem.focus.FocusStage
+import works.mees.jiib.designsystem.focus.InfoStat
+import works.mees.jiib.designsystem.components.DigestColumn
+import works.mees.jiib.designsystem.components.DigestEmphasis
+import works.mees.jiib.designsystem.components.DigestRow
 import works.mees.jiib.designsystem.components.FocusFrame
 import works.mees.jiib.designsystem.components.FocusEdge
 import works.mees.jiib.designsystem.components.FillMeter
@@ -34,9 +46,13 @@ import works.mees.jiib.designsystem.components.FootButtonBar
 import works.mees.jiib.designsystem.components.ListRow
 import works.mees.jiib.designsystem.components.SortOption
 import works.mees.jiib.designsystem.components.SortRow
+import works.mees.jiib.designsystem.components.StepperRow
 import works.mees.jiib.designsystem.control.Intent
 import works.mees.jiib.designsystem.icons.JiibIcons
+import works.mees.jiib.designsystem.layout.FocusZoneInset
+import works.mees.jiib.designsystem.layout.FocusZones
 import works.mees.jiib.designsystem.layout.ListBlock
+import works.mees.jiib.designsystem.layout.LocalUnitDp
 import works.mees.jiib.designsystem.layout.RegisteredRegion
 import works.mees.jiib.designsystem.layout.rememberUnitGrid
 import works.mees.jiib.theme.Geist
@@ -257,6 +273,163 @@ private fun DesignKitComponentDemo(modifier: Modifier = Modifier) {
                 FootAction("Edit", JiibIcons.Edit, {}, Intent.Accent),
                 FootAction("Delete", JiibIcons.Delete, {}, Intent.Danger),
             ))
+
+            // ── Focus Content Law — Layer 1 primitives ─────────────────────────────
+            // FocusZones fills its parent — must sit in a bounded Box (brief LAW 4).
+            CompositionLocalProvider(LocalUnitDp provides grid.uDp) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(grid.uDp * 4),
+                ) {
+                    FocusZones(
+                        inset = FocusZoneInset.Dense,
+                        cap = {
+                            Text(
+                                text = "cap zone",
+                                color = t.text3,
+                                fontFamily = Geist,
+                                fontSize = fsSp(15f, t.fs).sp,
+                            )
+                        },
+                        dock = {
+                            StepperRow(onDecrement = {}, onIncrement = {}, uDp = grid.uDp)
+                        },
+                        body = {
+                            DigestColumn(
+                                rows = listOf(
+                                    DigestRow.Line(label = "Nozzle", value = "215°", emphasis = DigestEmphasis.Strong),
+                                    DigestRow.Line(label = "Bed", value = "60°"),
+                                    DigestRow.Line(label = "Speed", value = "100%", emphasis = DigestEmphasis.Meta),
+                                ),
+                            )
+                        },
+                    )
+                }
+
+                // ── Focus Content Law — Layer 2 archetypes ─────────────────────────
+                // FocusExplainer: centered prose + dock (Dense inset auto-selected via LAW 4).
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(grid.uDp * 4),
+                ) {
+                    FocusExplainer(
+                        text = "Explainer body text — the dock below pulls the inset to Dense.",
+                        dock = {
+                            OutlinedControl(
+                                label = "Done",
+                                onClick = {},
+                                intent = Intent.Accent,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        },
+                    )
+                }
+
+                // FocusPlaceholder: proportional glyph + prompt text (Default inset).
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(grid.uDp * 4),
+                ) {
+                    FocusPlaceholder(
+                        icon = JiibIcons.LauncherFiles,
+                        text = "Nothing selected",
+                    )
+                }
+
+                // FocusDigest: archetype #3 — 3 Lines + 1 Note + 1 Custom.
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(grid.uDp * 4),
+                ) {
+                    FocusDigest(
+                        rows = listOf(
+                            DigestRow.Line(label = "Nozzle", value = "215°", emphasis = DigestEmphasis.Strong),
+                            DigestRow.Line(label = "Bed", value = "60°"),
+                            DigestRow.Line(label = "Speed", value = "100%", emphasis = DigestEmphasis.Meta),
+                            DigestRow.Note("moonraker.local:7125", marquee = true),
+                            DigestRow.Custom(heightU = 0.5f) {
+                                Box(Modifier.fillMaxSize())
+                            },
+                        ),
+                    )
+                }
+
+                // FocusInfoCard: archetype #4 — fill-to-fit stat rows (IconRows, icons null).
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(grid.uDp * 4),
+                ) {
+                    FocusInfoCard(
+                        stats = listOf(
+                            InfoStat(icon = null, label = "File", value = "benchy.gcode"),
+                            InfoStat(icon = null, label = "Size", value = "2.4 MB"),
+                            InfoStat(icon = null, label = "Est.", value = "1h 23m"),
+                            InfoStat(icon = null, label = "Layer", value = "0.2 mm"),
+                        ),
+                    )
+                }
+
+                // FocusStage: archetype #7 — spatial surface with cap readout + stepper dock.
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(grid.uDp * 4),
+                ) {
+                    FocusStage(
+                        cap = {
+                            Text(
+                                text = "215.0°",
+                                color = t.text2,
+                                fontFamily = GeistMono,
+                                fontSize = fsSp(15f, t.fs).sp,
+                            )
+                        },
+                        dock = {
+                            StepperRow(onDecrement = {}, onIncrement = {}, uDp = grid.uDp)
+                        },
+                        body = {
+                            Text(
+                                text = "Ready",
+                                color = t.text3,
+                                fontFamily = Geist,
+                                fontSize = fsSp(26f, t.fs).sp,
+                            )
+                        },
+                    )
+                }
+
+                // FocusForm: archetype #8 — top-flow control rows (LAW-1 named exception) + Done dock.
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(grid.uDp * 4),
+                ) {
+                    FocusForm(
+                        body = {
+                            // TokenTextField-like placeholder row
+                            OutlinedControl(
+                                label = "printer.local",
+                                onClick = {},
+                                intent = Intent.Accent,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        },
+                        dock = {
+                            OutlinedControl(
+                                label = "Done",
+                                onClick = {},
+                                intent = Intent.Go,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        },
+                    )
+                }
+            }
         }
     }
 }
