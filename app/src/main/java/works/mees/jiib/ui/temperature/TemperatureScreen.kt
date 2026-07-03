@@ -9,12 +9,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
@@ -808,34 +807,40 @@ private fun SensorAppearanceFocus(
     FocusStage(
         modifier = modifier,
         body = {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                // Center the two rows in the leftover space; rows wrap to the (width-driven) dot height.
-                verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
-            ) {
-                swatchRows.forEach { rowColors ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        rowColors.forEach { poolColor ->
-                            val isSelected = traceColor != null && poolColor.toArgb() == traceColor.toArgb()
-                            // Each dot is a centered, WIDTH-DRIVEN square (¼ of the row) capped at ~1.4U so
-                            // it stays large but never balloons to the row height (the old overlap/overflow bug).
-                            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .aspectRatio(1f)
-                                        .sizeIn(maxWidth = uDp * 1.4f, maxHeight = uDp * 1.4f)
-                                        .clip(CircleShape)
-                                        .background(poolColor) // data color — THEME-01 carve-out
-                                        .border(
-                                            BorderStroke(if (isSelected) 4.dp else 1.dp, t.accentLine),
-                                            CircleShape,
-                                        )
-                                        .clickable { onColorSelect(poolColor) },
-                                )
+            // Deterministic dot size: fit both axes so the 4×2 grid never overflows the body.
+            // dot = min(¼ of available width (minus 3 gaps), ½ of available height (minus 1 gap), 1.4U cap)
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                val dot = minOf(
+                    (maxWidth - 8.dp * 3) / 4,
+                    (maxHeight - 8.dp) / 2,
+                    uDp * 1.4f,
+                )
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+                ) {
+                    swatchRows.forEach { rowColors ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            rowColors.forEach { poolColor ->
+                                val isSelected = traceColor != null && poolColor.toArgb() == traceColor.toArgb()
+                                // Each dot is a fixed square derived from the real body budget —
+                                // never wider than a ¼-cell nor taller than ½-body (selection border unchanged).
+                                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(dot)
+                                            .clip(CircleShape)
+                                            .background(poolColor) // data color — THEME-01 carve-out
+                                            .border(
+                                                BorderStroke(if (isSelected) 4.dp else 1.dp, t.accentLine),
+                                                CircleShape,
+                                            )
+                                            .clickable { onColorSelect(poolColor) },
+                                    )
+                                }
                             }
                         }
                     }

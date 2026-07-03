@@ -135,11 +135,11 @@ internal fun FontPickerContent(
                             ) {
                                 BasicText( // focus-text-exempt: renders the selected font's own face (previewTextStyle carve-out)
                                     text = selected.displayName,
-                                    style = selected.previewTextStyle(t).copy(color = t.text),
+                                    style = selected.previewTextStyle(t).copy(color = t.text, textAlign = TextAlign.Center),
                                     modifier = Modifier.fillMaxWidth(),
                                     autoSize = TextAutoSize.StepBased(
                                         minFontSize = fsSp(15f, t.fs).sp,
-                                        maxFontSize = fsSp(JiibType.listLabel.baseSp, t.fs).sp,
+                                        maxFontSize = fsSp(JiibType.focusHero.baseSp, t.fs).sp,
                                         stepSize = 1.sp,
                                     ),
                                 )

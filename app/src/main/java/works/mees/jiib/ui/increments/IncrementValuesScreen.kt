@@ -168,11 +168,15 @@ private fun IncrementEditor(
                 keyboardType = KeyboardType.Text,
                 isError = !valid,
                 modifier = Modifier.fillMaxWidth(),
+                // Owner UAT: bigger values + label, and accent outline so the input is more obvious.
+                textStyle = JiibType.statValue.toTextStyle(t),
+                labelRole = JiibType.body,
+                borderColor = t.accent,
             )
             Text(
                 text = errorMsg ?: stringResource(R.string.increment_values_input_hint),
                 color = if (errorMsg != null) t.stop else t.text2,
-                style = JiibType.caption.toTextStyle(t),
+                style = JiibType.body.toTextStyle(t),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )

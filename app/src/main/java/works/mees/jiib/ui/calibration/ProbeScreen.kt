@@ -17,9 +17,12 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
@@ -1377,10 +1380,12 @@ internal fun ProbeTestBody(
         modifier = modifier,
         body = {
             // Last Z + accuracy form one block, vertically centered by the Stage body zone.
+            // fillMaxSize + verticalScroll: short content centers; tall content (large --fs / many
+            // accuracy stats) scrolls rather than clipping.
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
             ) {
                 // ── Last Z readout: label start, value end (mirrors the Calibrate ReadoutRow grammar) ──
                 // Horizontal inset now owned by the FocusStage Dense zone inset.
@@ -1745,8 +1750,12 @@ private fun AccuracyAutoText(
 private fun ProbeTestSamplesDisplay(samples: Int, modifier: Modifier = Modifier) {
     val t = LocalTokens.current
     val shape = RoundedCornerShape(t.rCtrl)
+    // Mirror the OutlinedControl 1U height floor so the three dock tiles stay equal-height.
+    val minHeight = (LocalUnitDp.current ?: 64.dp).coerceAtLeast(64.dp)
     Box(
-        modifier.clip(shape).border(BorderStroke(2.dp, t.outline), shape),
+        modifier
+            .heightIn(min = minHeight)
+            .clip(shape).border(BorderStroke(2.dp, t.outline), shape),
         contentAlignment = Alignment.Center,
     ) {
         Column(
