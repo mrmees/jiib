@@ -245,14 +245,6 @@ internal fun MoveHubContent(
     var staged by remember(mode) { mutableStateOf<Pair<Double, Double>?>(null) }
     var committedTarget by remember(mode) { mutableStateOf<Pair<Double, Double>?>(null) }
 
-    val avail = moveRowAvailability(vm.xHomed, vm.yHomed, vm.zHomed)
-
-    // When the printer un-homes, drop out of any homed-only transient Focus (Bookmark/SaveDialog)
-    // so we don't strand the user on a Focus whose menu row just disappeared (see Task 1 helper).
-    LaunchedEffect(vm.allHomed) {
-        mode = moveModeAfterHomedChange(mode, vm.allHomed)
-    }
-
     // Bed extent from toolhead.axis_minimum/axis_maximum X/Y (indices 0,1). Null until first
     // snapshot (or if either bounds list is too short) — TouchMove shows a homing hint then.
     val bed: BedExtent? = run {
@@ -264,8 +256,52 @@ internal fun MoveHubContent(
             null
         }
     }
+    val zMaxF = vm.axisMax?.getOrNull(2)?.toFloat()
 
-    val (headerTitle, headerIcon) = moveModeHeader(mode)
+    // Working scrubber targets, HOISTED from the XY/Z branches so the Focus-header title can read
+    // them (owner 2026-07-02 header coords). Reset keys preserve the OLD branch-local semantics
+    // (Codex review 2026-07-02): reseed on sub-mode entry (mode) and when bounds first ARRIVE
+    // (null → non-null, the `bed != null` presence flag) — NOT on every bounds value refresh, which
+    // would yank a scrub target mid-gesture. The old code created state only once bounds existed;
+    // keying on presence, not value, reproduces that.
+    var workingX by remember(mode, bed != null) {
+        mutableFloatStateOf(
+            if (bed == null) (vm.x?.toFloat() ?: 0f)
+            else (vm.x?.toFloat() ?: ((bed.xMin.toFloat() + bed.xMax.toFloat()) / 2f))
+                .coerceIn(bed.xMin.toFloat(), bed.xMax.toFloat()),
+        )
+    }
+    var workingY by remember(mode, bed != null) {
+        mutableFloatStateOf(
+            if (bed == null) (vm.y?.toFloat() ?: 0f)
+            else (vm.y?.toFloat() ?: ((bed.yMin.toFloat() + bed.yMax.toFloat()) / 2f))
+                .coerceIn(bed.yMin.toFloat(), bed.yMax.toFloat()),
+        )
+    }
+    var workingZ by remember(mode, zMaxF != null) {
+        mutableFloatStateOf((vm.z?.toFloat() ?: 0f).coerceIn(0f, zMaxF ?: Float.MAX_VALUE))
+    }
+
+    val avail = moveRowAvailability(vm.xHomed, vm.yHomed, vm.zHomed)
+
+    // When the printer un-homes, drop out of any homed-only transient Focus (Bookmark/SaveDialog)
+    // so we don't strand the user on a Focus whose menu row just disappeared (see Task 1 helper).
+    LaunchedEffect(vm.allHomed) {
+        mode = moveModeAfterHomedChange(mode, vm.allHomed)
+    }
+
+    val (staticTitle, headerIcon) = moveModeHeader(mode)
+    val dynamicTitle = moveDynamicHeaderTitle(
+        mode = mode,
+        stagedX = staged?.first,
+        stagedY = staged?.second,
+        workingX = workingX,
+        workingY = workingY,
+        workingZ = workingZ,
+        liveX = vm.x,
+        liveY = vm.y,
+    )
+    val headerTitle = dynamicTitle ?: staticTitle
 
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
@@ -285,6 +321,7 @@ internal fun MoveHubContent(
                 FocusFrame(
                     title = headerTitle,
                     icon = headerIcon,
+                    titleRole = if (dynamicTitle != null) JiibType.dataInline else JiibType.focusHeader,
                     uDp = grid.uDp,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -310,18 +347,8 @@ internal fun MoveHubContent(
 
                     when (mode) {
                         MoveMode.TouchMove -> {
-                            // X / Y coordinate readout — staged while gesturing, else current.
-                            val shownX = staged?.first ?: vm.x
-                            val shownY = staged?.second ?: vm.y
+                            // X / Y coordinate readout lives in the Focus header now.
                             FocusStage(
-                                cap = {
-                                    FocusHeroText(
-                                        text = "X ${fmt1(shownX)}   Y ${fmt1(shownY)}",
-                                        role = JiibType.focusHero,
-                                        t = t,
-                                        color = t.text,
-                                    )
-                                },
                                 dock = {
                                     FocusText(
                                         text = "Tap to move, hold to refine",
@@ -371,30 +398,11 @@ internal fun MoveHubContent(
                                 val xMaxF = bed.xMax.toFloat()
                                 val yMinF = bed.yMin.toFloat()
                                 val yMaxF = bed.yMax.toFloat()
-                                var workingX by remember(mode) {
-                                    mutableFloatStateOf(
-                                        (vm.x?.toFloat() ?: ((xMinF + xMaxF) / 2f)).coerceIn(xMinF, xMaxF),
-                                    )
-                                }
-                                var workingY by remember(mode) {
-                                    mutableFloatStateOf(
-                                        (vm.y?.toFloat() ?: ((yMinF + yMaxF) / 2f)).coerceIn(yMinF, yMaxF),
-                                    )
-                                }
                                 val cx = vm.x
                                 val cy = vm.y
                                 val currentPair = if (cx != null && cy != null) cx to cy else null
 
                                 FocusStage(
-                                    cap = {
-                                        // TOP: centered X/Y coordinate readout showing the working target.
-                                        FocusHeroText(
-                                            text = "X ${fmt1(workingX.toDouble())}   Y ${fmt1(workingY.toDouble())}",
-                                            role = JiibType.focusHero,
-                                            t = t,
-                                            color = t.text,
-                                        )
-                                    },
                                     body = {
                                     // BELOW: bed map + sliders (both bare — track only, no steppers).
                                     // The BED SQUARE itself is horizontally CENTERED in the focus; the
@@ -475,13 +483,10 @@ internal fun MoveHubContent(
                             }
                         }
                         MoveMode.Z -> {
-                            val zMax = vm.axisMax?.getOrNull(2)?.toFloat()
+                            val zMax = zMaxF
                             if (zMax == null) {
                                 FocusExplainer(text = "Waiting for printer bounds…")
                             } else {
-                                var workingZ by remember(mode) {
-                                    mutableFloatStateOf((vm.z?.toFloat() ?: 0f).coerceIn(0f, zMax))
-                                }
                                 // Five columns: [fine labels] [fine slider] [Z value] [full slider]
                                 // [full labels]. Range labels flank each slider as their own columns
                                 // (owner 2026-06-17). Center Z value matches the X/Y coordinate text.
@@ -1087,6 +1092,33 @@ private fun EndstopRow(status: EndstopStatus, uDp: Dp) {
 /** One-decimal mm formatting for the TouchMove X/Y readout. Null values render as "—". */
 private fun fmt1(v: Double?): String =
     if (v == null) "—" else String.format(java.util.Locale.US, "%.1f", v)
+
+/** Two-decimal mm formatting for the Z header readout. Null values render as "—". */
+private fun fmt2(v: Double?): String =
+    if (v == null) "—" else String.format(java.util.Locale.US, "%.2f", v)
+
+/**
+ * The DYNAMIC Focus-header title for coordinate modes (owner 2026-07-02: live coords REPLACE the
+ * static mode title — the mode icon alone carries identity; " / " is the axis separator). Null =
+ * the mode keeps its static [moveModeHeader] title. TouchMove prefers the staged (finger-live)
+ * target over the live toolhead position; XY/Z show the working scrubber target (which is seeded
+ * from the live position on mode entry).
+ */
+internal fun moveDynamicHeaderTitle(
+    mode: MoveMode,
+    stagedX: Double?,
+    stagedY: Double?,
+    workingX: Float,
+    workingY: Float,
+    workingZ: Float,
+    liveX: Double?,
+    liveY: Double?,
+): String? = when (mode) {
+    MoveMode.TouchMove -> "X ${fmt1(stagedX ?: liveX)} / Y ${fmt1(stagedY ?: liveY)}"
+    MoveMode.XY -> "X ${fmt1(workingX.toDouble())} / Y ${fmt1(workingY.toDouble())}"
+    MoveMode.Z -> "Z ${fmt2(workingZ.toDouble())} mm"
+    else -> null
+}
 
 /** Formats a microstep increment value as a signed label (e.g. 0.1 → "±0.1", 10.0 → "±10"). */
 private fun fmtStep(v: Double): String =
