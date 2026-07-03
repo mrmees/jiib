@@ -245,14 +245,6 @@ internal fun MoveHubContent(
     var staged by remember(mode) { mutableStateOf<Pair<Double, Double>?>(null) }
     var committedTarget by remember(mode) { mutableStateOf<Pair<Double, Double>?>(null) }
 
-    val avail = moveRowAvailability(vm.xHomed, vm.yHomed, vm.zHomed)
-
-    // When the printer un-homes, drop out of any homed-only transient Focus (Bookmark/SaveDialog)
-    // so we don't strand the user on a Focus whose menu row just disappeared (see Task 1 helper).
-    LaunchedEffect(vm.allHomed) {
-        mode = moveModeAfterHomedChange(mode, vm.allHomed)
-    }
-
     // Bed extent from toolhead.axis_minimum/axis_maximum X/Y (indices 0,1). Null until first
     // snapshot (or if either bounds list is too short) — TouchMove shows a homing hint then.
     val bed: BedExtent? = run {
@@ -264,8 +256,52 @@ internal fun MoveHubContent(
             null
         }
     }
+    val zMaxF = vm.axisMax?.getOrNull(2)?.toFloat()
 
-    val (headerTitle, headerIcon) = moveModeHeader(mode)
+    // Working scrubber targets, HOISTED from the XY/Z branches so the Focus-header title can read
+    // them (owner 2026-07-02 header coords). Reset keys preserve the OLD branch-local semantics
+    // (Codex review 2026-07-02): reseed on sub-mode entry (mode) and when bounds first ARRIVE
+    // (null → non-null, the `bed != null` presence flag) — NOT on every bounds value refresh, which
+    // would yank a scrub target mid-gesture. The old code created state only once bounds existed;
+    // keying on presence, not value, reproduces that.
+    var workingX by remember(mode, bed != null) {
+        mutableFloatStateOf(
+            if (bed == null) (vm.x?.toFloat() ?: 0f)
+            else (vm.x?.toFloat() ?: ((bed.xMin.toFloat() + bed.xMax.toFloat()) / 2f))
+                .coerceIn(bed.xMin.toFloat(), bed.xMax.toFloat()),
+        )
+    }
+    var workingY by remember(mode, bed != null) {
+        mutableFloatStateOf(
+            if (bed == null) (vm.y?.toFloat() ?: 0f)
+            else (vm.y?.toFloat() ?: ((bed.yMin.toFloat() + bed.yMax.toFloat()) / 2f))
+                .coerceIn(bed.yMin.toFloat(), bed.yMax.toFloat()),
+        )
+    }
+    var workingZ by remember(mode, zMaxF != null) {
+        mutableFloatStateOf((vm.z?.toFloat() ?: 0f).coerceIn(0f, zMaxF ?: Float.MAX_VALUE))
+    }
+
+    val avail = moveRowAvailability(vm.xHomed, vm.yHomed, vm.zHomed)
+
+    // When the printer un-homes, drop out of any homed-only transient Focus (Bookmark/SaveDialog)
+    // so we don't strand the user on a Focus whose menu row just disappeared (see Task 1 helper).
+    LaunchedEffect(vm.allHomed) {
+        mode = moveModeAfterHomedChange(mode, vm.allHomed)
+    }
+
+    val (staticTitle, headerIcon) = moveModeHeader(mode)
+    val dynamicTitle = moveDynamicHeaderTitle(
+        mode = mode,
+        stagedX = staged?.first,
+        stagedY = staged?.second,
+        workingX = workingX,
+        workingY = workingY,
+        workingZ = workingZ,
+        liveX = vm.x,
+        liveY = vm.y,
+    )
+    val headerTitle = dynamicTitle ?: staticTitle
 
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = rememberUnitGrid(minOf(maxWidth, maxHeight))
@@ -285,6 +321,8 @@ internal fun MoveHubContent(
                 FocusFrame(
                     title = headerTitle,
                     icon = headerIcon,
+                    // Coordinate titles render in the DEFAULT header role (UI face) — owner UAT
+                    // 2026-07-02 ruled the mono Data face out for these header stats.
                     uDp = grid.uDp,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -310,18 +348,8 @@ internal fun MoveHubContent(
 
                     when (mode) {
                         MoveMode.TouchMove -> {
-                            // X / Y coordinate readout — staged while gesturing, else current.
-                            val shownX = staged?.first ?: vm.x
-                            val shownY = staged?.second ?: vm.y
+                            // X / Y coordinate readout lives in the Focus header now.
                             FocusStage(
-                                cap = {
-                                    FocusHeroText(
-                                        text = "X ${fmt1(shownX)}   Y ${fmt1(shownY)}",
-                                        role = JiibType.focusHero,
-                                        t = t,
-                                        color = t.text,
-                                    )
-                                },
                                 dock = {
                                     FocusText(
                                         text = "Tap to move, hold to refine",
@@ -371,30 +399,11 @@ internal fun MoveHubContent(
                                 val xMaxF = bed.xMax.toFloat()
                                 val yMinF = bed.yMin.toFloat()
                                 val yMaxF = bed.yMax.toFloat()
-                                var workingX by remember(mode) {
-                                    mutableFloatStateOf(
-                                        (vm.x?.toFloat() ?: ((xMinF + xMaxF) / 2f)).coerceIn(xMinF, xMaxF),
-                                    )
-                                }
-                                var workingY by remember(mode) {
-                                    mutableFloatStateOf(
-                                        (vm.y?.toFloat() ?: ((yMinF + yMaxF) / 2f)).coerceIn(yMinF, yMaxF),
-                                    )
-                                }
                                 val cx = vm.x
                                 val cy = vm.y
                                 val currentPair = if (cx != null && cy != null) cx to cy else null
 
                                 FocusStage(
-                                    cap = {
-                                        // TOP: centered X/Y coordinate readout showing the working target.
-                                        FocusHeroText(
-                                            text = "X ${fmt1(workingX.toDouble())}   Y ${fmt1(workingY.toDouble())}",
-                                            role = JiibType.focusHero,
-                                            t = t,
-                                            color = t.text,
-                                        )
-                                    },
                                     body = {
                                     // BELOW: bed map + sliders (both bare — track only, no steppers).
                                     // The BED SQUARE itself is horizontally CENTERED in the focus; the
@@ -475,68 +484,53 @@ internal fun MoveHubContent(
                             }
                         }
                         MoveMode.Z -> {
-                            val zMax = vm.axisMax?.getOrNull(2)?.toFloat()
+                            val zMax = zMaxF
                             if (zMax == null) {
                                 FocusExplainer(text = "Waiting for printer bounds…")
                             } else {
-                                var workingZ by remember(mode) {
-                                    mutableFloatStateOf((vm.z?.toFloat() ?: 0f).coerceIn(0f, zMax))
+                                // Three vertical scrubber columns, fine → coarse (owner 2026-07-02):
+                                // 0–10 @ 0.05 | 0–50 @ 0.1 | 0–Zmax @ 1. The Z readout moved to the
+                                // Focus header; each column stacks max label / track / "0" (the old
+                                // flanking ZRangeLabels side columns and center readout are retired).
+                                val onScrub = { v: Float -> workingZ = v }
+                                val onScrubSettle = { v: Float ->
+                                    workingZ = v
+                                    onMoveTo(null, null, v.toDouble())
                                 }
-                                // Five columns: [fine labels] [fine slider] [Z value] [full slider]
-                                // [full labels]. Range labels flank each slider as their own columns
-                                // (owner 2026-06-17). Center Z value matches the X/Y coordinate text.
                                 FocusStage(
                                     body = {
-                                Row(
-                                    modifier = Modifier.fillMaxSize(),
-                                ) {
-                                    // Col 1 — Fine range labels: 50 (top) / 0 (bottom).
-                                    ZRangeLabels(top = "50", bottom = "0")
-                                    // Col 2 — Fine slider: 0–50 mm @ 0.1 mm.
-                                    ZScrubberColumn(
-                                        name = "Fine",
-                                        value = workingZ,
-                                        range = 0f..50f,
-                                        step = 0.1f,
-                                        uDp = grid.uDp,
-                                        modifier = Modifier.weight(1f),
-                                        onValueChange = { workingZ = it },
-                                        onSettle = { v ->
-                                            workingZ = v
-                                            onMoveTo(null, null, workingZ.toDouble())
-                                        },
-                                    )
-                                    // Col 3 — Z value, centered; matches the X/Y coordinate readout
-                                    // (statValue, 26sp) on the Touch Move / XY focuses (owner 2026-06-17).
-                                    Box(
-                                        Modifier.fillMaxHeight().padding(horizontal = 4.dp),
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        Text(
-                                            text = String.format(java.util.Locale.US, "%.2f", workingZ) + "mm",
-                                            style = JiibType.statValue.toTextStyle(t),
-                                            color = t.text,
-                                            maxLines = 1,
-                                            softWrap = false,
-                                        )
-                                    }
-                                    // Col 4 — Full slider: 0–Zmax @ 1 mm.
-                                    ZScrubberColumn(
-                                        name = "Full",
-                                        value = workingZ,
-                                        range = 0f..zMax,
-                                        step = 1f,
-                                        uDp = grid.uDp,
-                                        modifier = Modifier.weight(1f),
-                                        onValueChange = { workingZ = it },
-                                        onSettle = { v ->
-                                            workingZ = v
-                                            onMoveTo(null, null, workingZ.toDouble())
-                                        },
-                                    )
-                                    // Col 5 — Full range labels: floor(Zmax) (top) / 0 (bottom).
-                                    ZRangeLabels(top = floor(zMax).toInt().toString(), bottom = "0")
-                                }
+                                        Row(modifier = Modifier.fillMaxSize()) {
+                                            ZScrubberColumn(
+                                                maxLabel = "10",
+                                                value = workingZ,
+                                                range = 0f..10f,
+                                                step = 0.05f,
+                                                uDp = grid.uDp,
+                                                modifier = Modifier.weight(1f),
+                                                onValueChange = onScrub,
+                                                onSettle = onScrubSettle,
+                                            )
+                                            ZScrubberColumn(
+                                                maxLabel = "50",
+                                                value = workingZ,
+                                                range = 0f..50f,
+                                                step = 0.1f,
+                                                uDp = grid.uDp,
+                                                modifier = Modifier.weight(1f),
+                                                onValueChange = onScrub,
+                                                onSettle = onScrubSettle,
+                                            )
+                                            ZScrubberColumn(
+                                                maxLabel = floor(zMax).toInt().toString(),
+                                                value = workingZ,
+                                                range = 0f..zMax,
+                                                step = 1f,
+                                                uDp = grid.uDp,
+                                                modifier = Modifier.weight(1f),
+                                                onValueChange = onScrub,
+                                                onSettle = onScrubSettle,
+                                            )
+                                        }
                                     },
                                 )
                             }
@@ -967,13 +961,14 @@ private fun moveModeHeader(mode: MoveMode): Pair<String, JiibIcon> = when (mode)
 }
 
 /**
- * One vertical Z scrubber column (Fine 0–50 / Full 0–Zmax). Bare — the endpoint range labels now
- * live in their own flanking [ZRangeLabels] columns (owner 2026-06-17, five-column Z layout). Both
- * sliders are `weight(1f)`-equal via [modifier].
+ * One vertical Z scrubber column with its endpoint range labels stacked ABOVE (max) and BELOW ("0")
+ * the track (owner 2026-07-02 — the flanking ZRangeLabels side columns are retired; the max label
+ * IS the column's scale identity, so the old Fine/Full names are gone too). Labels render in the
+ * UI face (body, 20sp — owner UAT 2026-07-02), t.text2. All columns are `weight(1f)`-equal via [modifier].
  */
 @Composable
 private fun ZScrubberColumn(
-    name: String,
+    maxLabel: String,
     value: Float,
     range: ClosedFloatingPointRange<Float>,
     step: Float,
@@ -982,39 +977,38 @@ private fun ZScrubberColumn(
     onSettle: (Float) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(
-        modifier = modifier.fillMaxHeight(),
-        contentAlignment = Alignment.Center,
-    ) {
-        Scrubber(
-            name = name,
-            value = value,
-            range = range,
-            step = step,
-            uDp = uDp,
-            unit = "mm",
-            orientation = ScrubberOrientation.Vertical,
-            onValueChange = onValueChange,
-            onSettle = onSettle,
-        )
-    }
-}
-
-/**
- * A range-label column flanking a Z scrubber: [top] pushed to the top of the height, [bottom] to the
- * bottom. Sized at the Z value's CURRENT size (dataInline, 20sp — owner ruling 2026-06-17; NOT the
- * 26sp the center readout grows to). Muted via `t.text2`.
- */
-@Composable
-private fun ZRangeLabels(top: String, bottom: String) {
     val t = LocalTokens.current
     Column(
-        modifier = Modifier.fillMaxHeight().padding(horizontal = 4.dp),
+        modifier = modifier.fillMaxHeight(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(text = top, style = JiibType.dataInline.toTextStyle(t), color = t.text2, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Spacer(Modifier.weight(1f))
-        Text(text = bottom, style = JiibType.dataInline.toTextStyle(t), color = t.text2, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(
+            text = maxLabel,
+            style = JiibType.body.toTextStyle(t),
+            color = t.text2,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+            Scrubber(
+                name = "Z",
+                value = value,
+                range = range,
+                step = step,
+                uDp = uDp,
+                unit = "mm",
+                orientation = ScrubberOrientation.Vertical,
+                onValueChange = onValueChange,
+                onSettle = onSettle,
+            )
+        }
+        Text(
+            text = "0",
+            style = JiibType.body.toTextStyle(t),
+            color = t.text2,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
@@ -1087,6 +1081,33 @@ private fun EndstopRow(status: EndstopStatus, uDp: Dp) {
 /** One-decimal mm formatting for the TouchMove X/Y readout. Null values render as "—". */
 private fun fmt1(v: Double?): String =
     if (v == null) "—" else String.format(java.util.Locale.US, "%.1f", v)
+
+/** Two-decimal mm formatting for the Z header readout. Null values render as "—". */
+private fun fmt2(v: Double?): String =
+    if (v == null) "—" else String.format(java.util.Locale.US, "%.2f", v)
+
+/**
+ * The DYNAMIC Focus-header title for coordinate modes (owner 2026-07-02: live coords REPLACE the
+ * static mode title — the mode icon alone carries identity; " / " is the axis separator). Null =
+ * the mode keeps its static [moveModeHeader] title. TouchMove prefers the staged (finger-live)
+ * target over the live toolhead position; XY/Z show the working scrubber target (which is seeded
+ * from the live position on mode entry).
+ */
+internal fun moveDynamicHeaderTitle(
+    mode: MoveMode,
+    stagedX: Double?,
+    stagedY: Double?,
+    workingX: Float,
+    workingY: Float,
+    workingZ: Float,
+    liveX: Double?,
+    liveY: Double?,
+): String? = when (mode) {
+    MoveMode.TouchMove -> "X ${fmt1(stagedX ?: liveX)} / Y ${fmt1(stagedY ?: liveY)}"
+    MoveMode.XY -> "X ${fmt1(workingX.toDouble())} / Y ${fmt1(workingY.toDouble())}"
+    MoveMode.Z -> "Z ${fmt2(workingZ.toDouble())} mm"
+    else -> null
+}
 
 /** Formats a microstep increment value as a signed label (e.g. 0.1 → "±0.1", 10.0 → "±10"). */
 private fun fmtStep(v: Double): String =

@@ -123,6 +123,7 @@
     <string name="cd_babystep_step_size">Babystep step size, %1$s millimeters — tap to change</string>
     <string name="cd_launcher_files">Files</string>
     <string name="cd_launcher_temperature">Temperature</string>
+    <string name="cd_focus_home">Home</string>
     <string name="cd_launcher_move">Move</string>
     <string name="cd_launcher_extrude">Extrude</string>
     <string name="cd_launcher_calibration">Calibration</string>
@@ -475,6 +476,8 @@
     <string name="adjuster_was">was %1$s</string>
     <string name="finetune_reset_all">Reset All</string>
     <string name="temp_settings_title">DISPLAY SENSORS</string>
+    <string name="temp_mode_monitoring">Monitoring</string>
+    <string name="temp_mode_adjust">Heater Adjust</string>
     <string name="extrude_spoolman_coming_soon">Spoolman integration coming soon</string>
     <!-- R4 (26.5-06 codex review): the macro NAME is a format arg fed from CommandMap.*.macro,
          never a literal — a fork's renamed slot shows the right name in the hint copy. -->

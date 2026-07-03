@@ -104,7 +104,8 @@ fun PrinterFindScreen(
                 when (findPickDecision(result)) {
                     FindPickEffect.AddAndConnect -> onAddAndConnect(
                         buildProfileFromConnectionEditorSave(
-                            existing = null, nameInput = printer.name,
+                            existing = null,
+                            nameInput = discoveredDefaultName(printer.name, printer.host, printer.port),
                             host = printer.host, port = printer.port,
                             apiKeyInput = "", keyCleared = false, advancedUrlInput = "",
                         ),

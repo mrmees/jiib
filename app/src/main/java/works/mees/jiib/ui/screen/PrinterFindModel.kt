@@ -25,3 +25,10 @@ fun discoveredHostname(serviceName: String): String {
     val stripped = serviceName.trim().replaceFirst(MOONRAKER_PREFIX, "").trim()
     return if (stripped.isBlank() || stripped.equals("moonraker", ignoreCase = true)) "" else stripped
 }
+
+/** The default profile name for an auto-added discovered printer: `hostname:port`, falling back to
+ *  `host:port` (the IP) when the mDNS advert carried no usable hostname. hostname:port is how
+ *  Moonraker users already identify printer instances (owner 2026-07-02 — the raw "moonraker @ …"
+ *  service name no longer leaks into profile names). */
+fun discoveredDefaultName(serviceName: String, host: String, port: Int): String =
+    "${discoveredHostname(serviceName).ifBlank { host }}:$port"

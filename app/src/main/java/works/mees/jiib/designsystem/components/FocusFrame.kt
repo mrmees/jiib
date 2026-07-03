@@ -6,6 +6,8 @@ import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -23,6 +25,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -53,6 +56,7 @@ import works.mees.jiib.designsystem.icons.JiibIcons
 import works.mees.jiib.designsystem.layout.FocusInset
 import works.mees.jiib.designsystem.layout.LocalUnitDp
 import works.mees.jiib.theme.JiibType
+import works.mees.jiib.theme.TextRole
 import works.mees.jiib.theme.ThemeTokens
 import works.mees.jiib.theme.compose.LocalTokens
 import works.mees.jiib.theme.compose.toTextStyle
@@ -197,6 +201,26 @@ fun headerShowsEStop(
 ): Boolean = (isPrinting || safetyActive) && onEmergencyStop != null
 
 /**
+ * App-wide "tap the Focus identity glyph to go home" action. Provided ONCE by AppShell around the
+ * NavHost (pops to NavDest.WaterfallHome); consumed by [FocusHeader]. Null (the default — previews,
+ * tests, hosts without nav) leaves the identity glyph inert exactly as before.
+ */
+val LocalHomeAction = staticCompositionLocalOf<(() -> Unit)?> { null }
+
+/**
+ * Pure (host-testable) rule for the idle identity glyph (owner 2026-07-02): it acts as a HOME
+ * button when a home action is provided AND the slot is not occupied by the e-stop
+ * ([headerShowsEStop]). E-stop always wins the slot — its confirm guard means the morph can never
+ * cause an accidental halt.
+ */
+fun headerIconActsAsHome(
+    isPrinting: Boolean,
+    onEmergencyStop: (() -> Unit)?,
+    safetyActive: Boolean,
+    homeAction: (() -> Unit)?,
+): Boolean = homeAction != null && !headerShowsEStop(isPrinting, onEmergencyStop, safetyActive)
+
+/**
  * The universal Focus container (Focus Frame law). Every Focus except Webcam uses this shell.
  *
  * ## Structure
@@ -244,6 +268,7 @@ fun FocusFrame(
     icon: JiibIcon,
     iconTint: Color? = null,
     titleColor: Color? = null,
+    titleRole: TextRole = JiibType.focusHeader,
     uDp: Dp,
     modifier: Modifier = Modifier,
     edge: FocusEdge = FocusEdge.Neutral,
@@ -288,6 +313,7 @@ fun FocusFrame(
             icon = icon,
             iconTint = iconTint,
             titleColor = titleColor,
+            titleRole = titleRole,
             uDp = uDp,
             isPrinting = isPrinting,
             safetyActive = safetyActive,
@@ -334,6 +360,7 @@ private fun FocusHeader(
     icon: JiibIcon,
     iconTint: Color? = null,
     titleColor: Color? = null,
+    titleRole: TextRole = JiibType.focusHeader,
     uDp: Dp,
     isPrinting: Boolean,
     safetyActive: Boolean,
@@ -360,11 +387,14 @@ private fun FocusHeader(
         contentAlignment = Alignment.Center,
     ) {
         val density = LocalDensity.current
-        val titleStyle = remember(t.fs, density.fontScale) { JiibType.focusHeader.toTextStyle(t) }
+        // Keyed on the WHOLE token object, not just t.fs: toTextStyle(t) resolves the user-selected
+        // ui/data font faces from the tokens, so a live font change must rebuild the style (Codex
+        // review 2026-07-02 — the old t.fs key was a latent staleness bug this param would inherit).
+        val titleStyle = remember(t, density.fontScale, titleRole) { titleRole.toTextStyle(t) }
         val slotPx = with(density) { slot.toPx() }
         val availPx = with(density) { maxWidth.toPx() }
         // Memoize the single-line intrinsic width; re-measure only when the text, width, or scale changes.
-        val titleWidthPx = remember(title, maxWidth, t.fs, density.density, density.fontScale) {
+        val titleWidthPx = remember(title, maxWidth, titleStyle, density.density, density.fontScale) {
             measurer.measure(
                 text = AnnotatedString(title),
                 style = titleStyle,
@@ -416,14 +446,40 @@ private fun FocusHeader(
                 }
             } else {
                 // Identity glyph renders a touch smaller than the e-stop slot and is centered within
-                // it, so edge-heavy Material Symbols (e.g. linear_scale / blur_linear / linked_services)
-                // don't clip against the 1U header bar or the card's rounded corner. The slot itself
-                // (and thus the e-stop tap target, above) is unchanged — only the inert glyph shrinks.
-                Box(Modifier.size(slot), contentAlignment = Alignment.Center) {
+                // it, so edge-heavy Material Symbols don't clip against the 1U header bar or the
+                // card's rounded corner. Icon-home (owner 2026-07-02): when AppShell provided
+                // LocalHomeAction and the e-stop is not occupying the slot, the glyph is tappable →
+                // pop to the waterfall home. A null action (previews/tests) keeps the glyph inert.
+                // Pressed-state law: soft accent tint on touch-down, ripple OFF (nav = accent, R5)
+                // — the OutlinedControl pattern (interactionSource + indication = null).
+                val homeAction = LocalHomeAction.current
+                val actsAsHome = headerIconActsAsHome(isPrinting, onEmergencyStop, safetyActive, homeAction)
+                val homeInteraction = remember { MutableInteractionSource() }
+                val homePressed by homeInteraction.collectIsPressedAsState()
+                Box(
+                    modifier = Modifier
+                        .size(slot)
+                        .clip(RoundedCornerShape(t.rCtrl))
+                        .then(
+                            if (actsAsHome && homeAction != null) {
+                                Modifier
+                                    .background(if (homePressed) t.accentSoft else Color.Transparent)
+                                    .clickable(
+                                        interactionSource = homeInteraction,
+                                        indication = null,
+                                        onClick = homeAction,
+                                    )
+                            } else {
+                                Modifier
+                            },
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
                     JiibIconView(
                         icon = icon,
                         tint = iconTint ?: t.text2,
                         sizeDp = slot * IDENTITY_ICON_RATIO,
+                        contentDescription = if (actsAsHome) stringResource(R.string.cd_focus_home) else null,
                     )
                 }
             }
