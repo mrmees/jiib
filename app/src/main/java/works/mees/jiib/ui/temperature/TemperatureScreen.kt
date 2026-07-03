@@ -98,7 +98,12 @@ private sealed class TempFieldMode {
 }
 
 /** Top-level screen mode — Monitoring (read-only list) or Adjust (adjustable heaters only). */
-private enum class TempMode { Monitoring, Adjust }
+internal enum class TempMode { Monitoring, Adjust }
+
+/** Resting (no sensor selected) Focus title per screen mode (owner 2026-07-02) — pure for host
+ *  testing. Selected sensors still title the Focus with their own label. */
+internal fun tempRestingTitleRes(mode: TempMode): Int =
+    if (mode == TempMode.Monitoring) R.string.temp_mode_monitoring else R.string.temp_mode_adjust
 
 /**
  * ONE aligned visible-trace model: series, setpoints, names, and colors filtered together by
@@ -505,7 +510,7 @@ private fun TemperatureContent(
                         selectedSensor == null -> {
                             // DEFAULT: graph fills the Focus shell — multi-trace, visibility-filtered.
                             FocusFrame(
-                                title = stringResource(R.string.cd_launcher_temperature),
+                                title = stringResource(tempRestingTitleRes(mode)),
                                 icon = JiibIcons.LauncherTemperature,
                                 uDp = grid.uDp,
                                 modifier = Modifier.fillMaxSize(),
@@ -997,4 +1002,3 @@ private fun heaterDispatchKey(sensorName: String): String = "set_heater_$sensorN
 
 /** Tabular-friendly one-decimal temperature formatting (rounded, not truncated). */
 private fun fmt(v: Double): String = ((v * 10).roundToInt() / 10.0).toString()
-
