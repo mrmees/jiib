@@ -72,4 +72,16 @@ class PrinterFindModelTest {
         assertEquals("", discoveredHostname("moonraker"))      // bare moonraker carries no host info
         assertEquals("", discoveredHostname("   "))            // empty advert
     }
+
+    @Test
+    fun discoveredDefaultName_isHostnameColonPort() {
+        assertEquals("ender5plus:7125", discoveredDefaultName("moonraker @ ender5plus", "192.168.1.120", 7125))
+        assertEquals("voron:7125", discoveredDefaultName("voron", "192.168.1.50", 7125))
+    }
+
+    @Test
+    fun discoveredDefaultName_fallsBackToIpWhenNoHostname() {
+        assertEquals("192.168.1.120:7125", discoveredDefaultName("moonraker", "192.168.1.120", 7125))
+        assertEquals("192.168.1.120:7125", discoveredDefaultName("   ", "192.168.1.120", 7125))
+    }
 }
