@@ -321,7 +321,8 @@ internal fun MoveHubContent(
                 FocusFrame(
                     title = headerTitle,
                     icon = headerIcon,
-                    titleRole = if (dynamicTitle != null) JiibType.dataInline else JiibType.focusHeader,
+                    // Coordinate titles render in the DEFAULT header role (UI face) — owner UAT
+                    // 2026-07-02 ruled the mono Data face out for these header stats.
                     uDp = grid.uDp,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -962,8 +963,8 @@ private fun moveModeHeader(mode: MoveMode): Pair<String, JiibIcon> = when (mode)
 /**
  * One vertical Z scrubber column with its endpoint range labels stacked ABOVE (max) and BELOW ("0")
  * the track (owner 2026-07-02 — the flanking ZRangeLabels side columns are retired; the max label
- * IS the column's scale identity, so the old Fine/Full names are gone too). Labels keep the old
- * side-label treatment: dataInline, t.text2. All columns are `weight(1f)`-equal via [modifier].
+ * IS the column's scale identity, so the old Fine/Full names are gone too). Labels render in the
+ * UI face (body, 20sp — owner UAT 2026-07-02), t.text2. All columns are `weight(1f)`-equal via [modifier].
  */
 @Composable
 private fun ZScrubberColumn(
@@ -983,7 +984,7 @@ private fun ZScrubberColumn(
     ) {
         Text(
             text = maxLabel,
-            style = JiibType.dataInline.toTextStyle(t),
+            style = JiibType.body.toTextStyle(t),
             color = t.text2,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -1003,7 +1004,7 @@ private fun ZScrubberColumn(
         }
         Text(
             text = "0",
-            style = JiibType.dataInline.toTextStyle(t),
+            style = JiibType.body.toTextStyle(t),
             color = t.text2,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
