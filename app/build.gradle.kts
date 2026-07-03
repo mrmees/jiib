@@ -83,11 +83,28 @@ android {
         }
     }
 
+    // Release signing (PKG-01, 2026-07-03): the key material lives OUTSIDE the repo — path +
+    // passwords come from gitignored local.properties (jiib.releaseStoreFile/StorePassword/
+    // KeyAlias/KeyPassword). When those keys are absent (CI, other machines) the release variant
+    // builds UNSIGNED exactly as before, so this never breaks a checkout without the keystore.
+    // ⚠ The keystore signs the PUBLIC releases — losing it orphans every installed copy
+    // (users would have to uninstall/reinstall to ever update). Keep backups.
+    val releaseStorePath = devProp("jiib.releaseStoreFile", "")
+    val releaseSigning = if (releaseStorePath.isNotEmpty()) {
+        signingConfigs.create("release") {
+            storeFile = file(releaseStorePath)
+            storePassword = devProp("jiib.releaseStorePassword", "")
+            keyAlias = devProp("jiib.releaseKeyAlias", "jiib")
+            keyPassword = devProp("jiib.releaseKeyPassword", "")
+        }
+    } else null
+
     buildTypes {
         release {
             isMinifyEnabled = true                   // R8 — the MEASURED artifact (D-03/D-07)
             isShrinkResources = true
             isDebuggable = false
+            signingConfig = releaseSigning
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
