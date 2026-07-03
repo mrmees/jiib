@@ -1,8 +1,8 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="img/jiib_name_icon_stack.svg">
-    <source media="(prefers-color-scheme: light)" srcset="img/jiib_name_icon_stack_light.svg">
-    <img src="img/jiib_name_icon_stack_light.svg" width="300" alt="jiib" />
+    <source media="(prefers-color-scheme: dark)" srcset="img/jiib_lockup_dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="img/jiib_lockup_light.png">
+    <img src="img/jiib_lockup_light.png" width="300" alt="jiib" />
   </picture>
 </p>
 
@@ -59,6 +59,7 @@ The same print, monitored from a 2013 tablet (landscape, light theme) and a mode
 (portrait, dark theme). **[Browse the full gallery →](docs/screenshots/README.md)** — every
 screen, with instructions for each — and the [user manual](docs/manual/README.md) documents
 every option.
+
 ## Build from source
 
 Requirements: JDK 17+ and the Android SDK (compileSdk 36, build-tools 34).
