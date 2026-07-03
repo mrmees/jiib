@@ -1,8 +1,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="img/jiib_name_icon_stack.svg">
-    <img src="img/jiib_name_icon_stack_light.svg" width="300" alt="jiib">
-  </picture>
+    <img src="img/jiib_name_icon_stack_light.svg" width="300" alt="jiib" />
 </p>
 
 <p align="center"><strong>A native Android touchscreen for your Klipper 3D printer.</strong></p>
