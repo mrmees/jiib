@@ -46,6 +46,17 @@ drive a print.
 3. Open the APK to install, launch jiib, and enter your printer's Moonraker host
    (and API key only if your Moonraker requires one — trusted-client LAN setups don't).
 
+## Screenshots
+
+<table><tr>
+<td valign="top"><img src="docs/screenshots/v0.1.0/printing-flox-landscape-light_2026-07-03.png" width="640" alt="jiib printing dashboard — Nexus 7 2013, landscape, light theme"/></td>
+<td valign="top"><img src="docs/screenshots/v0.1.0/printing-moto-portrait-dark_2026-07-03.png" width="180" alt="jiib printing dashboard — Moto G Play 2024, portrait, dark theme"/></td>
+</tr></table>
+
+The same print, monitored from a 2013 tablet (landscape, light theme) and a modern phone
+(portrait, dark theme). **[Browse the full gallery →](docs/screenshots/README.md)** — every
+screen, with instructions for each — and the [user manual](docs/manual/README.md) documents
+every option.
 ## Build from source
 
 Requirements: JDK 17+ and the Android SDK (compileSdk 36, build-tools 34).
@@ -70,18 +81,6 @@ installing, or use the published, signed APKs from Releases.
 Kotlin · Jetpack Compose + classic Views hybrid · OkHttp (WebSocket) + Retrofit (REST) ·
 kotlinx.serialization · Coroutines/Flow · Coil. See `docs/adr/0001-ui-toolkit-decision.md`
 for the UI-toolkit rationale and `docs/ui_design/` for the design system.
-
-## Screenshots
-
-<table><tr>
-<td valign="top"><img src="docs/screenshots/v0.1.0/printing-flox-landscape-light_2026-07-03.png" width="640" alt="jiib printing dashboard — Nexus 7 2013, landscape, light theme"/></td>
-<td valign="top"><img src="docs/screenshots/v0.1.0/printing-moto-portrait-dark_2026-07-03.png" width="180" alt="jiib printing dashboard — Moto G Play 2024, portrait, dark theme"/></td>
-</tr></table>
-
-The same print, monitored from a 2013 tablet (landscape, light theme) and a modern phone
-(portrait, dark theme). **[Browse the full gallery →](docs/screenshots/README.md)** — every
-screen, with instructions for each — and the [user manual](docs/manual/README.md) documents
-every option.
 
 ## License
 
