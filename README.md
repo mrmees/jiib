@@ -1,9 +1,5 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="img/jiib_lockup_dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="img/jiib_lockup_light.png">
-    <img src="img/jiib_lockup_light.png" width="300" alt="jiib" />
-  </picture>
+  <img src="img/jiib_lockup.png" width="280" alt="jiib" />
 </p>
 
 
