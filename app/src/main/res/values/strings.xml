@@ -123,6 +123,7 @@
     <string name="cd_babystep_step_size">Babystep step size, %1$s millimeters — tap to change</string>
     <string name="cd_launcher_files">Files</string>
     <string name="cd_launcher_temperature">Temperature</string>
+    <string name="cd_focus_home">Home</string>
     <string name="cd_launcher_move">Move</string>
     <string name="cd_launcher_extrude">Extrude</string>
     <string name="cd_launcher_calibration">Calibration</string>

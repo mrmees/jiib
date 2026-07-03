@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -53,6 +54,7 @@ import works.mees.jiib.command.SetSpoolArgs
 import works.mees.jiib.command.dispatch
 import works.mees.jiib.designsystem.ConfirmGuard
 import works.mees.jiib.designsystem.components.FloatingEStop
+import works.mees.jiib.designsystem.components.LocalHomeAction
 import works.mees.jiib.designsystem.layout.rememberUnitGrid
 import works.mees.jiib.net.JsonRpcMethods
 import works.mees.jiib.outputs.OutputsHolder
@@ -559,317 +561,324 @@ fun AppShell(
         // call navController.navigate(NavDest.X); onBack calls navController.popBackStack().
         // In-screen sub-nav (Macros/Calibration/FineTune/Outputs) stays INSIDE its destination
         // composable (D-01 — NOT promoted to NavHost routes this phase).
-        NavHost(
-            navController = navController,
-            startDestination = nav.startDest ?: NavDest.WaterfallHome,
-        ) {
-            composable<NavDest.WaterfallHome> {
-                PrintStatusScreen(
-                    container = container,
-                    // ONE clean launcher shape (16-06): every Standby launcher tile dispatches a real NavDest
-                    // via onNavigate; the System foot button navigates to NavDest.System (D-04/28-05).
-                    onNavigate = { navController.navigate(it) },
-                    // The active-spool card Scan action opens the 11-07 QR scan surface directly (D-12).
-                    onScanSpool = { nav.scanActive = true },
-                    // FIX 6: the bounded ≤3 ERROR-line projection (above) — the Terminal(Error) data path.
-                    errorLines = errorLines,
-                )
-            }
-            composable<NavDest.Temperature> {
-                TemperatureScreen(
-                    container = container,
-                    holder = temperatureHolder,
-                    activeSpoolDetail = activeSpoolDetail,
-                    onBack = { navController.popBackStack() },
-                )
-            }
-            composable<NavDest.Move> {
-                MoveScreen(
-                    container = container,
-                    holder = moveHolder,
-                    onBack = { navController.popBackStack() },
-                )
-            }
-            composable<NavDest.Extrude> {
-                ExtrudeScreen(
-                    container = container,
-                    holder = extrudeHolder,
-                    activeSpoolDetail = activeSpoolDetail,
-                    onBack = { navController.popBackStack() },
-                    onOpenSpool = { navController.navigate(NavDest.Spool) },
-                )
-            }
-            composable<NavDest.Files> {
-                FilesScreen(
-                    holder = filesHolder,
-                    printerState = printerState,
-                    httpBase = httpBase,
-                    canStartPrint = capabilities.hasObject("virtual_sdcard"),
-                    onBack = { navController.popBackStack() },
-                    // D-01 warn-only print-start gate inputs (SPOOL-07): the capability gate, the
-                    // D-10-reconciled active status, and the inventory reader the gate resolves the
-                    // active-spool detail through. The gate is skipped entirely when spoolman is absent.
-                    spoolmanPresent = spoolEnabled,
-                    activeSpoolStatus = activeSpoolStatus,
-                    spoolmanClient = spoolmanClient,
-                    // D-04 gcode-aware prefilter: the gate's "Pick spool" seeds the picker from the file's
-                    // filament_type[] (material) + filament_colors[] (color hint) and opens the Spool screen.
-                    onPickSpoolForFile = { filamentType, filamentColors ->
-                        nav.spoolPrefilter = SpoolPrefilterSeed(filamentType, filamentColors)
-                        navController.navigate(NavDest.Spool)
-                    },
-                    // The gate's "Scan" opens the QR scan sub-surface (D-12), same as the Status card Scan.
-                    onScanSpool = { nav.scanActive = true },
-                    onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
-                )
-            }
-            composable<NavDest.Macros> {
-                // Entry reset: entering the Macros surface always starts on the Bookmarked launcher (FIX-3).
-                // applyEntryReset clears macroShowSystem + macroPopupFor (ShellNavState legacy fields, still
-                // zeroed for Splash-recovery safety even though they are no longer read from AppShell).
-                LaunchedEffect(Unit) { nav.applyEntryReset(NavDest.Macros) }
+        // Icon-home (owner 2026-07-02): every FocusFrame identity glyph pops home when it isn't
+        // showing the e-stop. Provided once here so no screen threads an onHome param.
+        val goHome: () -> Unit = remember(navController) {
+            { navController.popBackStack<NavDest.WaterfallHome>(inclusive = false) }
+        }
+        CompositionLocalProvider(LocalHomeAction provides goHome) {
+            NavHost(
+                navController = navController,
+                startDestination = nav.startDest ?: NavDest.WaterfallHome,
+            ) {
+                composable<NavDest.WaterfallHome> {
+                    PrintStatusScreen(
+                        container = container,
+                        // ONE clean launcher shape (16-06): every Standby launcher tile dispatches a real NavDest
+                        // via onNavigate; the System foot button navigates to NavDest.System (D-04/28-05).
+                        onNavigate = { navController.navigate(it) },
+                        // The active-spool card Scan action opens the 11-07 QR scan surface directly (D-12).
+                        onScanSpool = { nav.scanActive = true },
+                        // FIX 6: the bounded ≤3 ERROR-line projection (above) — the Terminal(Error) data path.
+                        errorLines = errorLines,
+                    )
+                }
+                composable<NavDest.Temperature> {
+                    TemperatureScreen(
+                        container = container,
+                        holder = temperatureHolder,
+                        activeSpoolDetail = activeSpoolDetail,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                composable<NavDest.Move> {
+                    MoveScreen(
+                        container = container,
+                        holder = moveHolder,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                composable<NavDest.Extrude> {
+                    ExtrudeScreen(
+                        container = container,
+                        holder = extrudeHolder,
+                        activeSpoolDetail = activeSpoolDetail,
+                        onBack = { navController.popBackStack() },
+                        onOpenSpool = { navController.navigate(NavDest.Spool) },
+                    )
+                }
+                composable<NavDest.Files> {
+                    FilesScreen(
+                        holder = filesHolder,
+                        printerState = printerState,
+                        httpBase = httpBase,
+                        canStartPrint = capabilities.hasObject("virtual_sdcard"),
+                        onBack = { navController.popBackStack() },
+                        // D-01 warn-only print-start gate inputs (SPOOL-07): the capability gate, the
+                        // D-10-reconciled active status, and the inventory reader the gate resolves the
+                        // active-spool detail through. The gate is skipped entirely when spoolman is absent.
+                        spoolmanPresent = spoolEnabled,
+                        activeSpoolStatus = activeSpoolStatus,
+                        spoolmanClient = spoolmanClient,
+                        // D-04 gcode-aware prefilter: the gate's "Pick spool" seeds the picker from the file's
+                        // filament_type[] (material) + filament_colors[] (color hint) and opens the Spool screen.
+                        onPickSpoolForFile = { filamentType, filamentColors ->
+                            nav.spoolPrefilter = SpoolPrefilterSeed(filamentType, filamentColors)
+                            navController.navigate(NavDest.Spool)
+                        },
+                        // The gate's "Scan" opens the QR scan sub-surface (D-12), same as the Status card Scan.
+                        onScanSpool = { nav.scanActive = true },
+                        onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
+                    )
+                }
+                composable<NavDest.Macros> {
+                    // Entry reset: entering the Macros surface always starts on the Bookmarked launcher (FIX-3).
+                    // applyEntryReset clears macroShowSystem + macroPopupFor (ShellNavState legacy fields, still
+                    // zeroed for Splash-recovery safety even though they are no longer read from AppShell).
+                    LaunchedEffect(Unit) { nav.applyEntryReset(NavDest.Macros) }
 
-                // Merged Macros screen (25-05 / D-09): ONE screen with two field modes (Launcher /
-                // ManageMode) replacing BookmarkedMacrosScreen + SystemMacrosScreen +
-                // MacroExecutionPopup. The selected macro fills the Focus and Execute is a foot button.
-                // MacroPrefs writes route through AppContainer.writeScope intent methods (WR-08 —
-                // [[dinghy-compose-write-scope-cancellation]]: a composition-scoped launch is cancelled
-                // by same-frame decomposition, silently dropping the write); session dispatcher passed
-                // for the Execute/dispatch path; null-safe (Execute disabled while idle, WR-03).
-                BookmarkedMacrosScreen(
-                    holder = macroHolder,
-                    dispatcher = dispatcher,
-                    onToggleBookmark = container::toggleMacroBookmark,
-                    onSetRevealHidden = container::setMacroRevealHidden,
-                    onBack = { navController.popBackStack() },
-                    isPrinting = printerState.printState == PrintState.Printing ||
-                        printerState.printState == PrintState.Paused,
-                    onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
-                )
-            }
-            composable<NavDest.Console> {
-                ConsoleScreen(
-                    holder = consoleHolder,
-                    onBack = { navController.popBackStack() },
-                    backfillFailed = consoleBackfillFailed,
-                    isPrinting = printerState.printState == PrintState.Printing ||
-                        printerState.printState == PrintState.Paused,
-                    onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
-                )
-            }
-            // D-07 (Phase 27): Calibration sub-nav converted to real NavHost routes.
-            // SIX composable<> blocks replace the old when(calibrationRoutine) dispatch.
+                    // Merged Macros screen (25-05 / D-09): ONE screen with two field modes (Launcher /
+                    // ManageMode) replacing BookmarkedMacrosScreen + SystemMacrosScreen +
+                    // MacroExecutionPopup. The selected macro fills the Focus and Execute is a foot button.
+                    // MacroPrefs writes route through AppContainer.writeScope intent methods (WR-08 —
+                    // [[dinghy-compose-write-scope-cancellation]]: a composition-scoped launch is cancelled
+                    // by same-frame decomposition, silently dropping the write); session dispatcher passed
+                    // for the Execute/dispatch path; null-safe (Execute disabled while idle, WR-03).
+                    BookmarkedMacrosScreen(
+                        holder = macroHolder,
+                        dispatcher = dispatcher,
+                        onToggleBookmark = container::toggleMacroBookmark,
+                        onSetRevealHidden = container::setMacroRevealHidden,
+                        onBack = { navController.popBackStack() },
+                        isPrinting = printerState.printState == PrintState.Printing ||
+                            printerState.printState == PrintState.Paused,
+                        onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
+                    )
+                }
+                composable<NavDest.Console> {
+                    ConsoleScreen(
+                        holder = consoleHolder,
+                        onBack = { navController.popBackStack() },
+                        backfillFailed = consoleBackfillFailed,
+                        isPrinting = printerState.printState == PrintState.Printing ||
+                            printerState.printState == PrintState.Paused,
+                        onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
+                    )
+                }
+                // D-07 (Phase 27): Calibration sub-nav converted to real NavHost routes.
+                // SIX composable<> blocks replace the old when(calibrationRoutine) dispatch.
 
-            composable<NavDest.CalibrationHub> {
-                // Entry reset: entering the hub always resets sub-nav for FIX-3 symmetry (no-op body
-                // since calibrationRoutine was removed, but kept for future-proofing and documentation).
-                LaunchedEffect(Unit) { nav.applyEntryReset(NavDest.CalibrationHub) }
-                CalibrationHubScreen(
-                    holder = calibrationHubHolder,
-                    container = container,
-                    onOpen = { routine -> navController.navigate(routine.toNavDest()) },
-                    onBack = { navController.popBackStack() },
-                )
-            }
-            // CalibrationProbe route removed (R1) — probe access is now via NavDest.Probe below.
-            composable<NavDest.CalibrationBedMesh> {
-                BedMeshScreen(
-                    container = container,
-                    holder = bedMeshHolder,
-                    onBack = { navController.popBackStack() },
-                )
-            }
-            composable<NavDest.CalibrationScrewsTilt> {
-                ScrewsTiltScreen(
-                    container = container,
-                    holder = screwsTiltHolder,
-                    onBack = { navController.popBackStack() },
-                )
-            }
-            composable<NavDest.CalibrationZTilt> {
-                TiltScreen(
-                    container = container,
-                    holder = zTiltHolder,
-                    variant = TiltVariant.ZTilt,
-                    onBack = { navController.popBackStack() },
-                )
-            }
-            composable<NavDest.CalibrationQgl> {
-                TiltScreen(
-                    container = container,
-                    holder = qglHolder,
-                    variant = TiltVariant.Qgl,
-                    onBack = { navController.popBackStack() },
-                )
-            }
-            // R1: single Focus-centric Probe screen replaces the old ProbeHub + 5 tool sub-routes.
-            // ProbeHubHolder still feeds the tool list; all old screen/holder imports are retired.
-            // R2: ApplyBabystepHolder re-hoisted here (above) feeds the APPLY_BABYSTEP Focus body.
-            // R3: ProbeTestHolder re-hoisted here (above) feeds the PROBE_TEST Focus body.
-            // R4: ProbeCalibrateHolder re-hoisted here (above) feeds the Z_OFFSET session body.
-            composable<NavDest.Probe> {
-                // D-09: suppress system Back while ANY probe session is active-or-starting.
-                // The holder VMs are observed HERE (not inside ProbeScreen) so AppShell owns the
-                // BackHandler registration, which puts it at priority-2 (INSIDE composable<>) —
-                // above NavHost's internal pop but below the scan/prompt overlay handlers (CR-01).
-                val probeCalibrateVm by probeCalibrateHolder.vm.collectAsStateWithLifecycle()
-                val eddyCalibrateVm by eddyCalibrateHolder.vm.collectAsStateWithLifecycle()
-                val probeInFlight by remember(dispatcher) {
-                    dispatcher?.inFlight ?: MutableStateFlow(emptySet<String>())
-                }.collectAsStateWithLifecycle(initialValue = emptySet())
-                val probeStarting = probeCalibrateVm.state == ProbePageState.Idle &&
-                    ("probe_calibrate" in probeInFlight || "z_endstop_calibrate" in probeInFlight)
-                // R6: Eddy Calibrate "starting" feedback (eddy_calibrate in flight while Idle).
-                val eddyStarting = eddyCalibrateVm.state == ProbePageState.Idle &&
-                    "eddy_calibrate" in probeInFlight
-                // Combined session lock — either active session suppresses system Back (D-09).
-                val probeSessionActive = probeCalibrateVm.state == ProbePageState.Active || probeStarting ||
-                    eddyCalibrateVm.state == ProbePageState.Active || eddyStarting
-                BackHandler(enabled = probeSessionActive) { /* swallow — no exit during live session */ }
+                composable<NavDest.CalibrationHub> {
+                    // Entry reset: entering the hub always resets sub-nav for FIX-3 symmetry (no-op body
+                    // since calibrationRoutine was removed, but kept for future-proofing and documentation).
+                    LaunchedEffect(Unit) { nav.applyEntryReset(NavDest.CalibrationHub) }
+                    CalibrationHubScreen(
+                        holder = calibrationHubHolder,
+                        container = container,
+                        onOpen = { routine -> navController.navigate(routine.toNavDest()) },
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                // CalibrationProbe route removed (R1) — probe access is now via NavDest.Probe below.
+                composable<NavDest.CalibrationBedMesh> {
+                    BedMeshScreen(
+                        container = container,
+                        holder = bedMeshHolder,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                composable<NavDest.CalibrationScrewsTilt> {
+                    ScrewsTiltScreen(
+                        container = container,
+                        holder = screwsTiltHolder,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                composable<NavDest.CalibrationZTilt> {
+                    TiltScreen(
+                        container = container,
+                        holder = zTiltHolder,
+                        variant = TiltVariant.ZTilt,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                composable<NavDest.CalibrationQgl> {
+                    TiltScreen(
+                        container = container,
+                        holder = qglHolder,
+                        variant = TiltVariant.Qgl,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                // R1: single Focus-centric Probe screen replaces the old ProbeHub + 5 tool sub-routes.
+                // ProbeHubHolder still feeds the tool list; all old screen/holder imports are retired.
+                // R2: ApplyBabystepHolder re-hoisted here (above) feeds the APPLY_BABYSTEP Focus body.
+                // R3: ProbeTestHolder re-hoisted here (above) feeds the PROBE_TEST Focus body.
+                // R4: ProbeCalibrateHolder re-hoisted here (above) feeds the Z_OFFSET session body.
+                composable<NavDest.Probe> {
+                    // D-09: suppress system Back while ANY probe session is active-or-starting.
+                    // The holder VMs are observed HERE (not inside ProbeScreen) so AppShell owns the
+                    // BackHandler registration, which puts it at priority-2 (INSIDE composable<>) —
+                    // above NavHost's internal pop but below the scan/prompt overlay handlers (CR-01).
+                    val probeCalibrateVm by probeCalibrateHolder.vm.collectAsStateWithLifecycle()
+                    val eddyCalibrateVm by eddyCalibrateHolder.vm.collectAsStateWithLifecycle()
+                    val probeInFlight by remember(dispatcher) {
+                        dispatcher?.inFlight ?: MutableStateFlow(emptySet<String>())
+                    }.collectAsStateWithLifecycle(initialValue = emptySet())
+                    val probeStarting = probeCalibrateVm.state == ProbePageState.Idle &&
+                        ("probe_calibrate" in probeInFlight || "z_endstop_calibrate" in probeInFlight)
+                    // R6: Eddy Calibrate "starting" feedback (eddy_calibrate in flight while Idle).
+                    val eddyStarting = eddyCalibrateVm.state == ProbePageState.Idle &&
+                        "eddy_calibrate" in probeInFlight
+                    // Combined session lock — either active session suppresses system Back (D-09).
+                    val probeSessionActive = probeCalibrateVm.state == ProbePageState.Active || probeStarting ||
+                        eddyCalibrateVm.state == ProbePageState.Active || eddyStarting
+                    BackHandler(enabled = probeSessionActive) { /* swallow — no exit during live session */ }
 
-                ProbeScreen(
-                    container = container,
-                    probeHubHolder = probeHubHolder,
-                    applyBabystepHolder = applyBabystepHolder,
-                    probeTestHolder = probeTestHolder,
-                    probeCalibrateHolder = probeCalibrateHolder,
-                    eddyCalibrateHolder = eddyCalibrateHolder,
-                    gcodeResponses = store.gcodeResponses,
-                    onBack = { navController.popBackStack() },
-                )
-            }
-            composable<NavDest.FineTune> {
-                // 26-02: flat single-screen Fine-Tune (replaces Hub + 3 group sub-pages).
-                // No entry reset needed — there is no sub-nav state left to clear.
-                FineTuneScreen(
-                    holder = fineTuneHolder,
-                    container = container,
-                    onBack = { navController.popBackStack() },
-                )
-            }
-            composable<NavDest.Webcam> {
-                WebcamScreen(
-                    holder = webcamHolder,
-                    surfaceProvider = webcamSurfaceProvider,
-                    onBack = { navController.popBackStack() },
-                )
-            }
-            composable<NavDest.Spool> {
-                SpoolScreen(
-                    holder = spoolHolder,
-                    dispatcher = dispatcher,
-                    client = spoolmanClient,
-                    container = container,
-                    // Home foot-button pops to the existing WaterfallHome root (never pushes a duplicate).
-                    onHome = { navController.popBackStack<NavDest.WaterfallHome>(inclusive = false) },
-                    // Open the 11-07 QR scan sub-surface as a full-screen overlay (rendered below, outside
-                    // the NavHost — mirrors the macro Execution popup). The camera binds/releases there.
-                    onScan = { nav.scanActive = true },
-                    // D-04 gcode-aware prefilter seed carried over from a Files spool-warning "Pick spool"
-                    // (null on a plain drawer open). SpoolScreen seeds the picker filters ONCE then clears it.
-                    prefilter = nav.spoolPrefilter,
-                    onPrefilterConsumed = { nav.spoolPrefilter = null },
-                )
-            }
-            composable<NavDest.Outputs> {
-                // Outputs screen (26-05 D-18/D-19): Detail-in-Focus layout — list + per-output inline
-                // control in the Focus region. No back-stack entries; selection state lives in OutputsScreen.
-                OutputsScreen(
-                    holder = outputsHolder,
-                    container = container,
-                    onBack = { navController.popBackStack() },
-                )
-            }
-            composable<NavDest.SystemInfo> {
-                // NavDest.SystemInfo (Phase 20): the read-only printer-host health page. Back-only gutter;
-                // the drawer is suppressed on-screen (swipe-suppress set above).
-                SystemInformationScreen(
-                    holder = systemInfoHolder,
-                    isPrinting = printerState.printState == PrintState.Printing ||
-                        printerState.printState == PrintState.Paused,
-                    onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
-                    onBack = { navController.popBackStack() },
-                )
-            }
-            composable<NavDest.Power> {
-                // NavDest.Power (Task A): Power / Reset page reached from Printer Settings.
-                // Mirrors SystemInfo wiring — reuses the systemInfoHolder's identity flow for
-                // host-action availability. FocusFrame docks the e-stop (page reachable mid-print).
-                PowerResetScreen(
-                    holder = systemInfoHolder,
-                    dispatcher = dispatcher,
-                    isPrinting = printerState.printState == PrintState.Printing ||
-                        printerState.printState == PrintState.Paused,
-                    onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
-                    onBack = { navController.popBackStack() },
-                )
-            }
-            composable<NavDest.PrinterSettings> {
-                PrinterSettingsScreen(
-                    container = container,
-                    onNavigate = { navController.navigate(it) },
-                    onBack = { navController.popBackStack() },
-                )
-            }
-            composable<NavDest.HeatPresets> {
-                HeatPresetsScreen(
-                    container = container,
-                    onBack = { navController.popBackStack() },
-                )
-            }
-            composable<NavDest.IncrementValues> {
-                IncrementValuesScreen(
-                    container = container,
-                    onBack = { navController.popBackStack() },
-                )
-            }
-            composable<NavDest.ManagePrinters> {
-                PrintersScreen(
-                    container = container,
-                    onSwitched = { navController.popBackStack<NavDest.PrinterSettings>(inclusive = false) },
-                    onBack = { navController.popBackStack() },
-                )
-            }
-            composable<NavDest.Theme> {
-                // NavDest.Theme (15.2-04 D-03): per-printer look editor. Done/Back pops to the caller.
-                ThemeScreen(
-                    container = container,
-                    onBack = { navController.popBackStack() },
-                )
-            }
-            composable<NavDest.AppSettings> {
-                AppSettingsScreen(
-                    container = container,
-                    onBack = { navController.popBackStack() },
-                    onOpenInterfaceFont = { navController.navigate(NavDest.InterfaceFont) },
-                    onOpenDataFont = { navController.navigate(NavDest.DataFont) },
-                )
-            }
-            composable<NavDest.InterfaceFont> {
-                FontPickerScreen(
-                    container = container,
-                    kind = FontKind.Ui,
-                    onBack = { navController.popBackStack() },
-                )
-            }
-            composable<NavDest.DataFont> {
-                FontPickerScreen(
-                    container = container,
-                    kind = FontKind.Data,
-                    onBack = { navController.popBackStack() },
-                )
-            }
-            composable<NavDest.System> {
-                // NavDest.System (28-02/28-05, D-04): the replacement System cluster hub — brand Focus +
-                // D-03 direct-tap dense rows (App Settings / Printer Settings / Manage Printers).
-                // E-stop: System now docks it in its FocusFrame header (Focus-header law 2026-06-13) —
-                // the shell float no longer fires here. Still absent from FOOT_GUN_DESTS:
-                // the else -> null path in shouldPopToRoot covers System (pop-to-root never fires from here).
-                SystemPageScreen(
-                    container = container,
-                    onNavigate = { navController.navigate(it) },
-                    onBack = { navController.popBackStack() },
-                )
+                    ProbeScreen(
+                        container = container,
+                        probeHubHolder = probeHubHolder,
+                        applyBabystepHolder = applyBabystepHolder,
+                        probeTestHolder = probeTestHolder,
+                        probeCalibrateHolder = probeCalibrateHolder,
+                        eddyCalibrateHolder = eddyCalibrateHolder,
+                        gcodeResponses = store.gcodeResponses,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                composable<NavDest.FineTune> {
+                    // 26-02: flat single-screen Fine-Tune (replaces Hub + 3 group sub-pages).
+                    // No entry reset needed — there is no sub-nav state left to clear.
+                    FineTuneScreen(
+                        holder = fineTuneHolder,
+                        container = container,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                composable<NavDest.Webcam> {
+                    WebcamScreen(
+                        holder = webcamHolder,
+                        surfaceProvider = webcamSurfaceProvider,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                composable<NavDest.Spool> {
+                    SpoolScreen(
+                        holder = spoolHolder,
+                        dispatcher = dispatcher,
+                        client = spoolmanClient,
+                        container = container,
+                        // Home foot-button pops to the existing WaterfallHome root (never pushes a duplicate).
+                        onHome = { navController.popBackStack<NavDest.WaterfallHome>(inclusive = false) },
+                        // Open the 11-07 QR scan sub-surface as a full-screen overlay (rendered below, outside
+                        // the NavHost — mirrors the macro Execution popup). The camera binds/releases there.
+                        onScan = { nav.scanActive = true },
+                        // D-04 gcode-aware prefilter seed carried over from a Files spool-warning "Pick spool"
+                        // (null on a plain drawer open). SpoolScreen seeds the picker filters ONCE then clears it.
+                        prefilter = nav.spoolPrefilter,
+                        onPrefilterConsumed = { nav.spoolPrefilter = null },
+                    )
+                }
+                composable<NavDest.Outputs> {
+                    // Outputs screen (26-05 D-18/D-19): Detail-in-Focus layout — list + per-output inline
+                    // control in the Focus region. No back-stack entries; selection state lives in OutputsScreen.
+                    OutputsScreen(
+                        holder = outputsHolder,
+                        container = container,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                composable<NavDest.SystemInfo> {
+                    // NavDest.SystemInfo (Phase 20): the read-only printer-host health page. Back-only gutter;
+                    // the drawer is suppressed on-screen (swipe-suppress set above).
+                    SystemInformationScreen(
+                        holder = systemInfoHolder,
+                        isPrinting = printerState.printState == PrintState.Printing ||
+                            printerState.printState == PrintState.Paused,
+                        onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                composable<NavDest.Power> {
+                    // NavDest.Power (Task A): Power / Reset page reached from Printer Settings.
+                    // Mirrors SystemInfo wiring — reuses the systemInfoHolder's identity flow for
+                    // host-action availability. FocusFrame docks the e-stop (page reachable mid-print).
+                    PowerResetScreen(
+                        holder = systemInfoHolder,
+                        dispatcher = dispatcher,
+                        isPrinting = printerState.printState == PrintState.Printing ||
+                            printerState.printState == PrintState.Paused,
+                        onEmergencyStop = { dispatcher?.dispatch(CommandRegistry.emergencyStop, Unit) },
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                composable<NavDest.PrinterSettings> {
+                    PrinterSettingsScreen(
+                        container = container,
+                        onNavigate = { navController.navigate(it) },
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                composable<NavDest.HeatPresets> {
+                    HeatPresetsScreen(
+                        container = container,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                composable<NavDest.IncrementValues> {
+                    IncrementValuesScreen(
+                        container = container,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                composable<NavDest.ManagePrinters> {
+                    PrintersScreen(
+                        container = container,
+                        onSwitched = { navController.popBackStack<NavDest.PrinterSettings>(inclusive = false) },
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                composable<NavDest.Theme> {
+                    // NavDest.Theme (15.2-04 D-03): per-printer look editor. Done/Back pops to the caller.
+                    ThemeScreen(
+                        container = container,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                composable<NavDest.AppSettings> {
+                    AppSettingsScreen(
+                        container = container,
+                        onBack = { navController.popBackStack() },
+                        onOpenInterfaceFont = { navController.navigate(NavDest.InterfaceFont) },
+                        onOpenDataFont = { navController.navigate(NavDest.DataFont) },
+                    )
+                }
+                composable<NavDest.InterfaceFont> {
+                    FontPickerScreen(
+                        container = container,
+                        kind = FontKind.Ui,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                composable<NavDest.DataFont> {
+                    FontPickerScreen(
+                        container = container,
+                        kind = FontKind.Data,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                composable<NavDest.System> {
+                    // NavDest.System (28-02/28-05, D-04): the replacement System cluster hub — brand Focus +
+                    // D-03 direct-tap dense rows (App Settings / Printer Settings / Manage Printers).
+                    // E-stop: System now docks it in its FocusFrame header (Focus-header law 2026-06-13) —
+                    // the shell float no longer fires here. Still absent from FOOT_GUN_DESTS:
+                    // the else -> null path in shouldPopToRoot covers System (pop-to-root never fires from here).
+                    SystemPageScreen(
+                        container = container,
+                        onNavigate = { navController.navigate(it) },
+                        onBack = { navController.popBackStack() },
+                    )
+                }
             }
         }
 

@@ -49,4 +49,17 @@ class FocusEdgeTest {
         // both true → still shows (not harmful, just redundant)
         assertEquals(true, headerShowsEStop(isPrinting = true, onEmergencyStop = {}, safetyActive = true))
     }
+
+    @Test
+    fun headerIconActsAsHome_requiresActionAndNoEstop() {
+        val home = {}
+        // No e-stop in the slot → home when an action is provided.
+        assertEquals(true, headerIconActsAsHome(isPrinting = false, onEmergencyStop = null, safetyActive = false, homeAction = home))
+        assertEquals(true, headerIconActsAsHome(isPrinting = false, onEmergencyStop = {}, safetyActive = false, homeAction = home))
+        // E-stop occupies the slot → never home.
+        assertEquals(false, headerIconActsAsHome(isPrinting = true, onEmergencyStop = {}, safetyActive = false, homeAction = home))
+        assertEquals(false, headerIconActsAsHome(isPrinting = false, onEmergencyStop = {}, safetyActive = true, homeAction = home))
+        // No provider (previews/tests) → inert glyph.
+        assertEquals(false, headerIconActsAsHome(isPrinting = false, onEmergencyStop = null, safetyActive = false, homeAction = null))
+    }
 }
