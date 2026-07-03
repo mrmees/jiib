@@ -178,7 +178,7 @@ class PrinterStateStore(
      * query (Pitfall 3 — no duplicate query), modeled on the [screwsTiltConfig] seam. Re-emitted on EVERY
      * (re)handshake (deterministic on-connect fullness, NOT the throttled hot path). CLEARED to empty on the
      * configfile read-FAILURE path AND before each re-read (clear-on-switch, T-19-04-04) so a printer switch
-     * or a failed read NEVER leaves stale hardware controls visible. The D-10 drawer-tile gate
+     * or a failed read NEVER leaves stale hardware controls visible. The D-10 home Outputs-row gate
      * ([works.mees.jiib.di.AppContainer.outputsPresent]) derives off non-empty-ness here.
      */
     val outputDescriptors: StateFlow<List<OutputDescriptor>> = _outputDescriptors.asStateFlow()

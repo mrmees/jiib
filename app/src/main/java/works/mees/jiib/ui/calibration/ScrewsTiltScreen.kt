@@ -229,7 +229,6 @@ fun ScrewsTiltContent(
                     }
                 },
                 field = {
-                    // ListBlock suppresses swipe-up drawer automatically (scrollable Field — Pitfall 1).
                     // Dim while locked — screw rows are informational (onClick = no-op) so alpha-only
                     // is sufficient; no click-blocking required.
                     ListBlock(

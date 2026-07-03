@@ -66,8 +66,8 @@ import works.mees.jiib.theme.compose.toTextStyle
  *
  * D-01: read-only — NO TextField, NO keyboard, NO send affordance.
  *
- * NOTE: the global swipe-up App Drawer gesture is suppressed for this screen in `AppShell` (08-07);
- * the Back control in the FootButtonBar is the explicit exit.
+ * NOTE: the Back control in the FootButtonBar is the explicit exit. (The swipe-up App Drawer and
+ * its per-screen gesture suppression were deleted in Phase 28.)
  *
  * @param holder the [ConsoleHolder] exposing the RAW [ConsoleLine] state.
  * @param onBack dismiss the screen.

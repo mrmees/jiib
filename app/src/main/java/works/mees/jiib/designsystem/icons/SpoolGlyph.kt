@@ -33,8 +33,8 @@ import works.mees.jiib.R
  *      flat-tinted with a neutral role token. The disc occludes the spiral except through its windows +
  *      center, so the filament color reads exactly where the real spool shows its wound filament.
  *
- * This is the ONE place the spool's filament color is rendered; every surface (launcher tile, drawer
- * tile, mid-print shortcut, the SpoolScreen empty-state + detail pane) routes through it (plan 04).
+ * This is the ONE place the spool's filament color is rendered; every surface (the home Spool row,
+ * mid-print shortcut, the SpoolScreen empty-state + detail pane) routes through it (plan 04).
  *
  * ## Why a dedicated composable (not [JiibIconView])
  * [JiibIconView]'s drawable branch is a single FLAT `tint: Color`. The reactive spiral needs a runtime

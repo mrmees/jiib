@@ -45,7 +45,7 @@ import works.mees.jiib.theme.fsSp
 
 /**
  * SPOOL-05/06 — the project's FIRST on-device hardware-camera surface (D-14/D-15). A full-screen scan
- * sub-surface (NOT a drawer `Dest`) launched from the Spool screen / active-spool card `onScan` seam
+ * sub-surface (NOT a nav destination) launched from the Spool screen / active-spool card `onScan` seam
  * (11-06). It hosts a CameraX [PreviewView] via [AndroidView], binds a [Preview] + an [ImageAnalysis]
  * (KEEP_ONLY_LATEST throttle) carrying the [QrCodeAnalyzer] (11-05), and — load-bearing — RELEASES the
  * camera on dispose via `ProcessCameraProvider.unbindAll()` in a [DisposableEffect] so the camera is

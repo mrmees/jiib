@@ -45,8 +45,7 @@ import works.mees.jiib.ui.spool.SpoolPrefilterSeed
  * [AppShell] reads it ONCE as the NavHost `startDestination` param — it cannot be a
  * `LaunchedEffect` because that would re-fire on every recompose (RESEARCH Pitfall 2). The seed
  * is null in release / when the dev gate is off, leaving the NavHost at [NavDest.WaterfallHome].
- *
- * [drawerOpen] stays AppShell-local (it is meaningless while the shell is decomposed).
+
  */
 class ShellNavState(val startDest: NavDest? = null) {
     /** Macro sub-nav: System-vs-Bookmarked toggle. A view PREFERENCE — preserved across a Splash blip. */
@@ -68,7 +67,7 @@ class ShellNavState(val startDest: NavDest? = null) {
 
     /**
      * D-04 gcode-aware prefilter seed (11-08): carried from a Files spool-warning "Pick spool" into the
-     * Spool picker. null = a plain drawer open (no seed). TRANSIENT — reset on return from a recovery
+     * Spool picker. null = a plain Spool open (no seed). TRANSIENT — reset on return from a recovery
      * Splash ([resetTransient]).
      */
     var spoolPrefilter by mutableStateOf<SpoolPrefilterSeed?>(null)

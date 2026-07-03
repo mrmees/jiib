@@ -104,7 +104,7 @@ object JiibIcons {
     val LauncherDrawer = JiibIcon(IconRef.Ligature("more_horiz"), alternate = "launcher_drawer")
 
     // --- Morphing-root idle foot-bar glyphs (24-02, OWNER-LOCKED — never invent/substitute, icon law).
-    // D-09: the third foot button opens the App Drawer (interim System hub); glyph reads NEUTRAL (not Power/red).
+    // D-09: the third foot button opens the System page; glyph reads NEUTRAL (not Power/red).
     // Ligature owner-confirmed 2026-06-10 and verified present in the bundled v2.944 Material Symbols ttf.
     val FootSystem = JiibIcon(IconRef.Ligature("bottom_panel_open"), alternate = "home_foot_system")
 
@@ -149,7 +149,7 @@ object JiibIcons {
     // D-05: both the digital and PWM output_pin variants share this row glyph.
     val OutputPin = JiibIcon(IconRef.Ligature("check_box"), alternate = "output_pin")
     val OutputPwmTool = JiibIcon(IconRef.Ligature("vital_signs"), alternate = "output_pwm_tool")
-    // D-07: the Outputs section / App-Drawer tile glyph.
+    // D-07: the Outputs section / home-row glyph.
     val OutputSection = JiibIcon(IconRef.Ligature("output"), alternate = "output_section")
 
     // --- Phase-20 System-Information glyphs (D-01..D-10, OWNER-LOCKED — never invent/substitute, icon
@@ -158,7 +158,7 @@ object JiibIcons {
     // LauncherTemperature (thermostat) token and D-09 (CPU load) REUSES the existing Speed (speed)
     // token — re-registering those ligatures under a new name would trip the iconRef uniqueness guard,
     // so they are NOT re-added here. ---
-    val SysInfoTile = JiibIcon(IconRef.Ligature("pulse_alert"), alternate = "sysinfo_tile")        // D-01 drawer tile
+    val SysInfoTile = JiibIcon(IconRef.Ligature("pulse_alert"), alternate = "sysinfo_tile")        // D-01 entry-row glyph
     val SysInfoHost = JiibIcon(IconRef.Ligature("dns"), alternate = "sysinfo_host")                 // D-02 hostname/model
     val SysInfoUptime = JiibIcon(IconRef.Ligature("schedule"), alternate = "sysinfo_uptime")        // D-04 uptime
     val SysInfoCpu = JiibIcon(IconRef.Ligature("developer_board"), alternate = "sysinfo_cpu")       // D-05 CPU model/cores

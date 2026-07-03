@@ -146,7 +146,7 @@ private fun sizeLabel(o: ThemeOverride?): String = when (o?.fs) {
  *
  * ## Printer cycler (15.2-04 finding 2)
  * A THIRD chip advances the ACTIVE printer profile to the next available one (wrap-around) via the same
- * `AppContainer.setActiveProfile` intent the drawer/Printers screen use — a GENUINE switch, not a
+ * `AppContainer.setActiveProfile` intent the Printers screen uses — a GENUINE switch, not a
  * transient override. It identifies the current printer (so the human can tell which is active mid-sweep)
  * and is a no-op / disabled when fewer than two profiles exist. It accelerates the 15.2-06 cross-printer
  * conformance walk. Same static-only motion + role-token rules as the other chips.

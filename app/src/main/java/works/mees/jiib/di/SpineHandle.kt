@@ -121,8 +121,9 @@ data class SpineHandle(
      * [works.mees.jiib.state.parseWebcamsList], and publishes the result here. Empty list = no cams /
      * a rejected or absent read (the greyed-tile signal, D-08) — never a crash. A late collector still
      * sees the value because a StateFlow carries it forward; the handle is published BEFORE the first
-     * handshake fills this. The drawer greyed-gating (D-08) and the holder's default-cam pick (D-10) read
-     * the size via [works.mees.jiib.di.AppContainer.webcamCount].
+     * handshake fills this. The home Webcam-row gating (D-08, via
+     * [works.mees.jiib.di.AppContainer.webcamTileEnabled]) and the holder's default-cam pick (D-10)
+     * read the size via [works.mees.jiib.di.AppContainer.webcamCount].
      */
     val webcams: StateFlow<List<Webcam>>,
     /**
@@ -131,7 +132,7 @@ data class SpineHandle(
      * `server.spoolman.status` on each handshake edge AND reconciles the two server-push notifications
      * (D-10: an external Fluidd/runout-macro spool change). null = no active spool / unavailable / not
      * yet fetched (a StateFlow carries the value forward to late collectors; the handle is published
-     * BEFORE the first handshake fills this). The drawer greyed-gating reads
+     * BEFORE the first handshake fills this). The home Spool-row gating reads
      * [works.mees.jiib.di.AppContainer.spoolmanPresent] (the capability gate), NOT this flow.
      */
     val activeSpool: StateFlow<SpoolmanStatus?>,

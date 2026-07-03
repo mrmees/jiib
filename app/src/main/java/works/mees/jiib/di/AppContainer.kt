@@ -373,7 +373,7 @@ class AppContainer(
      * The active profile's display name as a [StateFlow] (D-01 hoist, 22-07). Replaces the inline
      * `container.activeProfile.map { it?.displayName() }` expression in AppShell for the same reason
      * as [activeProfileId] above. Hoisted here (PROCESS-SCOPE) so it is a stable singleton.
-     * null when no active profile (the Devices drawer-tile subtitle hides on null).
+     * null when no active profile.
      */
     val activeName: StateFlow<String?> =
         activeProfile.map { it?.displayName() }
@@ -995,14 +995,14 @@ class AppContainer(
         spine.flatMapLatest { it?.webcams ?: flowOf(emptyList()) }
 
     /**
-     * The webcam COUNT (CAM-01, 10-03) — the D-08 drawer greyed-gating signal (tile live when ≥1, greyed
+     * The webcam COUNT (CAM-01, 10-03) — the D-08 gating signal (home Webcam row live when ≥1, greyed
      * when 0) AND the D-10 default-cam pick source (the holder picks the first cam when none is saved).
      * Derived off [webcams] so it always reflects the CURRENT session's enumeration; 0 when idle.
      */
     val webcamCount: Flow<Int> = webcams.map { it.size }
 
     /**
-     * The WIRED Webcam-tile/surface gate (MEDIUM-4, 15.2-03 D-04) — the tile is live ONLY when the
+     * The WIRED Webcam-row/surface gate (MEDIUM-4, 15.2-03 D-04) — the home row is live ONLY when the
      * connected printer actually HAS cams ([webcamCount] > 0) AND the app-global
      * [DisplayPrefs.webcamEnabled] toggle is on. The gate is now app-global (moved from per-profile,
      * 2026-06-15). Pure predicate [webcamTileGate] is the host-tested core.
@@ -1022,15 +1022,15 @@ class AppContainer(
         spine.flatMapLatest { it?.activeSpool ?: flowOf(null) }
 
     /**
-     * Whether the connected printer has the Moonraker `spoolman` component (D-02). The drawer
-     * greyed-gating input for the Spool tile — the role [webcamCount] > 0 plays for the Webcam tile.
+     * Whether the connected printer has the Moonraker `spoolman` component (D-02). The home
+     * Spool-row gating input — the role [webcamCount] > 0 plays for the Webcam row.
      * Derived off [capabilities] so it always reflects the CURRENT session; false when idle.
      */
     val spoolmanPresent: Flow<Boolean> = capabilities.map { it.hasComponent("spoolman") }
 
     /**
-     * Whether the connected printer exposes ANY controllable output (Phase 19, D-10 / SC-1) — the drawer
-     * Output-tile greyed-gating input, the role [spoolmanPresent] plays for the Spool tile. Derived off the
+     * Whether the connected printer exposes ANY controllable output (Phase 19, D-10 / SC-1) — the home
+     * Outputs-row HIDE gate (HomeAction filters the row), the role [spoolmanPresent] plays for the Spool row. Derived off the
      * current session's store-backed [works.mees.jiib.state.PrinterStateStore.outputDescriptors] so it
      * always reflects the CURRENT session (the descriptors are cleared on switch/failure); false when idle.
      */

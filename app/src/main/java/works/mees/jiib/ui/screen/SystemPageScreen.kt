@@ -48,8 +48,10 @@ import works.mees.jiib.ui.route.NavDest
  * (active printer name) and delegates ALL layout to the stateless [SystemPageContent] seam so the
  * @Preview matrix (WARNING-5) can drive it without a Moonraker connection.
  *
- * NavDest.System is mid-print reachable (D-06) — it is intentionally absent from FOOT_GUN_DESTS
- * and does NOT render its own FloatingEStop. The shell-level FloatingEStop fires on this screen.
+ * NavDest.System is mid-print reachable (D-06) — it is intentionally absent from FOOT_GUN_DESTS.
+ * It is in the shell's `screenOwnsEstop` set, so the shell FloatingEStop overlay never shows here;
+ * the FocusFrame header glyph morphs into the docked e-stop while printing (isPrinting/
+ * onEmergencyStop threaded below).
  *
  * @param container  the process-scoped service-locator (activeName + session state).
  * @param onNavigate called with a [NavDest] when a dense row is tapped (direct-tap nav, no picker).
@@ -89,7 +91,8 @@ fun SystemPageScreen(
  * Field rows (direct-tap nav; no selection state — tap = navigate immediately):
  *   App Settings → Printer Settings → Manage Printers.
  *
- * Shell-level FloatingEStop applies (this screen does NOT render its own e-stop; D-06 / Pitfall 6).
+ * E-stop: the FocusFrame header dock morphs to the e-stop while printing — the shell FloatingEStop
+ * overlay never shows here (screenOwnsEstop; D-06 / Pitfall 6).
  *
  * @param versionName        [BuildConfig.VERSION_NAME] — static at build time.
  * @param onNavigate         direct-tap navigation lambda.

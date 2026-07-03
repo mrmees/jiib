@@ -102,7 +102,7 @@ import works.mees.jiib.theme.fsSp
  * @param container provides the live [printerState] StateFlow for the FloatingEStop gate.
  * @param onHome navigates to the Home/PrintStatus screen.
  * @param onScan opens the QR scan sub-surface.
- * @param prefilter the D-04 gcode-aware prefilter seed (null on a plain drawer open).
+ * @param prefilter the D-04 gcode-aware prefilter seed (null on a plain Spool open).
  * @param onPrefilterConsumed clears the one-time [prefilter] seed after the picker applies it.
  */
 @Composable

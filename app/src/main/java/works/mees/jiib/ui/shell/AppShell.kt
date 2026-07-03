@@ -18,7 +18,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
@@ -33,8 +32,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -96,7 +93,6 @@ import works.mees.jiib.ui.route.toNavDest
 import works.mees.jiib.ui.spool.SpoolHolder
 import works.mees.jiib.ui.spool.SpoolPrefilterSeed
 import works.mees.jiib.ui.spool.SpoolScreen
-import works.mees.jiib.ui.spool.parseNormalizedHex
 import works.mees.jiib.ui.spool.scan.ScanSurface
 import works.mees.jiib.ui.systeminfo.SystemInformationScreen
 import works.mees.jiib.ui.outputs.OutputsScreen
@@ -119,8 +115,9 @@ import android.graphics.Bitmap
 
 /**
  * The running shell host (SHELL-01) — it renders the active [NavDest] FULL-BLEED with NO persistent
- * title/status bar (status is color on existing elements, never global chrome) and exposes the ONE
- * navigation surface: the swipe-up full-screen [AppDrawer] (D-14).
+ * title/status bar (status is color on existing elements, never global chrome). Navigation: the
+ * morphing waterfall home ([NavDest.WaterfallHome]) is the NavHost root; every non-root screen
+ * exits via Back as the FIRST foot-bar button. (The swipe-up App Drawer was deleted in Phase 28.)
  *
  * ## Navigation-Compose NavHost (Phase 24 — plan 24-03)
  * The active destination is driven by a [NavHost] (replaces the old hand-rolled `when(dest)` hub-and-spoke
@@ -217,14 +214,8 @@ fun AppShell(
     val printerState by printerStateFlow.collectAsStateWithLifecycle()
 
     // ---- Webcam holder (10-07) ---------------------------------------------------------------------
-    // The webcam-tile gate (D-08 + MEDIUM-4, 15.2-03/04): the drawer Webcam tile is LIVE only when the
-    // CURRENT session enumerated ≥1 cam (D-08 capability) AND the app-global webcam toggle is on
-    // (flipped on the App Settings screen; moved per-profile→app-global 2026-06-15). This reads
-    // `container.webcamTileEnabled` (capability × app-global toggle) so the App Settings toggle
-    // actually greys/lights this tile. webcamCount is still collected below for the holder's
-    // decode-budget / default-cam pick.
-    val webcamCount by container.webcamCount.collectAsStateWithLifecycle(initialValue = 0)
-    val webcamEnabled by container.webcamTileEnabled.collectAsStateWithLifecycle(initialValue = false)
+    // (The old drawer-tile gate collects left with the App Drawer — the waterfall home's Webcam row
+    // reads `container.webcamTileEnabled` itself in PrintStatusScreen.)
     // The live per-session cam enumeration + the persisted connection config (host/port → the D-09
     // URL-resolution base + the per-printer preferred-cam key). An idle fallback keeps the holder
     // constructible while no session/config exists (it simply enumerates no cams → never drives a feed).
@@ -242,7 +233,7 @@ fun AppShell(
     // D-01 hoist (22-07): these were inline `.map{}` expressions that created new un-memoized Flow objects
     // on every shell recomposition; now collected from process-scoped AppContainer StateFlows (stable singletons).
     val activeProfileId by container.activeProfileId.collectAsStateWithLifecycle()
-    // D-03 active-printer indicator: the active profile's display name → the Devices drawer-tile subtitle.
+    // D-03 active-printer indicator: the active profile's display name (dev theme-cycler overlay label).
     val activeName by container.activeName.collectAsStateWithLifecycle()
     // A downscale hint for the MJPEG decode (MjpegDecodePolicy) — the full-screen px (the feed fills the
     // Focus). 10-08 pins the on-device sample step; this only sizes the decode budget, not correctness.
@@ -311,9 +302,9 @@ fun AppShell(
     }
 
     // ---- Spool holder + capability gate (11-06) ----------------------------------------------------
-    // The D-02 capability greyed-gating signal: the drawer Spool tile is LIVE only when the CURRENT
-    // session's printer has the Moonraker `spoolman` component (false while idle). Collected here and
-    // threaded into AppDrawer below — the SAME shape webcamEnabled plays for the Webcam tile.
+    // The D-02 capability signal: TRUE only when the CURRENT session's printer has the Moonraker
+    // `spoolman` component (false while idle). Feeds the Files print-start spool gate below (the
+    // waterfall home's Spool row reads container.spoolmanPresent itself in PrintStatusScreen).
     val spoolEnabled by container.spoolmanPresent.collectAsStateWithLifecycle(initialValue = false)
     // The per-session Spool picker holder, re-keyed on the live store (the MoveHolder/webcamHolder
     // precedent) so a spine rebuild (reconnect) re-points it at the new session's inventory client +
@@ -330,28 +321,14 @@ fun AppShell(
     DisposableEffect(spoolHolder) { onDispose { spoolHolder.cancel() } }
     // The live active-spool status the Files print-start gate reads (D-01) — the D-10-reconciled truth.
     val activeSpoolStatus by activeSpoolFlow.collectAsStateWithLifecycle()
-    // 18.3-04 (D-06.2): the live active-spool DETAIL (color-bearing) for the drawer Spool tile's reactive
-    // glyph. Resolve to swatches via the shared parser — Spoolman-active-color → empty spool ONLY (no gcode
-    // middle tier on the drawer; printMetadata is deliberately NOT threaded here — owner's simpler-diff
-    // narrowing of D-07). A null detail / malformed hex → empty list → the honest empty spool (D-03).
+    // 18.3-04 (D-06.2): the live active-spool DETAIL (color-bearing), threaded into the Temperature
+    // and Extrude screens below. A null detail / malformed hex degrades honestly downstream (D-03).
+    // (The old drawer-tile swatch derivation left with the App Drawer.)
     val activeSpoolDetail by spoolHolder.activeSpoolDetail.collectAsStateWithLifecycle()
-    // D-01 stabilize (22-07): was an inline List<Color> allocation on every recomposition, which is
-    // unstable (Compose sees a different reference each frame and skips no re-draw). Wrapped in
-    // remember(activeSpoolDetail) + toImmutableList() so Compose can structurally skip AppDrawer when
-    // the spool color hasn't changed. ImmutableList is stable per kotlinx-collections-immutable contract.
-    val drawerSpoolSwatches: ImmutableList<Color> = remember(activeSpoolDetail) {
-        activeSpoolDetail?.filament?.colorSwatches.orEmpty()
-            .mapNotNull(::parseNormalizedHex)
-            .toImmutableList()
-    }
 
-    // ---- Outputs holder + capability gate (19-07) --------------------------------------------------
-    // The D-10 capability HIDE signal: the drawer Output tile is SHOWN only when the CURRENT session's
-    // printer reports ≥1 controllable output (false while idle). Spine-scoped (AppContainer.outputsPresent
-    // derives off the live store's outputDescriptors via flatMapLatest), so it idles to false on disconnect/
-    // printer-switch — never stale process state. Collected here and threaded into AppDrawer below; UNLIKE
-    // webcamEnabled/spoolEnabled (which GREY their tiles) this drives the HIDE-not-grey filter (D-10).
-    val outputsEnabled by container.outputsPresent.collectAsStateWithLifecycle(initialValue = false)
+    // ---- Outputs holder (19-07) --------------------------------------------------------------------
+    // (The D-10 hide-not-grey Outputs gate now lives in the waterfall home: PrintStatusScreen collects
+    // container.outputsPresent and HomeAction filters the Outputs row on it.)
     // The per-session Outputs holder, re-keyed on the live store (the MoveHolder/calibration precedent) so a
     // spine rebuild (reconnect) re-points it at the new session's descriptors + live values. While idle the
     // empty fallback store backs it (no descriptors → an empty list). The holder is dispatch-free; the detail
@@ -774,7 +751,7 @@ fun AppShell(
                         // the NavHost — mirrors the macro Execution popup). The camera binds/releases there.
                         onScan = { nav.scanActive = true },
                         // D-04 gcode-aware prefilter seed carried over from a Files spool-warning "Pick spool"
-                        // (null on a plain drawer open). SpoolScreen seeds the picker filters ONCE then clears it.
+                        // (null on a plain Spool open). SpoolScreen seeds the picker filters ONCE then clears it.
                         prefilter = nav.spoolPrefilter,
                         onPrefilterConsumed = { nav.spoolPrefilter = null },
                     )
@@ -789,8 +766,8 @@ fun AppShell(
                     )
                 }
                 composable<NavDest.SystemInfo> {
-                    // NavDest.SystemInfo (Phase 20): the read-only printer-host health page. Back-only gutter;
-                    // the drawer is suppressed on-screen (swipe-suppress set above).
+                    // NavDest.SystemInfo (Phase 20): the read-only printer-host health page. Back-only
+                    // exit via the foot bar.
                     SystemInformationScreen(
                         holder = systemInfoHolder,
                         isPrinting = printerState.printState == PrintState.Printing ||

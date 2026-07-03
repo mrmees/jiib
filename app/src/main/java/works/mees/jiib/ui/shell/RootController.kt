@@ -35,11 +35,11 @@ import works.mees.jiib.ui.screen.SplashScreen
  *  - `rawRoute is Connect` (first run) OR `settingsEscape` → [SettingsScreen] (the controlled escape; a
  *    successful save clears the escape). BYPASSES the Splash dwell.
  *  - the EFFECTIVE Splash (`rawRoute is Splash` OR the min-dwell floor still holding) → [SplashScreen]
- *    (hard override). The AppShell/drawer is NOT composed at all while splash is showing (D-06), so the
- *    drawer is structurally unreachable during recovery. Splash only flips the root-owned escape via
+ *    (hard override). The AppShell is NOT composed at all while splash is showing (D-06), so in-shell
+ *    navigation is structurally unreachable during recovery. Splash only flips the root-owned escape via
  *    `onEditConnection`. A RootController-OWNED min-dwell latch ([SPLASH_MIN_DWELL_MS]) floors the splash
  *    so a fast recovery is still perceptible (D-03) — it only delays HIDING, never the actual recovery.
- *  - else → [AppShell] (the drawer hosts in-shell Settings as `Dest.Settings`), passed the hoisted [nav].
+ *  - else → [AppShell] (Settings are in-shell destinations), passed the hoisted [nav].
  *
  * ## Dev-gated start_dest seed (18-04, SC-4b/D-06)
  * [startDest] is the OPTIONAL debug deep-jump target parsed by [works.mees.jiib.MainActivity] from the
@@ -160,7 +160,7 @@ fun RootController(
             )
         }
 
-        // Splash hard override (D-06): NO AppShell/drawer composed — the drawer is structurally
+        // Splash hard override (D-06): NO AppShell composed — in-shell navigation is structurally
         // unreachable here. Splash never navigates itself; it only flips the root-owned escape. Gated on
         // the EFFECTIVE [showSplash] (raw route OR the min-dwell floor) so a fast recovery is still seen.
         showSplash -> {
@@ -173,8 +173,8 @@ fun RootController(
             )
         }
 
-        // The running shell (in-shell Settings is a Dest.Settings reached via the App Drawer). The nav
-        // state is passed IN from the root-owned [nav] holder so it survives a transient Splash override.
+        // The running shell. The nav state is passed IN from the root-owned [nav] holder so it
+        // survives a transient Splash override.
         else -> {
             AppShell(container = container, nav = nav)
         }

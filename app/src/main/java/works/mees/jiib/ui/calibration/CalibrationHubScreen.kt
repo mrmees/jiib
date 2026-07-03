@@ -140,7 +140,7 @@ fun CalibrationHubContent(
                     }
                 },
                 field = {
-                    // Field: ListBlock suppresses swipe-up App Drawer automatically (scrollable Field).
+                    // Field: the scrollable routine list.
                     ListBlock(modifier = Modifier.weight(1f)) {
                         items(routines, key = { it.routine.name }) { entry ->
                             ListRow(

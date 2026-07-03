@@ -38,8 +38,9 @@ import works.mees.jiib.theme.compose.toTextStyle
 /**
  * The splash / initializing surface (SHELL-05) — a **hard override** (D-06). `TopRoute.derive()`
  * routes here whenever Klippy is not Ready (or there is no config), and it is the surface the E-stop
- * (04-06) lands on when it drives `klippy_state → shutdown`. Because it has **no reachable App
- * Drawer**, EVERY escape hatch must live on THIS screen or the user is trapped — so the recovery
+ * (04-06) lands on when it drives `klippy_state → shutdown`. Because the shell (and ALL in-shell
+ * navigation) is not composed while it shows, EVERY escape hatch must live on THIS screen or the
+ * user is trapped — so the recovery
  * actions are self-contained for each trapped state (D-11/D-12/D-13):
  *
  *  - **First run / no config** (D-11): a single "Set up your printer" → [onEditConnection] (Settings).
@@ -47,8 +48,8 @@ import works.mees.jiib.theme.compose.toTextStyle
  *  - **Saved connection failing / unreachable** (D-13): Retry + Edit connection (no firmware/restart —
  *    Klippy is not reachable).
  *
- * Per docs/ui_design/LAYOUT.md the splash **omits the gutter**: its Field buttons
- * ARE the navigation, and there is deliberately no drawer affordance (the hard override).
+ * Per docs/ui_design/LAYOUT.md the splash carries no foot bar: its Field buttons
+ * ARE the navigation — deliberately no other nav affordance (the hard override).
  *
  * Reason text (review #8): prefer the REAL [PrinterState.klippyStateMessage] (the Moonraker/Klippy
  * human reason) when present, falling back to a terse enum-derived label — never blank. The message
