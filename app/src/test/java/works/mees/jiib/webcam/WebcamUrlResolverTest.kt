@@ -71,10 +71,10 @@ class WebcamUrlResolverTest {
     fun alreadyCorrectAbsoluteUrl_passesThroughUnchanged_tokenPreserved() {
         // The verbatim E3 tokened snapshot URL on the real host — unchanged, token intact.
         val e3Snapshot =
-            "http://192.168.1.121/cameras/snapshot/1.jpg?token=udaFhoavcj6K04ZBhQdtqbyLXMIE69pC4TmhvORIMpk"
+            "http://192.168.1.121/cameras/snapshot/1.jpg?token=FAKE0TOKEN0FOR0TESTS0NOT0A0REAL0SECRET00000"
         val resolved = resolveWebcamUrl(e3Snapshot, cfg)
         assertEquals(e3Snapshot, resolved)
-        assertTrue(resolved!!.contains("token=udaFhoavcj6K04ZBhQdtqbyLXMIE69pC4TmhvORIMpk"))
+        assertTrue(resolved!!.contains("token=FAKE0TOKEN0FOR0TESTS0NOT0A0REAL0SECRET00000"))
     }
 
     @Test
@@ -101,14 +101,14 @@ class WebcamUrlResolverTest {
     @Test
     fun redact_masksTokenValue_leavesRestIntact() {
         val tokened =
-            "http://192.168.1.121/cameras/snapshot/1.jpg?token=udaFhoavcj6K04ZBhQdtqbyLXMIE69pC4TmhvORIMpk"
+            "http://192.168.1.121/cameras/snapshot/1.jpg?token=FAKE0TOKEN0FOR0TESTS0NOT0A0REAL0SECRET00000"
         val redacted = redactWebcamUrl(tokened)
         assertEquals(
             "http://192.168.1.121/cameras/snapshot/1.jpg?token=<redacted>",
             redacted,
         )
         // The secret value is gone; the rest of the URL survives.
-        assertFalse(redacted.contains("udaFhoavcj6K04ZBhQdtqbyLXMIE69pC4TmhvORIMpk"))
+        assertFalse(redacted.contains("FAKE0TOKEN0FOR0TESTS0NOT0A0REAL0SECRET00000"))
 
         // A token mid-query (&token=) is masked too, leaving sibling params intact.
         assertEquals(
