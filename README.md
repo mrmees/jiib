@@ -1,6 +1,11 @@
-# jiib
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="img/jiib_name_icon_stack.svg">
+    <img src="img/jiib_name_icon_stack_light.svg" width="300" alt="jiib">
+  </picture>
+</p>
 
-**A native Android touchscreen for your Klipper 3D printer.**
+<p align="center"><strong>A native Android touchscreen for your Klipper 3D printer.</strong></p>
 
 jiib turns a cheap, old Android tablet (think Nexus 7 2013) into a dedicated, always-on
 control surface for a [Klipper](https://www.klipper3d.org/) printer. It talks directly to
@@ -8,8 +13,10 @@ the [Moonraker](https://moonraker.readthedocs.io/) API over your LAN — no Klip
 no Linux host, no VNC/XSDL/X11 glue. Just install one APK, point it at your printer, and
 drive a print.
 
-> Status: early (v0.1.0). The core **connect → monitor → control-a-print** loop is the
-> priority and is the thing that must work flawlessly on old hardware.
+> Status: **public alpha** — grab
+> [ALPHA-26.7.3.1](https://github.com/mrmees/jiib/releases/tag/ALPHA-26.7.3.1) from
+> Releases. The core **connect → monitor → control-a-print** loop is the priority and is
+> the thing that must work flawlessly on old hardware.
 
 ## Features
 
