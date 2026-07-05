@@ -9,10 +9,10 @@ Current maintainer facts live in `docs/maintainer/`.
 Local-only historical/project-memory material lives in ignored paths such as:
 
 - `.planning/`
-- `docs/commands/`
-- local `docs/superpowers/` plans and evidence
+- `docs/commands/` (except the tracked `catalog.json` and `printer-matrix.json` test fixtures)
+- `docs/superpowers/` plans and evidence
 
-Some `docs/superpowers/` files may be tracked workflow artifacts from prior AI-assisted planning.
+`docs/superpowers/` is local-only by policy: specs and plans are written there but never committed.
 Treat that tree as workflow context, not as current maintainer source of truth.
 
 Those local-only paths may be useful for archaeology, command evidence, and planning context, but they
@@ -54,8 +54,9 @@ Update `docs/manual/` when user-visible screen behavior changes.
 Update `docs/ui_design/` when visual law, layout grammar, tokens, typography, icon policy, or control
 semantics change.
 
-Update local-only `docs/commands/` evidence and `CommandCatalogDriftTest` when
-Moonraker/Klipper/Spoolman command contracts change.
+Update the tracked `docs/commands/catalog.json` and `docs/commands/printer-matrix.json` fixtures,
+local-only `docs/commands/` evidence, and `CommandCatalogDriftTest` when Moonraker/Klipper/Spoolman
+command contracts change.
 
 Add or update an ADR under `docs/adr/` when a durable architecture decision is made and future maintainers
 need the rationale.
