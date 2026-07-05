@@ -12,8 +12,7 @@ GitHub Actions runs on pushes to `main` and `gsd/**`, and on pull requests to `m
 
 The hygiene job checks `README.md`, top-level tracked `docs/*.md`, and tracked
 `docs/maintainer/*.md` for stale phrases and dead internal Markdown links. It intentionally excludes
-local-only ignored trees such as `.planning/` and `docs/commands/`, plus tracked/local
-`docs/superpowers/` workflow artifacts.
+local-only ignored trees such as `.planning/`, `docs/commands/`, and `docs/superpowers/`.
 
 If `.github/workflows/ci.yml` does not target `main`, fix CI before treating this gate as active.
 
@@ -73,14 +72,16 @@ Some device checks require a real printer or specific local hardware and are not
 ## Fixtures And Goldens
 
 Test resources live under `app/src/test/resources/`. Captured JSON and binary fixtures are used to keep
-protocol and parser tests deterministic. Local-only `docs/commands/` contains additional command evidence
-and capture material; it is gitignored and may be absent from public clones.
+protocol and parser tests deterministic. `docs/commands/catalog.json` and `docs/commands/printer-matrix.json`
+are tracked because `CommandCatalogDriftTest` reads them; the rest of `docs/commands/` is local-only
+command evidence and capture material, gitignored and possibly absent from public clones.
 
 When adding or changing a command contract, check:
 
 - `app/src/main/java/works/mees/jiib/command/CommandRegistry.kt`
 - `app/src/test/java/works/mees/jiib/command/CommandCatalogDriftTest.kt`
-- local-only `docs/commands/` evidence, if available
+- the tracked `docs/commands/catalog.json` and `docs/commands/printer-matrix.json` fixtures
+- additional local-only `docs/commands/` evidence, if available
 
 ## Docs-Only Changes
 

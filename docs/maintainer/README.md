@@ -22,7 +22,7 @@ contain stale package names, old navigation concepts, or retired implementation 
 
 ## Local-Only Context
 
-- `docs/commands/` - local-only Moonraker/Klipper/Spoolman command evidence; gitignored and absent from normal public clones.
+- `docs/commands/` - local-only Moonraker/Klipper/Spoolman command evidence; gitignored and absent from normal public clones, except the tracked `catalog.json` and `printer-matrix.json` fixtures that `CommandCatalogDriftTest` requires in every clone.
 - `.planning/` - local-only historical planning/project memory; gitignored and absent from normal public clones.
 
 ## What To Read Before Changing
@@ -35,7 +35,7 @@ contain stale package names, old navigation concepts, or retired implementation 
 | Testing strategy or CI expectations | [Testing](testing.md) |
 | Release packaging, signing, or version bumps | [Release](release.md) |
 | Durable architecture decisions | [Doc Maintenance](doc-maintenance.md) and existing [ADRs](../adr/) |
-| Command contracts | [Architecture](architecture.md), local-only `docs/commands/`, [CommandRegistry.kt](../../app/src/main/java/works/mees/jiib/command/CommandRegistry.kt), and [CommandCatalogDriftTest.kt](../../app/src/test/java/works/mees/jiib/command/CommandCatalogDriftTest.kt) |
+| Command contracts | [Architecture](architecture.md), `docs/commands/` (tracked `catalog.json`/`printer-matrix.json` plus local-only evidence), [CommandRegistry.kt](../../app/src/main/java/works/mees/jiib/command/CommandRegistry.kt), and [CommandCatalogDriftTest.kt](../../app/src/test/java/works/mees/jiib/command/CommandCatalogDriftTest.kt) |
 
 ## Current Source Of Truth
 
