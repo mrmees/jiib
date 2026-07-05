@@ -28,6 +28,7 @@ Thumbs.db
 .claude/settings.local.json
 *.apk.idsig
 tools/__pycache__/
+.worktrees/
 
 # Brainstorming visual-companion mockups (local only)
 .superpowers/
@@ -40,6 +41,10 @@ tools/__pycache__/
 /CLAUDE.md
 .claude/skills/
 docs/superpowers/
-docs/commands/
+# docs/commands/ is local-only evidence, EXCEPT the two catalog fixtures that
+# CommandCatalogDriftTest (and therefore CI) requires in every clone.
+docs/commands/*
+!docs/commands/catalog.json
+!docs/commands/printer-matrix.json
 docs/view_specific_notes/
 docs/top-down-audit-roadmap.md

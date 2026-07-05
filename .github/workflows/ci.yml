@@ -1,13 +1,13 @@
 # R5a (docs/top-down-audit-roadmap.md §R5a step 3): unit tests + debug assemble on every
-# push to master / gsd/** and every PR to master. First-party actions only (actions/*,
+# push to main / gsd/** and every PR to main. First-party actions only (actions/*,
 # gradle/actions) pinned to major version tags — no third-party marketplace actions, no
 # secrets consumed (threat register T-26.5-01).
 name: CI
 on:
   push:
-    branches: [ master, "gsd/**" ]
+    branches: [ main, "gsd/**" ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -24,31 +24,37 @@ jobs:
       # runner JDK is 17 so the JDK-21 UAST hazard doesn't apply here.
       - run: ./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug --no-daemon
   # R9 step 5 (docs/top-down-audit-roadmap.md §R9): memory-hygiene guardrail.
-  # Scope = the ACTIVE context set ONLY — root CLAUDE.md, the four .planning/ root
-  # files, and docs/. It NEVER scans the phase archive (historical vocabulary like
-  # "superseded"/"old approach" is CORRECT there and would false-positive), and it
-  # excludes docs/top-down-audit-roadmap.md, which QUOTES the stale phrases as work
-  # items and would self-trip the gate. Checkout only — no JDK, no Gradle.
+  # Scope = tracked public docs that are meant to exist in normal clones. Local-only planning/evidence
+  # plus AI workflow artifacts (.planning/, docs/commands/, docs/superpowers/) are intentionally outside
+  # this CI check; maintainer docs label local-only paths when referenced.
   # Link check is a deterministic bash loop, NOT a marketplace markdown-link-check
   # action (RESEARCH A8: unverifiable; T-26.5-06 prefers first-party/deterministic).
   hygiene:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Stale-phrase check (active context set only)
+      - name: Stale-phrase check (tracked maintainer/public docs)
         run: |
-          if grep -rn "compileSdk 35\|Architecture not yet mapped" \
-            CLAUDE.md .planning/PROJECT.md .planning/REQUIREMENTS.md \
-            .planning/ROADMAP.md .planning/STATE.md docs/ \
-            --exclude=top-down-audit-roadmap.md; then
-            echo "FAIL: stale phrases found in active context files"; exit 1
+          mapfile -t sources < <(
+            git ls-files README.md ':(glob)docs/*.md' ':(glob)docs/maintainer/*.md' \
+              ':!:docs/top-down-audit-roadmap.md' \
+              ':!:docs/superpowers/**' \
+              ':!:docs/commands/**'
+          )
+          if ((${#sources[@]})) && grep -rn "compileSdk 35\|Architecture not yet mapped" "${sources[@]}"; then
+            echo "FAIL: stale phrases found in tracked maintainer/public docs"; exit 1
           fi
           echo "OK: no stale phrases"
-      - name: Dead internal-link check (active context set only)
+      - name: Dead internal-link check (tracked maintainer/public docs)
         run: |
           rm -f /tmp/dead-links
-          for src in CLAUDE.md .planning/PROJECT.md .planning/REQUIREMENTS.md \
-                     .planning/ROADMAP.md .planning/STATE.md docs/*.md; do
+          mapfile -t sources < <(
+            git ls-files README.md ':(glob)docs/*.md' ':(glob)docs/maintainer/*.md' \
+              ':!:docs/top-down-audit-roadmap.md' \
+              ':!:docs/superpowers/**' \
+              ':!:docs/commands/**'
+          )
+          for src in "${sources[@]}"; do
             [ -f "$src" ] || continue
             dir=$(dirname "$src")
             # Extract relative .md link targets: [text](path.md) / [text](path.md#anchor)
@@ -59,7 +65,7 @@ jobs:
               | sort -u \
               | while read -r target; do
                   case "$target" in
-                    http*|/*|*'\'*) continue ;;  # skip URLs, absolute and Windows paths
+                    http://*|https://*|*://*|/*|[A-Za-z]:/*|*'\'*) continue ;;  # skip URLs, absolute and Windows paths
                   esac
                   # accept either file-relative or repo-root-relative targets
                   if [ ! -e "$dir/$target" ] && [ ! -e "$target" ]; then
