@@ -11,8 +11,9 @@ GitHub Actions runs on pushes to `main` and `gsd/**`, and on pull requests to `m
 ```
 
 The hygiene job checks `README.md`, top-level tracked `docs/*.md`, and tracked
-`docs/maintainer/*.md` for stale phrases and dead internal links. It intentionally excludes local-only
-ignored trees such as `.planning/`, `docs/commands/`, and `docs/superpowers/`.
+`docs/maintainer/*.md` for stale phrases and dead internal Markdown links. It intentionally excludes
+local-only ignored trees such as `.planning/` and `docs/commands/`, plus tracked/local
+`docs/superpowers/` workflow artifacts.
 
 If `.github/workflows/ci.yml` does not target `main`, fix CI before treating this gate as active.
 
@@ -83,8 +84,8 @@ When adding or changing a command contract, check:
 
 ## Docs-Only Changes
 
-For changes limited to `docs/maintainer/*.md`, `.planning/codebase/*.md` archive banners, or README-style
-documentation:
+For changes limited to `docs/maintainer/*.md`, local-only `.planning/codebase/*.md` archive banners,
+or README-style documentation:
 
 1. Run internal-link checks for the files touched.
 2. Run stale-term scans for old package/navigation names.
@@ -93,6 +94,8 @@ documentation:
 Keep literal stale-term regexes in implementation plans or scripts that CI does not scan. Do not paste
 old package names, old branch names, retired drawer class names, or old route enum member names into
 tracked maintainer docs just to document the scan; that would make the docs fail the scan themselves.
+Negative historical facts may name retired concepts when needed, but stale-term scans should either
+allowlist those lines explicitly or the docs should avoid the exact tokens.
 
 Suggested stale-phrase dry run:
 
@@ -116,7 +119,7 @@ echo OK
 
 Expected: `OK`.
 
-Suggested dead-link dry run:
+Suggested dead internal Markdown-link dry run:
 
 ```bash
 rm -f /tmp/dead-links

@@ -76,7 +76,11 @@ Before publishing a release, confirm:
 ## Build Release APKs
 
 Run the release build from the repository root. The release machine must have `E:\Android\gw.bat`
-available.
+available. Remove stale release APKs before building:
+
+```bash
+rm -f app/build/outputs/apk/release/*.apk
+```
 
 ```bash
 /mnt/c/Windows/System32/cmd.exe /c "E:\Android\gw.bat :app:assembleRelease --no-daemon"
@@ -106,9 +110,16 @@ Before uploading release assets:
 2. Verify both split APKs are signed:
 
 ```bash
-for apk in app/build/outputs/apk/release/*.apk; do
-  apksigner verify --print-certs "$apk"
+expected=(
+  app/build/outputs/apk/release/app-armeabi-v7a-release.apk
+  app/build/outputs/apk/release/app-arm64-v8a-release.apk
+)
+for apk in "${expected[@]}"; do
+  [ -f "$apk" ] || { echo "Missing expected APK: $apk"; exit 1; }
+  apksigner verify --verbose --print-certs "$apk" || exit 1
 done
+actual_count=$(find app/build/outputs/apk/release -maxdepth 1 -name '*.apk' | wc -l)
+[ "$actual_count" -eq "${#expected[@]}" ] || { echo "Unexpected APK count: $actual_count"; exit 1; }
 ```
 
 3. Inspect both APKs and confirm:

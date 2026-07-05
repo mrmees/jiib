@@ -10,7 +10,10 @@ Local-only historical/project-memory material lives in ignored paths such as:
 
 - `.planning/`
 - `docs/commands/`
-- most of `docs/superpowers/`
+- local `docs/superpowers/` plans and evidence
+
+Some `docs/superpowers/` files may be tracked workflow artifacts from prior AI-assisted planning.
+Treat that tree as workflow context, not as current maintainer source of truth.
 
 Those local-only paths may be useful for archaeology, command evidence, and planning context, but they
 are not guaranteed to exist in public clones and may contain stale implementation details.
@@ -69,6 +72,9 @@ Before finishing maintainer docs, run any active stale-term list from an ignored
 implementation checklist. The scan should reject old package/path names, old branch references, retired
 drawer names, and old route enum member names. Do not paste the literal rejected strings into tracked
 maintainer docs; that makes the docs fail their own check.
+
+Negative historical facts may name retired concepts when needed. If they do, the stale-term scan must
+either allowlist those exact lines or the docs should be reworded to avoid the exact tokens.
 
 Run the stale-phrase and dead-link dry-runs in [Testing](testing.md#docs-only-changes). The source of
 truth for CI hygiene remains `.github/workflows/ci.yml`.

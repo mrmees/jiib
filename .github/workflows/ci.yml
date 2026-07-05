@@ -24,9 +24,9 @@ jobs:
       # runner JDK is 17 so the JDK-21 UAST hazard doesn't apply here.
       - run: ./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug --no-daemon
   # R9 step 5 (docs/top-down-audit-roadmap.md §R9): memory-hygiene guardrail.
-  # Scope = tracked public docs that are meant to exist in normal clones. Local-only ignored
-  # planning/spec/evidence trees (.planning/, docs/superpowers/, docs/commands/) are intentionally
-  # outside this CI check; maintainer docs label those as local-only when referenced.
+  # Scope = tracked public docs that are meant to exist in normal clones. Local-only planning/evidence
+  # plus AI workflow artifacts (.planning/, docs/commands/, docs/superpowers/) are intentionally outside
+  # this CI check; maintainer docs label local-only paths when referenced.
   # Link check is a deterministic bash loop, NOT a marketplace markdown-link-check
   # action (RESEARCH A8: unverifiable; T-26.5-06 prefers first-party/deterministic).
   hygiene:
