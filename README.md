@@ -75,6 +75,13 @@ The release split produces one APK per ABI (`armeabi-v7a`, `arm64-v8a`). Release
 unsigned by the default build — sign them with your own keystore (`apksigner`) before
 installing, or use the published, signed APKs from Releases.
 
+## Printer integration
+
+jiib talks only to your printer's local **Moonraker** instance (WebSocket JSON-RPC + REST). Every
+G-code command and API call it sends is documented in
+**[docs/commands/COMMANDS.md](docs/commands/COMMANDS.md)** — a generated, always-in-sync reference of
+exactly how jiib interacts with Moonraker/Klipper. Nothing else leaves your network.
+
 ## Tech stack
 
 Kotlin · Jetpack Compose + classic Views hybrid · OkHttp (WebSocket) + Retrofit (REST) ·

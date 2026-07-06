@@ -41,10 +41,12 @@ tools/__pycache__/
 /CLAUDE.md
 .claude/skills/
 docs/superpowers/
-# docs/commands/ is local-only evidence, EXCEPT the two catalog fixtures that
-# CommandCatalogDriftTest (and therefore CI) requires in every clone.
+# docs/commands/ is local-only evidence, EXCEPT the tracked artifacts CI requires in every clone:
+# the two catalog fixtures (CommandCatalogDriftTest) and the generated, published human command
+# reference (CommandReferenceDocDriftTest renders it from catalog.json).
 docs/commands/*
 !docs/commands/catalog.json
 !docs/commands/printer-matrix.json
+!docs/commands/COMMANDS.md
 docs/view_specific_notes/
 docs/top-down-audit-roadmap.md
