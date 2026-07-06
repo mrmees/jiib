@@ -193,6 +193,13 @@ class TemperatureHolder(
                 }.collect { _selectedSensors.value = it }
             }
         }
+        // Visibility collector: rescale the Y-range whenever a trace is hidden/shown so a hidden trace
+        // stops dragging the axis bounds immediately — even when the graph is frozen (disconnected) and
+        // no new sample is arriving to re-run publishSeries. Recomputes from the last-published series.
+        scope.launch {
+            _traceVisibility.collect { recomputeYRange() }
+        }
+
         // Backfill collector: seed each CURRENT ring oldest→newest the instant the one-shot read lands
         // (05-03). It does NOT resolve the monitored set — that lives only in the combine collector
         // below. It seeds ONCE per ring set (guarded by [seeded], reset on set change) so a re-emission
@@ -270,7 +277,27 @@ class TemperatureHolder(
     private fun publishSeries() {
         val snaps = rings.map { it.snapshot() }
         _series.value = snaps
-        _yRange.value = computeGraphYRange(snaps, _setpoints.value)
+        recomputeYRange(snaps)
+    }
+
+    /**
+     * Recompute the dynamic graph Y-range from the currently-VISIBLE traces only (bug fix): a trace
+     * hidden via [setTraceVisibility] must not drag the axis bounds, since its line isn't drawn. The
+     * visible filter mirrors the screen's `VisibleTraces` (absent-in-map = visible). Called both from
+     * [publishSeries] (each new sample) and from the visibility collector below (so toggling
+     * visibility rescales the axis immediately, even while the graph is frozen/disconnected).
+     *
+     * @param snaps the ring snapshots, parallel to [drawn]/[setpoints]; defaults to the last published
+     *   [series] so the visibility collector can rescale without a fresh sample.
+     */
+    private fun recomputeYRange(snaps: List<FloatArray> = _series.value) {
+        val vis = _traceVisibility.value
+        val sp = _setpoints.value
+        val keep = drawn.indices.filter { vis[drawn[it]] ?: true }
+        _yRange.value = computeGraphYRange(
+            keep.mapNotNull { snaps.getOrNull(it) },
+            keep.map { sp.getOrNull(it) },
+        )
     }
 
     /**
