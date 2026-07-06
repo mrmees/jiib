@@ -508,8 +508,9 @@ class AppContainer(
     /**
      * Display app-setting persistence (§R2, 26.5-05) — the SEPARATE display.preferences_pb-backed store
      * holding the [DisplayPrefs.keepScreenOn] toggle (default true — the dedicated-display use case) and
-     * the app-global [DisplayPrefs.webcamEnabled] toggle (default true — moved per-profile→app-global
-     * 2026-06-15; surfaced as [webcamEnabled]/[setWebcamEnabled] and gated into [webcamTileEnabled]).
+     * the app-global [DisplayPrefs.webcamEnabled] toggle (default FALSE since 2026-07-05 — opt-in until
+     * the webcam rotation/stability issues are fixed; moved per-profile→app-global 2026-06-15; surfaced
+     * as [webcamEnabled]/[setWebcamEnabled] and gated into [webcamTileEnabled]).
      * Like [babystepPrefs]/[macroPrefs] it is PROCESS-SCOPED + CONNECTION-INDEPENDENT (NOT a field on
      * [SpineHandle]): the setting survives reconnects and printer swaps. The Settings UI reads
      * [keepScreenOn] and writes through the durable [setKeepScreenOn] intent; AppShell's root effect
@@ -676,6 +677,29 @@ class AppContainer(
         writeScope.launch {
             val firstProfileId = activeProfileId.filterNotNull().first()
             traceStylePrefs.migrateUnscopedTo(firstProfileId)
+
+            // Default-select ALL temperature_sensors on each printer's FIRST visit (Design A, 2026-07-05)
+            // so the monitoring page shows every thermometer out of the box — obviously distinct from the
+            // heaters — and the user configures DOWN via the picker/visibility. Runs after the legacy
+            // migration above so an existing scoped selection is visible (and thus preserved). Per-profile
+            // and idempotent via the TraceStylePrefs sentinel; needs the live session's capabilities to
+            // know the available sensor set. collectLatest re-arms on printer switch (cancels a pending
+            // wait for a sensor-less printer). Process-lifetime writeScope (never composition).
+            //
+            // CORRELATE caps to THIS profile's session (Codex review): `spine`/`capabilities` are a HOT
+            // StateFlow that keeps replaying the PREVIOUS printer's handle right after a profile switch
+            // (the service swaps the spine asynchronously over the network). Reading the global caps could
+            // seed printer B with printer A's sensors and stamp B's sentinel, permanently. Mirror the
+            // name-seed's `sessionConfig` guard: take the spine handle whose sessionConfig matches THIS
+            // profile's config, then read THAT session's sensors — never a stale cross-printer snapshot.
+            activeProfileId.filterNotNull().collectLatest { pid ->
+                val cfg = activeConfig.filterNotNull().first()
+                val sensors = spine.filterNotNull().first { it.sessionConfig == cfg }
+                    .capabilities
+                    .map { caps -> caps.objects.filter { it.startsWith("temperature_sensor ") }.sorted() }
+                    .first { it.isNotEmpty() }
+                traceStylePrefs.applyDefaultSensorSelection(pid, sensors)
+            }
         }
 
         // One-time font-scale migration (must NOT block on an active profile). Seeds the app-global

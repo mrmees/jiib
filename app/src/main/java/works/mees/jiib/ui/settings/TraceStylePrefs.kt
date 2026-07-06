@@ -143,6 +143,29 @@ class TraceStylePrefs(
     }
 
     /**
+     * One-time per-[profileId] DEFAULT selection (Design A, 2026-07-05): on a printer's first visit
+     * select every currently-[available] `temperature_sensor` object so the monitoring page shows all
+     * thermometers out of the box, then the user configures DOWN. Idempotent via a per-profile sentinel
+     * ([sensorsDefaultedKey]) so it runs exactly once per printer:
+     *  - sentinel already set → no-op (respect every later edit, including deselect-to-none);
+     *  - sentinel unset + the profile ALREADY has selection keys → preserve them (an install configured
+     *    under the old opt-in default), only stamp the sentinel;
+     *  - sentinel unset + NO selection keys → brand-new: write every [available] sensor as selected.
+     * All in ONE [DataStore.edit] (mirrors the other writers' RMW discipline).
+     */
+    suspend fun applyDefaultSensorSelection(profileId: String, available: List<String>) {
+        dataStore.edit { prefs ->
+            if (prefs[sensorsDefaultedKey(profileId)] == true) return@edit
+            val selectedScope = PREFIX_SELECTED + profileId + SEP
+            val hasExistingSelection = prefs.asMap().keys.any { it.name.startsWith(selectedScope) }
+            if (!hasExistingSelection) {
+                for (name in available) prefs[booleanPreferencesKey(selectedKey(profileId, name))] = true
+            }
+            prefs[sensorsDefaultedKey(profileId)] = true
+        }
+    }
+
+    /**
      * One-time migration of legacy UNSCOPED `trace_*_<sensor>` entries into [profileId]-scoped keys.
      * Idempotent via the [MIGRATED_KEY] sentinel — runs exactly once (before any scoped keys exist, so
      * there is no legacy-vs-scoped ambiguity); subsequent calls (e.g. on every profile change) no-op.
@@ -188,6 +211,9 @@ class TraceStylePrefs(
         private const val PREFIX_VISIBLE = "trace_visible_"
         private const val PREFIX_SELECTED = "trace_selected_"
 
+        /** Per-profile idempotence sentinel for [applyDefaultSensorSelection] (Design A, 2026-07-05). */
+        private const val PREFIX_SENSORS_DEFAULTED = "trace_sensors_defaulted_"
+
         /** Separator between the profile id and the sensor name in a scoped key. */
         private const val SEP = "_"
 
@@ -197,5 +223,9 @@ class TraceStylePrefs(
         fun colorKey(profileId: String, sensorName: String) = PREFIX_COLOR + profileId + SEP + sensorName
         fun visibleKey(profileId: String, sensorName: String) = PREFIX_VISIBLE + profileId + SEP + sensorName
         fun selectedKey(profileId: String, sensorName: String) = PREFIX_SELECTED + profileId + SEP + sensorName
+
+        /** The per-profile sentinel key marking that [applyDefaultSensorSelection] has run for a printer. */
+        fun sensorsDefaultedKey(profileId: String) =
+            booleanPreferencesKey(PREFIX_SENSORS_DEFAULTED + profileId)
     }
 }

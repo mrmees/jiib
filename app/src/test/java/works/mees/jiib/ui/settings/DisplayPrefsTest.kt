@@ -113,10 +113,12 @@ class DisplayPrefsTest {
     }
 
     @Test
-    fun emptyStore_defaultsWebcamEnabledTrue() = runBlocking {
+    fun emptyStore_defaultsWebcamEnabledFalse() = runBlocking {
+        // Webcam ships DEFAULT-OFF (2026-07-05) until the rotation/stability issues are fixed — the
+        // user opts in per-install via App Settings rather than being handed a known-flaky feature.
         val (dataStore, _) = newDataStore()
         val prefs = DisplayPrefs(dataStore)
-        assertTrue("default webcamEnabled is true", prefs.webcamEnabled.first())
+        assertFalse("default webcamEnabled is false", prefs.webcamEnabled.first())
     }
 
     @Test
