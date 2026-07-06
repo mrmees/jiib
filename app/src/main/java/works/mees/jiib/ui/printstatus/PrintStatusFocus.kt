@@ -104,7 +104,12 @@ internal fun HomeFocus(
         onPanic = onEmergencyStop,
     ) {
         if (showDataBlock) {
-            ActivePrintFocus(state = state, printMetadata = printMetadata, httpBase = httpBase)
+            ActivePrintFocus(
+                state = state,
+                printMetadata = printMetadata,
+                httpBase = httpBase,
+                isComplete = showComplete,
+            )
         } else {
             FocusDigest(
                 rows = homeDigestRows(
@@ -147,6 +152,10 @@ private fun ActivePrintFocus(
     state: PrinterState,
     printMetadata: PrintMetadata?,
     httpBase: String,
+    // Complete reuses this data block but shows TOTALS, not live values: on a finished job the
+    // current Z / current layer are meaningless (parked toolhead), and the totals never change
+    // during a print — so Complete shows total object height + total layer count only (owner 2026-07-05).
+    isComplete: Boolean = false,
 ) {
     val t = LocalTokens.current
     val context = LocalContext.current
@@ -180,8 +189,14 @@ private fun ActivePrintFocus(
         R.string.printstatus_filament,
         formatFilament(state.filamentUsed, printMetadata?.filamentTotal),
     )
-    val zLine = stringResource(R.string.printstatus_z_height, formatZHeight(currentZ, printMetadata?.objectHeight))
-    val layersLine = formatLayersLine(currentLayer, totalLayer)
+    // Complete → total object height + total layers (never change during a print); active → live values.
+    val zLine = stringResource(
+        R.string.printstatus_z_height,
+        if (isComplete) formatTotalZHeight(printMetadata?.objectHeight)
+        else formatZHeight(currentZ, printMetadata?.objectHeight),
+    )
+    val layersLine =
+        if (isComplete) formatTotalLayersLine(totalLayer) else formatLayersLine(currentLayer, totalLayer)
     val dataLines: List<String> = buildList {
         if (heatersLine.isNotBlank()) add(heatersLine)
         add(jobLine)

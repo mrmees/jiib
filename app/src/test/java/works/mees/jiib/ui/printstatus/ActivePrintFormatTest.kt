@@ -101,6 +101,19 @@ class ActivePrintFormatTest {
         assertNull(formatLayersLine(5, 0))
     }
 
+    @Test fun total_z_height_line() {
+        // Complete state (owner 2026-07-05): show the TOTAL/object height only — no live "current /".
+        assertEquals("55.00 mm", formatTotalZHeight(55.0))
+        assertEquals("—", formatTotalZHeight(null))    // no metadata height → unknown
+    }
+
+    @Test fun total_layers_line() {
+        // Complete state: total layer count only, no current-layer prefix.
+        assertEquals("220 layers", formatTotalLayersLine(220))
+        assertNull(formatTotalLayersLine(null))
+        assertNull(formatTotalLayersLine(0))
+    }
+
     @Test fun filament_line() {
         assertEquals("5.2 / 12.3 m", formatFilament(5200.0, 12345.0))
         assertEquals("5.2 m", formatFilament(5200.0, null))   // no total → used alone
