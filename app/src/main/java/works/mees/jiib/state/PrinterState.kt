@@ -118,8 +118,29 @@ data class PrinterState(
     /** `print_stats.info.total_layer` — NULLABLE (same caveat as [currentLayer]); else metadata layer_count. */
     val totalLayer: Int? = null,
 
-    /** Print progress 0.0..1.0 from `virtual_sdcard.progress` / `display_status.progress`. */
+    /**
+     * Displayed print progress 0.0..1.0 — the DERIVED value the progress ring reads. Prefers the
+     * slicer's M73 estimate ([displayProgress]) when present, else file position ([sdcardProgress]),
+     * with a monotonic clamp within a print so it never ticks backward. See the reducer's progress
+     * section (2026-07-06 ring-jank fix). Do NOT set this from a single raw source.
+     */
     val progress: Double = 0.0,
+
+    /**
+     * Last `virtual_sdcard.progress` (file byte position ÷ size); null until reported / after a new-print
+     * reset — a raw progress SOURCE, persisted across partial diffs so a diff carrying only this object
+     * can't flip [progress]. Not read by the UI directly; feeds the [progress] derivation as the fallback
+     * when there's no slicer M73. Nullable so the stale-M73 guard fires only when file position is
+     * actually KNOWN-and-low, not merely unreported.
+     */
+    val sdcardProgress: Double? = null,
+
+    /**
+     * Last `display_status.progress` (the slicer's M73 estimate; null until one arrives) — the raw
+     * progress SOURCE the derivation prefers. Persisted across partial diffs so a file-position-only
+     * diff can't flip [progress] off the slicer estimate. Not read by the UI directly.
+     */
+    val displayProgress: Double? = null,
 
     /** `pause_resume.is_paused` — state-confirmation truth for pause/resume controls. */
     val pauseResumePaused: Boolean = false,

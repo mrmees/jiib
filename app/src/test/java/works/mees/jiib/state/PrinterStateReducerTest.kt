@@ -356,6 +356,82 @@ class PrinterStateReducerTest {
         assertEquals(0.5, afterProgressOnly.progress, 0.0001)
     }
 
+    // --- Progress source: prefer slicer M73 (display_status), fall back to file (virtual_sdcard),
+    //     persisted separately + monotonic clamp so the ring doesn't flip/jitter (2026-07-06). ---
+
+    private fun status(json: String) = MoonrakerJson.parseToJsonElement(json).jsonObject
+
+    @Test
+    fun progressPrefersSlicerM73AndDoesNotFlipOnSdcardOnlyDiff() {
+        var s = reduceDiff(
+            PrinterState(),
+            status("""{"print_stats":{"state":"printing","filename":"a.gcode"},"display_status":{"progress":0.40}}"""),
+        )
+        assertEquals(0.40, s.progress, 1e-6)
+        // A file-position-only diff (43%) must NOT flip the ring off the slicer estimate.
+        s = reduceDiff(s, status("""{"virtual_sdcard":{"progress":0.43}}"""))
+        assertEquals("sdcard-only diff must not override the slicer M73 progress", 0.40, s.progress, 1e-6)
+    }
+
+    @Test
+    fun progressNeverTicksBackwardDuringPrint() {
+        var s = reduceDiff(
+            PrinterState(),
+            status("""{"print_stats":{"state":"printing","filename":"a.gcode"},"display_status":{"progress":0.50}}"""),
+        )
+        assertEquals(0.50, s.progress, 1e-6)
+        // M73 revises the estimate DOWN — the ring holds, never ticks backward.
+        s = reduceDiff(s, status("""{"display_status":{"progress":0.42}}"""))
+        assertEquals(0.50, s.progress, 1e-6)
+        // Forward again advances normally.
+        s = reduceDiff(s, status("""{"display_status":{"progress":0.55}}"""))
+        assertEquals(0.55, s.progress, 1e-6)
+    }
+
+    @Test
+    fun progressResetsWhenANewPrintStarts() {
+        var s = reduceDiff(
+            PrinterState(),
+            status("""{"print_stats":{"state":"printing","filename":"a.gcode"},"display_status":{"progress":0.99}}"""),
+        )
+        s = reduceDiff(s, status("""{"print_stats":{"state":"complete"}}"""))
+        // New job (printing + new filename): the ring resets, never shows the prior job's 99%.
+        s = reduceDiff(
+            s,
+            status("""{"print_stats":{"state":"printing","filename":"b.gcode"},"virtual_sdcard":{"progress":0.02}}"""),
+        )
+        assertEquals(0.02, s.progress, 1e-6)
+    }
+
+    @Test
+    fun progressIgnoresStaleSlicerM73AtNewPrintStart() {
+        // Job A finishes near 100% (M73 0.99). Job B then starts via the queue (new filename) while
+        // Klipper still momentarily holds A's stale M73 0.99, but B's file position is a fresh 2%. The
+        // ring must follow the fresh file position, not the stale 99% (reconnect/back-to-back guard).
+        var s = reduceDiff(
+            PrinterState(),
+            status("""{"print_stats":{"state":"printing","filename":"a.gcode"},"display_status":{"progress":0.99}}"""),
+        )
+        s = reduceDiff(
+            s,
+            status(
+                """{"print_stats":{"state":"printing","filename":"b.gcode"},""" +
+                    """"virtual_sdcard":{"progress":0.02},"display_status":{"progress":0.99}}""",
+            ),
+        )
+        assertEquals(0.02, s.progress, 1e-6)
+    }
+
+    @Test
+    fun progressFallsBackToFilePositionWhenNoSlicerM73() {
+        // No display_status ever → file position (virtual_sdcard) drives the ring.
+        val s = reduceDiff(
+            PrinterState(),
+            status("""{"print_stats":{"state":"printing","filename":"a.gcode"},"virtual_sdcard":{"progress":0.30}}"""),
+        )
+        assertEquals(0.30, s.progress, 1e-6)
+    }
+
     // --- Phase-9: the five calibration live objects, fed the REAL Ender-5-Plus fixtures (09-01) ---
 
     /**

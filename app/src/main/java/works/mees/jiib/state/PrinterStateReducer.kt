@@ -73,6 +73,12 @@ fun applyKlippyMethod(current: PrinterState, method: String): PrinterState {
 // base state differs). Every accessor below is null-safe: a missing object/field falls through to `current`.
 // ---------------------------------------------------------------------------------------------------------
 
+/** Below this file-position progress a print is "just started" — the window where a stale prior-job M73 can linger. */
+private const val PROGRESS_START_SETTLE = 0.1
+
+/** At print start, an M73 estimate this far ABOVE file position is treated as stale (a fresh print isn't ~99%). */
+private const val PROGRESS_STALE_M73_GAP = 0.5
+
 internal fun applyStatus(current: PrinterState, status: JsonObject): PrinterState {
     var s = current
 
@@ -162,9 +168,39 @@ internal fun applyStatus(current: PrinterState, status: JsonObject): PrinterStat
         )
     }
 
-    // Progress can arrive on either virtual_sdcard or display_status; last writer wins per frame.
-    status.objectOrNull("virtual_sdcard")?.doubleOrNullAt("progress")?.let { s = s.copy(progress = it) }
-    status.objectOrNull("display_status")?.doubleOrNullAt("progress")?.let { s = s.copy(progress = it) }
+    // Progress (2026-07-06 ring-jank fix). Moonraker reports two disagreeing progress values on two
+    // objects — file position on `virtual_sdcard` (updates every move) and the slicer's M73 estimate on
+    // `display_status` (updates only when M73 fires). The old "last writer wins per frame" let partial
+    // diffs flip the ring between them. Instead: persist each source independently, PREFER the slicer
+    // estimate when present (matches the printer's own LCD) and fall back to file position, then clamp
+    // MONOTONICALLY within a print so an M73 downward revision can't tick the ring backward. The clamp
+    // resets when a new print starts (state entered printing, or the filename changed) so the ring
+    // never shows the previous job's value — the stale sources are cleared before this diff's values land.
+    run {
+        val nowPrinting = s.printState == PrintState.Printing || s.printState == PrintState.Paused
+        val wasPrinting = current.printState == PrintState.Printing || current.printState == PrintState.Paused
+        val newPrint = nowPrinting &&
+            (!wasPrinting || (s.printFilename.isNotBlank() && s.printFilename != current.printFilename))
+        if (newPrint) s = s.copy(sdcardProgress = null, displayProgress = null, progress = 0.0)
+
+        status.objectOrNull("virtual_sdcard")?.doubleOrNullAt("progress")?.let { s = s.copy(sdcardProgress = it) }
+        status.objectOrNull("display_status")?.doubleOrNullAt("progress")?.let { s = s.copy(displayProgress = it) }
+
+        // Prefer the slicer M73 estimate; fall back to file position. GUARD only the print-START window
+        // (Codex review 2026-07-06): a reconnect snapshot or a back-to-back queued print can carry the
+        // PRIOR job's stale M73 before this job's first M73 lands. If file position is KNOWN-and-low
+        // (a fresh print) yet M73 is implausibly far above it, M73 is stale — use file position until it
+        // resyncs. The guard fires only when file position is actually reported (`f != null`), so M73
+        // that legitimately climbs while sdcard is momentarily unreported is still trusted. Mid-print the
+        // two diverge only modestly, so M73 is always preferred there.
+        val d = s.displayProgress
+        val f = s.sdcardProgress
+        val staleStartM73 = d != null && f != null && f < PROGRESS_START_SETTLE && d > f + PROGRESS_STALE_M73_GAP
+        val raw = (if (d != null && !staleStartM73) d else (f ?: 0.0)).coerceIn(0.0, 1.0)
+        // Clamp forward only while actively continuing a print; otherwise show the raw value (so a
+        // fresh/reset print starts near 0 and Complete/Standby reflect the real reading).
+        s = s.copy(progress = if (nowPrinting && !newPrint) maxOf(raw, current.progress) else raw)
+    }
 
     status.objectOrNull("pause_resume")?.booleanOrNull("is_paused")?.let {
         s = s.copy(pauseResumePaused = it)
