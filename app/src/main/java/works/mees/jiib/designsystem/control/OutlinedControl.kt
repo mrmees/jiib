@@ -22,6 +22,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.LocalDensity
@@ -216,7 +217,11 @@ fun OutlinedControl(
             ) {
                 MaterialSymbol(
                     name = symbol,
-                    modifier = symbolA11y,
+                    // Icon+label: the glyph is DECORATIVE — the visible label is the accessible name.
+                    // MaterialSymbol renders the ligature as Text, so without clearing semantics TalkBack
+                    // would read the raw ligature name (e.g. "output_circle Extrude"). Clear it so only the
+                    // label speaks; the icon-only branch above keeps its contentDescription (Codex 2026-07-06).
+                    modifier = Modifier.clearAndSetSemantics {},
                     tint = t.text,
                     // 0.6U when U is provided; legacy text-tracked 22sp otherwise.
                     sizeSp = unitDp?.let { (it.value * 0.6f) / LocalDensity.current.fontScale }
