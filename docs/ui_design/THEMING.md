@@ -166,8 +166,7 @@ pending result** is a cancel-with-loss and stays **red** (`stop`) — e.g. `Meas
 
 > These criteria were surfaced by the **D-10 guided on-device review** of the core daily-driver
 > screens (15.2-05) and are now LAW. They sharpen the "Button intent = color" and Status rules into
-> **testable conformance checks** so the 15.2 app-wide sweep (and every future phase) audits against
-> them. Each maps to a column / finding in `.planning/phases/15.2-…/15.2-AUDIT.md`.
+> **testable conformance checks** for future app-wide reviews.
 
 - **C1 — Expected action wears GO, including motion when motion is the screen's purpose
   (REWRITTEN per R5 + R19, 2026-06-12).** A button that performs a screen's EXPECTED action uses

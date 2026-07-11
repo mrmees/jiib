@@ -13,7 +13,7 @@ touchscreen in **Jetpack Compose everywhere** or use **classic Views** for the h
 The constraint is an **Adreno 320 / 2 GB / 1920×1200** tablet — fill-rate-bound, high-resolution,
 old GPU. A janky printer screen is worse than none, so this is decided by measurement, not preference.
 
-**The CLAUDE.md research prior leaned Compose ("HIGH confidence")** for dev velocity and modern
+**The initial project research leaned Compose ("HIGH confidence")** for dev velocity and modern
 tooling, while explicitly naming a **hybrid-Views fallback** for high-churn surfaces (Files list,
 temperature graph, Console scrollback) if measurement demanded it. This ADR is that measurement.
 

@@ -6,12 +6,16 @@ Use these docs when changing the app, reviewing AI-generated patches, or re-orie
 from the project. Historical planning notes under `.planning/` are local-only project memory and may
 contain stale package names, old navigation concepts, or retired implementation details.
 
+Repository-wide working rules and the trust hierarchy live in [AGENTS.md](../../AGENTS.md). Read it
+first. These maintainer documents provide the detail that the short root instruction file routes to.
+
 ## Reading Order
 
-1. [Architecture](architecture.md) - current app structure, session spine, navigation, state flow, and UI boundaries.
-2. [Testing](testing.md) - CI, local verification commands, device tests, fixtures, and docs-only verification.
-3. [Release](release.md) - manual release runbook, versioning, signing, split APKs, and smoke checks.
-4. [Doc Maintenance](doc-maintenance.md) - rules for keeping current docs, manuals, design docs, and local evidence in sync.
+1. [Root agent guide](../../AGENTS.md) - repository-wide constraints, commands, boundaries, and trust rules.
+2. [Architecture](architecture.md) - current app structure, session spine, navigation, state flow, and UI boundaries.
+3. [Testing](testing.md) - CI, local verification commands, device tests, fixtures, and docs-only verification.
+4. [Release](release.md) - manual release runbook, versioning, signing, split APKs, and smoke checks.
+5. [Doc Maintenance](doc-maintenance.md) - rules for keeping current docs, manuals, design docs, and local evidence in sync.
 
 ## Existing Docs To Use
 
@@ -22,7 +26,9 @@ contain stale package names, old navigation concepts, or retired implementation 
 
 ## Local-Only Context
 
-- `docs/commands/` - local-only Moonraker/Klipper/Spoolman command evidence; gitignored and absent from normal public clones, except the tracked `catalog.json` and `printer-matrix.json` fixtures that `CommandCatalogDriftTest` requires in every clone.
+- `docs/commands/` - mostly local-only Moonraker/Klipper/Spoolman evidence. Public clones contain the
+  tracked `catalog.json` and `printer-matrix.json` fixtures plus the generated `COMMANDS.md` reference;
+  other files in the directory may be absent.
 - `.planning/` - local-only historical planning/project memory; gitignored and absent from normal public clones.
 
 ## What To Read Before Changing
@@ -35,7 +41,7 @@ contain stale package names, old navigation concepts, or retired implementation 
 | Testing strategy or CI expectations | [Testing](testing.md) |
 | Release packaging, signing, or version bumps | [Release](release.md) |
 | Durable architecture decisions | [Doc Maintenance](doc-maintenance.md) and existing [ADRs](../adr/) |
-| Command contracts | [Architecture](architecture.md), `docs/commands/` (tracked `catalog.json`/`printer-matrix.json` plus local-only evidence), [CommandRegistry.kt](../../app/src/main/java/works/mees/jiib/command/CommandRegistry.kt), and [CommandCatalogDriftTest.kt](../../app/src/test/java/works/mees/jiib/command/CommandCatalogDriftTest.kt) |
+| Command contracts | [Architecture](architecture.md), [generated command reference](../commands/COMMANDS.md), tracked `catalog.json`/`printer-matrix.json`, [CommandRegistry.kt](../../app/src/main/java/works/mees/jiib/command/CommandRegistry.kt), and the command drift tests |
 
 ## Current Source Of Truth
 

@@ -7,12 +7,13 @@ This document describes the verification surface for current jiib maintenance wo
 GitHub Actions runs on pushes to `main` and `gsd/**`, and on pull requests to `main`. The build job runs:
 
 ```bash
-./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug --no-daemon
+./scripts/check.sh --gradle-only
 ```
 
-The hygiene job checks `README.md`, top-level tracked `docs/*.md`, and tracked
-`docs/maintainer/*.md` for stale phrases and dead internal Markdown links. It intentionally excludes
-local-only ignored trees such as `.planning/`, `docs/commands/`, and `docs/superpowers/`.
+The hygiene job runs `./scripts/check.sh --docs-only`. It checks tracked Markdown links, scans the
+authoritative instruction and maintainer/design documents for known stale phrases, and verifies that
+tracked `CLAUDE.md` files remain short pointers to `AGENTS.md`. Local-only ignored trees such as
+`.planning/` and `docs/superpowers/` are absent from the tracked-file input.
 
 If `.github/workflows/ci.yml` does not target `main`, fix CI before treating this gate as active.
 
@@ -36,6 +37,15 @@ Examples:
 ```
 
 CI uses Linux and the checked-in Gradle wrapper directly.
+
+For the normal local gate, prefer the repository entry point:
+
+```bash
+./scripts/check.sh
+```
+
+It selects the Windows helper automatically under WSL and the checked-in Gradle wrapper under native
+Linux/CI. Use the direct helper commands below for targeted tests.
 
 ## Host Unit Tests
 
@@ -73,20 +83,22 @@ Some device checks require a real printer or specific local hardware and are not
 
 Test resources live under `app/src/test/resources/`. Captured JSON and binary fixtures are used to keep
 protocol and parser tests deterministic. `docs/commands/catalog.json` and `docs/commands/printer-matrix.json`
-are tracked because `CommandCatalogDriftTest` reads them; the rest of `docs/commands/` is local-only
-command evidence and capture material, gitignored and possibly absent from public clones.
+are tracked because `CommandCatalogDriftTest` reads them. The generated, tracked
+`docs/commands/COMMANDS.md` is guarded by `CommandReferenceDocDriftTest`. Other command evidence and
+capture material in that directory is local-only and may be absent from public clones.
 
 When adding or changing a command contract, check:
 
 - `app/src/main/java/works/mees/jiib/command/CommandRegistry.kt`
 - `app/src/test/java/works/mees/jiib/command/CommandCatalogDriftTest.kt`
 - the tracked `docs/commands/catalog.json` and `docs/commands/printer-matrix.json` fixtures
+- the generated `docs/commands/COMMANDS.md` and `CommandReferenceDocDriftTest.kt`
 - additional local-only `docs/commands/` evidence, if available
 
 ## Docs-Only Changes
 
-For changes limited to `docs/maintainer/*.md`, local-only `.planning/codebase/*.md` archive banners,
-or README-style documentation:
+For changes limited to authoritative instructions, maintainer/design docs, local-only planning
+archive banners, or README-style documentation:
 
 1. Run internal-link checks for the files touched.
 2. Run stale-term scans for old package/navigation names.
@@ -98,60 +110,13 @@ tracked maintainer docs just to document the scan; that would make the docs fail
 Negative historical facts may name retired concepts when needed, but stale-term scans should either
 allowlist those lines explicitly or the docs should avoid the exact tokens.
 
-Suggested stale-phrase dry run:
+Run the same documentation hygiene used by CI:
 
 ```bash
-mapfile -t sources < <(
-  git ls-files README.md ':(glob)docs/*.md' ':(glob)docs/maintainer/*.md' \
-    ':!:docs/top-down-audit-roadmap.md' \
-    ':!:docs/superpowers/**' \
-    ':!:docs/commands/**'
-)
-pattern=$(sed -n 's/.*grep -rn "\([^"]*\)" .*/\1/p' .github/workflows/ci.yml | head -1)
-if [ -z "$pattern" ]; then
-  echo "Unable to extract stale-phrase pattern from CI workflow"
-  exit 1
-fi
-if ((${#sources[@]})) && grep -rn "$pattern" "${sources[@]}"; then
-  exit 1
-fi
-echo OK
+./scripts/check.sh --docs-only
 ```
 
-Expected: `OK`.
-
-Suggested dead internal Markdown-link dry run:
-
-```bash
-rm -f /tmp/dead-links
-mapfile -t sources < <(
-  git ls-files README.md ':(glob)docs/*.md' ':(glob)docs/maintainer/*.md' \
-    ':!:docs/top-down-audit-roadmap.md' \
-    ':!:docs/superpowers/**' \
-    ':!:docs/commands/**'
-)
-for src in "${sources[@]}"; do
-  [ -f "$src" ] || continue
-  dir=$(dirname "$src")
-  { grep -oE '\]\([^)# ]+\.md(#[^)]*)?\)' "$src" 2>/dev/null || true; } \
-    | sed -E 's/^\]\(//; s/#[^)]*//; s/\)$//' \
-    | sort -u \
-    | while read -r target; do
-        case "$target" in
-          http://*|https://*|*://*|/*|[A-Za-z]:/*|*'\'*) continue ;;
-        esac
-        if [ ! -e "$dir/$target" ] && [ ! -e "$target" ]; then
-          echo "DEAD LINK in $src -> $target" | tee -a /tmp/dead-links
-        fi
-      done
-done
-if [ -s /tmp/dead-links ]; then
-  exit 1
-fi
-echo OK
-```
-
-Expected: `OK`.
+Expected: `OK: documentation hygiene`.
 
 ## Manual Review Still Matters
 

@@ -1,10 +1,9 @@
 # jiib — UI design system (front door)
 
-> **Rewritten 2026-06-12** as part of the visual-normalization sweep (rulings R1–R14,
-> `.planning/notes/2026-06-12-spec-recon-inventory.md`). The previous README was the original
-> 2026-05-31 design-handoff bundle; it described the pre-redesign three-region grammar and is
-> preserved in git history only. Where any doc in this directory contradicts a newer one, the
-> doc with the later "supersedes" header wins; file a correction.
+This directory is the tracked source of truth for jiib's UI design system. Follow the reading order
+below. If two current design documents conflict, verify the as-built components and tests, then fix
+the conflicting document; do not choose guidance merely because it has a newer date. Historical
+design material is identified explicitly and never overrides the five current documents below.
 
 jiib is a touchscreen control surface for **Klipper / Moonraker** 3D printers: phones through
 tablets, portrait and landscape, dark + light + user-custom themes, S/M/L text size. It is
@@ -13,7 +12,7 @@ print. The **Nexus 7 2013 (Adreno 320)** is the performance floor.
 
 ## Reading order (the law, in order)
 
-1. **`CLAUDE.md`** — design philosophy + non-negotiables (icon law, carve-outs, fill-the-space).
+1. **`AGENTS.md`** — design philosophy + non-negotiables (icon law, carve-outs, fill-the-space).
 2. **`LAYOUT.md`** — the two-region **Focus / Field** grammar, the unit **U**, the
    NON-NEGOTIABLES (shared grid, sacred aspect ratios, ratio-only sizing), UAT-1..5.
 3. **`COMPONENTS.md`** — the component-class catalog (ListRow, FocusFrame, FootButtonBar,
@@ -49,10 +48,9 @@ Neutral/outline is retired as a button intent. Back is always the **first** butt
 
 ## Visual north star of record
 
-The **as-built Spoolman screen**, the **jiib sketch sources**
-(`.claude/skills/sketch-findings-jiib/sources/`, incl. `themes/default.css` and the
-`004-scrubber-style` control), and the **`THEMING.md` token law**. Type is Geist + Geist Mono
-(tabular numerals for live data).
+The **as-built shared components and screens** and the **`THEMING.md` token law**. Type is Geist +
+Geist Mono (tabular numerals for live data). Local sketches may explain how a decision emerged, but
+they are historical context and do not override tracked design documents or the implementation.
 
 ## Historical reference (superseded — do not build from these)
 
@@ -65,6 +63,6 @@ for archaeology only; nothing in them overrides the five docs above.
 ## Assets
 
 - **Fonts:** Geist + Geist Mono (bundled). Material Symbols Outlined font for icons, rendered
-  by ligature via the `JiibIcons` registry — never auto-pick a glyph (owner law, `CLAUDE.md`).
+  by ligature via the `JiibIcons` registry — never auto-pick a glyph (owner law, `AGENTS.md`).
 - **Custom printer-domain glyphs** (nozzle, bed, bed-tilt, spool) are owner-approved vector
   drawables converted from `img/*.svg` source art.

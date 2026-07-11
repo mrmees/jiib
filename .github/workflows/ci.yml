@@ -22,7 +22,7 @@ jobs:
           cache-read-only: false
       # lintDebug enforces the shrink-only baseline (R5a step 4: "CI fails on any new violation");
       # runner JDK is 17 so the JDK-21 UAST hazard doesn't apply here.
-      - run: ./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug --no-daemon
+      - run: ./scripts/check.sh --gradle-only
   # R9 step 5 (docs/top-down-audit-roadmap.md §R9): memory-hygiene guardrail.
   # Scope = tracked public docs that are meant to exist in normal clones. Local-only planning/evidence
   # plus AI workflow artifacts (.planning/, docs/commands/, docs/superpowers/) are intentionally outside
@@ -33,45 +33,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Stale-phrase check (tracked maintainer/public docs)
-        run: |
-          mapfile -t sources < <(
-            git ls-files README.md ':(glob)docs/*.md' ':(glob)docs/maintainer/*.md' \
-              ':!:docs/top-down-audit-roadmap.md' \
-              ':!:docs/superpowers/**' \
-              ':!:docs/commands/**'
-          )
-          if ((${#sources[@]})) && grep -rn "compileSdk 35\|Architecture not yet mapped" "${sources[@]}"; then
-            echo "FAIL: stale phrases found in tracked maintainer/public docs"; exit 1
-          fi
-          echo "OK: no stale phrases"
-      - name: Dead internal-link check (tracked maintainer/public docs)
-        run: |
-          rm -f /tmp/dead-links
-          mapfile -t sources < <(
-            git ls-files README.md ':(glob)docs/*.md' ':(glob)docs/maintainer/*.md' \
-              ':!:docs/top-down-audit-roadmap.md' \
-              ':!:docs/superpowers/**' \
-              ':!:docs/commands/**'
-          )
-          for src in "${sources[@]}"; do
-            [ -f "$src" ] || continue
-            dir=$(dirname "$src")
-            # Extract relative .md link targets: [text](path.md) / [text](path.md#anchor)
-            # `|| true` guards pipefail: grep exits 1 on no-match, which would kill the
-            # step under Actions' default `bash -e -o pipefail` before the dead-links check.
-            { grep -oE '\]\([^)# ]+\.md(#[^)]*)?\)' "$src" 2>/dev/null || true; } \
-              | sed -E 's/^\]\(//; s/#[^)]*//; s/\)$//' \
-              | sort -u \
-              | while read -r target; do
-                  case "$target" in
-                    http://*|https://*|*://*|/*|[A-Za-z]:/*|*'\'*) continue ;;  # skip URLs, absolute and Windows paths
-                  esac
-                  # accept either file-relative or repo-root-relative targets
-                  if [ ! -e "$dir/$target" ] && [ ! -e "$target" ]; then
-                    echo "DEAD LINK in $src -> $target" | tee -a /tmp/dead-links
-                  fi
-                done
-          done
-          if [ -s /tmp/dead-links ]; then echo "FAIL: dead internal links"; exit 1; fi
-          echo "OK: no dead internal links"
+      - name: Authoritative documentation hygiene
+        run: ./scripts/check.sh --docs-only
