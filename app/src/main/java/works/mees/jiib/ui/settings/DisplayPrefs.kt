@@ -14,7 +14,8 @@ import java.io.IOException
  * DataStore(Preferences) persistence of the display app settings (§R2, 26.5-05): the [keepScreenOn]
  * toggle (whether the shell holds `FLAG_KEEP_SCREEN_ON` on its window while foregrounded — default
  * TRUE for the dedicated-display use case) and the [webcamEnabled] app-global toggle (whether the
- * webcam tile is offered app-wide — moved here from per-profile 2026-06-15, default TRUE).
+ * webcam tile is offered app-wide — moved here from per-profile 2026-06-15, default FALSE since
+ * 2026-07-05: opt-in until the webcam rotation/stability issues are fixed).
  *
  * Copies the [BabystepPrefs] shape EXACTLY: the [DataStore] is INJECTED (no `preferencesDataStore`
  * delegate), so it is host-testable. The PRODUCTION instance (its OWN `display.preferences_pb`, NOT
@@ -49,9 +50,11 @@ class DisplayPrefs(
 
     /**
      * Whether the webcam tile/surface is offered app-wide (moved from per-profile `Profile.webcamEnabled`
-     * to app-global, 2026-06-15). Default TRUE — preserves today's always-available webcam behavior; a
-     * printer with no cams still hides the tile via [AppContainer.webcamTileGate] (`count > 0`).
-     * Fail-safe: a read error yields the default.
+     * to app-global, 2026-06-15). Default FALSE (2026-07-05) — webcam is opt-in until the known
+     * rotation/stability issues are fixed, so a fresh install never surfaces a flaky feature; the user
+     * enables it in App Settings. A printer with no cams still hides the tile via
+     * [AppContainer.webcamTileGate] (`count > 0`) even when the toggle is on. Fail-safe: a read error
+     * yields the default.
      */
     val webcamEnabled: Flow<Boolean> =
         dataStore.data
@@ -82,7 +85,7 @@ class DisplayPrefs(
         const val DEFAULT_KEEP_SCREEN_ON = true
         private val KEY_KEEP_SCREEN_ON = booleanPreferencesKey("keep_screen_on")
 
-        const val DEFAULT_WEBCAM_ENABLED = true
+        const val DEFAULT_WEBCAM_ENABLED = false
         private val KEY_WEBCAM_ENABLED = booleanPreferencesKey("webcam_enabled")
 
         const val DEFAULT_SHOW_UNSUPPORTED = false

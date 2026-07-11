@@ -117,6 +117,15 @@ android {
             // shows through is a still-hardcoded literal — the i18n completeness sweep. Build-time
             // capability only (no translations shipped); the project has no resConfigs to trim.
             isPseudoLocalesEnabled = true
+
+            // Side-by-side DEV install (2026-07-05): suffix the applicationId so a debug/dev build
+            // installs as `works.mees.jiib.dev` ALONGSIDE the signed live `works.mees.jiib` — the dev
+            // branch can be tested between releases without uninstalling the live app. Separate
+            // applicationId ⇒ separate app data (its own DataStore: profiles/settings start empty).
+            // The debug label is overridden to "jiib dev" via app/src/debug/res (same launcher icon).
+            // No manifest authorities are hardcoded (checked), so no provider-conflict at install.
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev"
         }
     }
 
@@ -151,6 +160,14 @@ android {
     // unmocked android.jar methods must return defaults instead of throwing "not mocked".
     testOptions {
         unitTests.isReturnDefaultValues = true
+        // Forward `jiib.*` system properties (e.g. -Djiib.regenerateDocs=true for
+        // CommandReferenceDocDriftTest) from the Gradle invocation into the forked test-worker JVM;
+        // Gradle does not propagate arbitrary -D props to test workers by default.
+        unitTests.all {
+            it.systemProperties(System.getProperties()
+                .filterKeys { k -> k.toString().startsWith("jiib.") }
+                .mapKeys { (k, _) -> k.toString() })
+        }
     }
 
     compileOptions {

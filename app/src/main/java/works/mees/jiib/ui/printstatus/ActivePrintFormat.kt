@@ -84,6 +84,21 @@ fun formatFilament(usedMm: Double, totalMm: Double?): String {
     return if (total != null) "${m(used)} / ${m(total)} m" else "${m(used)} m"
 }
 
+/**
+ * TOTAL-only Z-height for the COMPLETE state (owner 2026-07-05): the finished object's height, 2
+ * decimals to match [formatZHeight]: `"55.00 mm"`, or `"—"` when unknown. On complete the live
+ * `currentZ` is meaningless (the toolhead has parked/dropped), so only the total is shown.
+ */
+fun formatTotalZHeight(objectHeight: Double?): String =
+    if (objectHeight != null) String.format(java.util.Locale.US, "%.2f mm", objectHeight) else "—"
+
+/**
+ * TOTAL-only layers line for the COMPLETE state: `"220 layers"`, or null when the total is
+ * missing/≤ 0 (caller drops the line). No current-layer prefix — nothing changes post-print.
+ */
+fun formatTotalLayersLine(totalLayer: Int?): String? =
+    if (totalLayer != null && totalLayer > 0) "$totalLayer layers" else null
+
 /** Layers line: `"5 / 220 layers"`, or null when either bound is missing/≤ 0 (caller drops the line). */
 fun formatLayersLine(currentLayer: Int?, totalLayer: Int?): String? =
     if (currentLayer != null && currentLayer > 0 && totalLayer != null && totalLayer > 0) {

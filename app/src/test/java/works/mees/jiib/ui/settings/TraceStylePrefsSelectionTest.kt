@@ -133,6 +133,50 @@ class TraceStylePrefsSelectionTest {
     }
 
     @Test
+    fun applyDefaultSensorSelection_brandNewProfile_selectsAllAvailable() = runBlocking {
+        // Design A (2026-07-05): a printer's first visit defaults EVERY available temperature_sensor to
+        // selected so the monitoring page shows all thermometers out of the box.
+        val prefs = TraceStylePrefs(memDataStore())
+        val available = listOf("temperature_sensor chamber", "temperature_sensor mcu")
+        prefs.applyDefaultSensorSelection(pidA, available)
+        assertEquals(available.toSet(), prefs.selectedSensors(pidA).first())
+    }
+
+    @Test
+    fun applyDefaultSensorSelection_isIdempotent_respectsLaterDeselect() = runBlocking {
+        // Once defaulted, the per-profile sentinel stops re-defaulting — a later deselect (and even a
+        // deselect-to-none) is honored across reconnects; the default must never claw a sensor back.
+        val prefs = TraceStylePrefs(memDataStore())
+        val available = listOf("temperature_sensor chamber", "temperature_sensor mcu")
+        prefs.applyDefaultSensorSelection(pidA, available)
+        prefs.setSensorSelected(pidA, "temperature_sensor mcu", false)
+        assertEquals(setOf("temperature_sensor chamber"), prefs.selectedSensors(pidA).first())
+
+        prefs.applyDefaultSensorSelection(pidA, available) // e.g. a reconnect re-runs the default pass
+        assertEquals(
+            "sentinel stops re-defaulting; the deselected sensor stays off",
+            setOf("temperature_sensor chamber"),
+            prefs.selectedSensors(pidA).first(),
+        )
+    }
+
+    @Test
+    fun applyDefaultSensorSelection_preservesExistingOptInSelection() = runBlocking {
+        // An install configured under the OLD opt-in default (one sensor explicitly selected) must be
+        // PRESERVED — the default pass sees existing selection keys and neither clears nor force-adds.
+        val prefs = TraceStylePrefs(memDataStore())
+        prefs.setSensorSelected(pidA, "temperature_sensor chamber", true)
+        val available =
+            listOf("temperature_sensor chamber", "temperature_sensor mcu", "temperature_sensor exhaust")
+        prefs.applyDefaultSensorSelection(pidA, available)
+        assertEquals(
+            "existing selection preserved, the other available sensors not force-added",
+            setOf("temperature_sensor chamber"),
+            prefs.selectedSensors(pidA).first(),
+        )
+    }
+
+    @Test
     fun migrateUnscopedTo_copiesLegacyKeysToProfile_removesLegacy_idempotent() = runBlocking {
         val ds = memDataStore()
         // Seed LEGACY unscoped keys directly (the pre-scoping on-disk shape).

@@ -608,6 +608,11 @@ private fun TemperatureContent(
                                 val idx = legend.indexOf(sensor)
                                 // D-14 same-hue invariant: row icon tinted to the chosen trace color.
                                 val rowTint = traceColors[sensor.name] ?: t.seriesColor(idx)
+                                // A sensor still in the list but HIDDEN from the graph gets a NEUTRAL
+                                // (muted) icon (owner 2026-07-05) — the gray signals "no matching line on
+                                // the graph"; the trace color would falsely imply one. Absent = visible.
+                                val traceHidden = !(traceVisibility[sensor.name] ?: true)
+                                val iconTint = if (traceHidden) t.text2 else rowTint
                                 val isSelected = selectedName == sensor.name
                                 ListRow(
                                     selected = isSelected,
@@ -620,7 +625,7 @@ private fun TemperatureContent(
                                         ListRowIcon(
                                             icon = iconForSensor(sensor.name),
                                             uDp = grid.uDp,
-                                            tint = rowTint,
+                                            tint = iconTint,
                                         )
                                     },
                                     trailingContent = {

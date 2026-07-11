@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  DEBUG-only resource overrides. The debug build installs as a side-by-side package
+  (applicationId works.mees.jiib.dev — see app/build.gradle.kts) so it must be visually
+  distinguishable from the live app on the launcher. Only the label changes; the launcher
+  icon is intentionally shared (icon changes require owner sign-off).
+-->
+<resources>
+    <string name="app_name">jiib dev</string>
+</resources>

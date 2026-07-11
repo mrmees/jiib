@@ -75,6 +75,13 @@ The release split produces one APK per ABI (`armeabi-v7a`, `arm64-v8a`). Release
 unsigned by the default build — sign them with your own keystore (`apksigner`) before
 installing, or use the published, signed APKs from Releases.
 
+## Printer integration
+
+jiib's registry-backed printer-control surface (Moonraker WebSocket JSON-RPC and Klipper G-code) is
+documented in **[docs/commands/COMMANDS.md](docs/commands/COMMANDS.md)**. The generated reference stays
+in sync with the runtime command registry; its scope deliberately excludes auxiliary direct HTTP
+traffic such as authentication, file/thumbnail access, and webcam streams or snapshots.
+
 ## Tech stack
 
 Kotlin · Jetpack Compose + classic Views hybrid · OkHttp (WebSocket) + Retrofit (REST) ·

@@ -164,6 +164,34 @@ class TemperatureHolderTest {
     }
 
     @Test
+    fun hiddenTraceIsExcludedFromTheGraphYRange() = runTest(UnconfinedTestDispatcher()) {
+        val store = PrinterStateStore(backgroundScope)
+        val holder = TemperatureHolder(backgroundScope, store)
+        store.setCapabilities(Capabilities(hasBed = true, heaters = listOf("extruder", "heater_bed")))
+
+        store.seed(
+            PrinterState(
+                heaters = heaters(
+                    "extruder" to HeaterState(temperature = 200.0, target = 210.0),
+                    "heater_bed" to HeaterState(temperature = 58.0, target = 60.0),
+                ),
+            ),
+        )
+        runCurrent()
+
+        // Both traces visible: the range reaches the hot nozzle's 210° setpoint (max 210 → +5 → 215).
+        assertEquals("hi includes the visible nozzle setpoint", 215f, holder.yRange.value.endInclusive, 0.001f)
+
+        // Hide the nozzle trace — a hidden trace's samples + setpoint must NOT drive the graph bounds.
+        holder.setTraceVisibility("extruder", false)
+        runCurrent()
+
+        // Only the bed (58°, target 60°) remains → 50..65 (53 floors to 50, 65 ceils to 65), NOT up to 215.
+        assertEquals("lo from the visible bed only", 50f, holder.yRange.value.start, 0.001f)
+        assertEquals("hi from the visible bed only, nozzle excluded", 65f, holder.yRange.value.endInclusive, 0.001f)
+    }
+
+    @Test
     fun holderConsumesStoreFlowAndExposesStateFlows() = runTest(UnconfinedTestDispatcher()) {
         val store = PrinterStateStore(backgroundScope)
         val holder = TemperatureHolder(backgroundScope, store)

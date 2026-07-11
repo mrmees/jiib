@@ -104,7 +104,9 @@ fun AppSettingsScreen(
     val keepScreenOn by container.keepScreenOn.collectAsStateWithLifecycle(true)
 
     // App-global webcam toggle (moved from per-printer, 2026-06-15) — process-scoped, durable.
-    val webcamEnabled by container.webcamEnabled.collectAsStateWithLifecycle(true)
+    // Initial matches DisplayPrefs.DEFAULT_WEBCAM_ENABLED (false since 2026-07-05) so a fresh install
+    // never flashes the toggle ON before DataStore emits.
+    val webcamEnabled by container.webcamEnabled.collectAsStateWithLifecycle(false)
 
     // Show unsupported tools toggle (probe-section Task 1) — process-scoped, durable.
     val showUnsupportedTools by container.showUnsupportedTools.collectAsStateWithLifecycle(false)

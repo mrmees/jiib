@@ -535,25 +535,26 @@ private fun FocusGrid(
             ) {
                 val extrudeBusy = "extrude" in inFlight
                 OutlinedControl(
-                    label = "",
+                    // ≤2 buttons in the row → icon+LABEL (FootButtonBar count rule, spec 2026-06-17):
+                    // the two command buttons are always labelled. The visible label supplies the
+                    // accessible name, so the icon carries no redundant contentDescription.
+                    label = stringResource(R.string.extrude_cmd_extrude),
                     onClick = onExtrude,
                     modifier = Modifier.weight(1f).fillMaxHeight()
                         .alpha(if (vm.canExtrude && extrudeBusy) 0.38f else 1f),
                     intent = if (vm.canExtrude) Intent.Go else Intent.Danger, // R19: motion IS the screen's purpose = Go; cold = Danger lockout cue.
                     symbol = if (vm.canExtrude) "output_circle" else COLD_SYMBOL,
                     enabled = vm.canExtrude && !extrudeBusy,
-                    contentDescription = stringResource(R.string.extrude_cmd_extrude),
                 )
                 val retractBusy = "retract" in inFlight
                 OutlinedControl(
-                    label = "",
+                    label = stringResource(R.string.extrude_cmd_retract),
                     onClick = onRetract,
                     modifier = Modifier.weight(1f).fillMaxHeight()
                         .alpha(if (vm.canExtrude && retractBusy) 0.38f else 1f),
                     intent = if (vm.canExtrude) Intent.Go else Intent.Danger, // R19: motion IS the screen's purpose = Go; cold = Danger lockout cue.
                     symbol = if (vm.canExtrude) "input_circle" else COLD_SYMBOL,
                     enabled = vm.canExtrude && !retractBusy,
-                    contentDescription = stringResource(R.string.extrude_cmd_retract),
                 )
             }
         },
