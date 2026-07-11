@@ -6,7 +6,7 @@
 *.bat text eol=crlf
 *.cmd text eol=crlf
 
-# Freeze the stock Gradle wrapper exactly as committed (CLAUDE.md: do NOT alter gradlew*).
+# Freeze the stock Gradle wrapper exactly as committed (AGENTS.md: do NOT alter gradlew*).
 gradlew     -text
 gradlew.bat -text
 

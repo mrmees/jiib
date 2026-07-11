@@ -88,6 +88,13 @@ Kotlin · Jetpack Compose + classic Views hybrid · OkHttp (WebSocket) + Retrofi
 kotlinx.serialization · Coroutines/Flow · Coil. See `docs/adr/0001-ui-toolkit-decision.md`
 for the UI-toolkit rationale and `docs/ui_design/` for the design system.
 
+## Maintainer guide
+
+Coding agents and contributors should start with [`AGENTS.md`](AGENTS.md). Current architecture,
+testing, release, and documentation-ownership guidance lives in
+[`docs/maintainer/`](docs/maintainer/README.md). Run `./scripts/check.sh` for the normal verification
+gate.
+
 ## License
 
 [GPLv3](LICENSE).

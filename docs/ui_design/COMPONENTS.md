@@ -105,7 +105,8 @@ Geist Mono at the call site (values, not labels).
 
 #### `FocusFrame`
 
-**THE universal Focus container** (Focus Frame law, `.planning/notes/2026-06-12-focus-frame-law-design.md`).
+**THE universal Focus container** (Focus Frame law; see `LAYOUT.md` and the tracked
+`designsystem/components/FocusFrame.kt` implementation).
 Every screen's Focus region is a `FocusFrame` — **except Webcam**, which stays full-bleed native
 media (the one exemption). Renamed from the old `DetailCard`. Filled background (`t.surface` — visually
 distinct from the translucent list/Field area), corner radius `t.rCard` (22dp). `FocusFrame` is
@@ -142,7 +143,7 @@ header is always present — idle and printing alike. It contains:
 - **Centered title** — rendered with `Modifier.basicMarquee()`. The title is ALWAYS single-line;
   it scrolls horizontally on overflow — **NO shrink, NO ellipsis, NO wrap.** This is a
   **sanctioned exception to the no-continuous-animation motion law** (overflow-only, single-line,
-  tiny dirty-rect — see `CLAUDE.md §Motion`). Drives the printing job-filename title.
+  tiny dirty-rect — see `AGENTS.md §Motion`). Drives the printing job-filename title.
 
 **Header/content divider (2026-06-15 owner UAT):**
 
@@ -625,7 +626,7 @@ canonical `FootButtonBar` usage.
 
 All icons on all screens come from `JiibIcons.kt` or are requested via the owner. **Never
 auto-pick a Material Symbol or create a custom drawable independently.** See
-`docs/ui_design/CLAUDE.md §"Icons: never the same glyph twice…"` and the never-auto-pick law
+`docs/ui_design/AGENTS.md §"Icons: never the same glyph twice…"` and the never-auto-pick law
 that follows it. This applies to the SortFilterControlRow Sort direction-overlay glyph
 (`SortAsc`/`SortDesc`; the leading type-tile is retired), FocusFrame glyphs, and every other use.
 
@@ -665,9 +666,9 @@ icon tiles, count-driven labels"). Key invariants (leading TYPE tile RETIRED 202
 
 ### Stepper and AdjusterPanel
 
-A step-based adjuster (preferred over drag on the perf floor). See
-`.claude/skills/sketch-findings-jiib/references/adjustment-controls.md` for the locked
-design. Phase 26 executed the adjustment-screen rebuild (Fine-Tune, Temperature, Outputs) on it.
+A step-based adjuster (preferred over drag on the performance floor). The locked design is specified
+below and implemented by the tracked shared adjustment components. Fine-Tune, Temperature, and
+Outputs use it.
 
 **AdjusterPanel — two-zone layout (compliance pass, 2026-06-13):**
 
@@ -713,7 +714,7 @@ future selected/toggle state that needs a custom fill rather than just a border 
 
 **Pressed state — soft intent tint (LAW, owner UAT 2026-06-17):**
 
-Makes concrete the design-CLAUDE.md intent "primary/pressed states tint faintly with the
+Makes concrete the design `AGENTS.md` intent "primary/pressed states tint faintly with the
 accent" — generalized to the button's own **intent** color (per the R5 four-class scheme).
 Every `OutlinedControl` (so every button app-wide) signals touch-down by **filling its
 background with a SOFT tint of its intent color**, keeping the full intent color on the border —
@@ -775,7 +776,7 @@ The canonical drag-adjust control, owner-referenced Android-SeekBar style ported
 - **Load-bearing impl rule (the `fa97efb` lesson):** build the element ONCE; update fill width,
   thumb position, and value **in place** during drag. NEVER rebuild/recompose the dragged element
   per move — it detaches the node / stales the drag closure and the gesture dies.
-- Source sketch: `.claude/skills/sketch-findings-jiib/sources/004-scrubber-style/`.
+- Canonical implementation: `designsystem/components/Scrubber.kt`.
 
 **Status (R9 — migration COMPLETE 2026-06-12):** the canonical implementation is
 `designsystem/components/Scrubber.kt`. The legacy fill-bar composables (`ScrubberPage`, then
@@ -875,5 +876,5 @@ Do **not** add speculative classes before they are needed by a real screen.
 |---|---|
 | `LAYOUT.md` | Spatial grammar (Focus/Field), unit U formula, fill convention in layout context, NON-NEGOTIABLES |
 | `THEMING.md` | Every token name, intent colors, button-intent-by-safety rule, C-series conformance criteria |
-| `CLAUDE.md` | Design philosophy, icon law (never-auto-pick), token carve-outs |
+| `AGENTS.md` | Design philosophy, icon law (never-auto-pick), token carve-outs |
 | `PREVIEW_AND_TOKENS.md` | Preview-matrix convention, `@Preview` matrix shape, `fsSp` usage rules |

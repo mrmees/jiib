@@ -38,7 +38,6 @@ tools/__pycache__/
 
 # Internal planning / AI dev artifacts (local only — not in clones)
 .planning/
-/CLAUDE.md
 .claude/skills/
 docs/superpowers/
 # docs/commands/ is local-only evidence, EXCEPT the tracked artifacts CI requires in every clone:
