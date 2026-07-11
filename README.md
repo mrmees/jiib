@@ -77,10 +77,10 @@ installing, or use the published, signed APKs from Releases.
 
 ## Printer integration
 
-jiib talks only to your printer's local **Moonraker** instance (WebSocket JSON-RPC + REST). Every
-G-code command and API call it sends is documented in
-**[docs/commands/COMMANDS.md](docs/commands/COMMANDS.md)** — a generated, always-in-sync reference of
-exactly how jiib interacts with Moonraker/Klipper. Nothing else leaves your network.
+jiib's registry-backed printer-control surface (Moonraker WebSocket JSON-RPC and Klipper G-code) is
+documented in **[docs/commands/COMMANDS.md](docs/commands/COMMANDS.md)**. The generated reference stays
+in sync with the runtime command registry; its scope deliberately excludes auxiliary direct HTTP
+traffic such as authentication, file/thumbnail access, and webcam streams or snapshots.
 
 ## Tech stack
 

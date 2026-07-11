@@ -196,10 +196,18 @@ internal fun applyStatus(current: PrinterState, status: JsonObject): PrinterStat
         val d = s.displayProgress
         val f = s.sdcardProgress
         val staleStartM73 = d != null && f != null && f < PROGRESS_START_SETTLE && d > f + PROGRESS_STALE_M73_GAP
-        val raw = (if (d != null && !staleStartM73) d else (f ?: 0.0)).coerceIn(0.0, 1.0)
+        // Once identified as stale, DISCARD the prior-job M73 source instead of merely ignoring it for
+        // this tick. Otherwise it survives until file progress reaches PROGRESS_START_SETTLE, becomes
+        // eligible again, jumps the ring to ~99%, and the monotonic clamp makes that jump irreversible.
+        // A later display_status update writes a fresh candidate which is accepted once it is plausible
+        // relative to the current file position.
+        if (staleStartM73) s = s.copy(displayProgress = null)
+        val raw = (if (!staleStartM73 && d != null) d else (f ?: 0.0)).coerceIn(0.0, 1.0)
         // Clamp forward only while actively continuing a print; otherwise show the raw value (so a
-        // fresh/reset print starts near 0 and Complete/Standby reflect the real reading).
-        s = s.copy(progress = if (nowPrinting && !newPrint) maxOf(raw, current.progress) else raw)
+        // fresh/reset print starts near 0 and Complete/Standby reflect the real reading). A newly-detected
+        // stale M73 is also allowed to correct downward: clamping against the stale displayed value would
+        // pin the new print near the prior job's progress forever.
+        s = s.copy(progress = if (nowPrinting && !newPrint && !staleStartM73) maxOf(raw, current.progress) else raw)
     }
 
     status.objectOrNull("pause_resume")?.booleanOrNull("is_paused")?.let {

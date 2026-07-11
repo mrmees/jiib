@@ -420,6 +420,34 @@ class PrinterStateReducerTest {
             ),
         )
         assertEquals(0.02, s.progress, 1e-6)
+
+        // The rejected prior-job M73 must be discarded, not merely masked while file progress is <10%.
+        // At the settle boundary it must continue following file progress rather than resurrecting 99%.
+        s = reduceDiff(s, status("""{"virtual_sdcard":{"progress":0.10}}"""))
+        assertEquals(0.10, s.progress, 1e-6)
+
+        // A later plausible M73 is fresh and becomes the preferred source normally.
+        s = reduceDiff(s, status("""{"display_status":{"progress":0.12}}"""))
+        assertEquals(0.12, s.progress, 1e-6)
+    }
+
+    @Test
+    fun progressCanCorrectStaleM73WhenFilePositionArrivesInALaterDiff() {
+        var s = reduceDiff(
+            PrinterState(),
+            status("""{"print_stats":{"state":"printing","filename":"a.gcode"},"display_status":{"progress":0.99}}"""),
+        )
+        // A back-to-back job starts while only the stale display_status value accompanies print_stats.
+        s = reduceDiff(
+            s,
+            status("""{"print_stats":{"state":"printing","filename":"b.gcode"},"display_status":{"progress":0.99}}"""),
+        )
+        assertEquals(0.99, s.progress, 1e-6)
+
+        // File position arrives separately. Detecting the stale source must permit the correction down;
+        // the within-print monotonic clamp must not preserve the bogus prior-job 99%.
+        s = reduceDiff(s, status("""{"virtual_sdcard":{"progress":0.02}}"""))
+        assertEquals(0.02, s.progress, 1e-6)
     }
 
     @Test

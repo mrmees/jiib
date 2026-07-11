@@ -8,11 +8,13 @@
 
 # jiib — Moonraker & Printer Command Reference
 
-Every G-code command and Moonraker API call **jiib actually sends** to your printer — the
-complete surface of how the app talks to Moonraker/Klipper. It is generated from jiib's runtime
-command registry, so it can never fall out of sync with the code.
+The G-code commands and Moonraker operations represented by jiib's runtime command registry.
+This is the generated reference for the app's **registry-backed printer-control surface**, not
+an inventory of every network request the app makes.
 
-This lists the **86** commands jiib sends. It intentionally omits the broad
+This lists the registry's **86** commands. It intentionally omits auxiliary direct
+HTTP traffic such as authentication, file and thumbnail access, and webcam streams or snapshots.
+It also omits the broad
 Klipper/Moonraker reference surface jiib does *not* use; the full 338-entry catalog
 (including planned and reference-only rows) lives in
 [`docs/commands/catalog.json`](./catalog.json).
@@ -24,7 +26,8 @@ fixed handshake — `server.connection.identify` → `server.info` → `printer.
 what this printer exposes) → `printer.objects.query` for the subset jiib needs → then
 `printer.objects.subscribe` for that same subset, after which Moonraker pushes
 `notify_status_update` diffs that jiib merges into its live state. Printer motion and macros are
-sent as G-code through `printer.gcode.script`; everything else is a direct JSON-RPC method call.
+sent as G-code through `printer.gcode.script`; registry-backed operations otherwise use JSON-RPC
+or the transport stated on their entry. Auxiliary HTTP requests are outside this reference.
 Which commands are offered on a given printer is gated at runtime by the **Available when**
 predicate shown below (evidence lives in [`printer-matrix.json`](./printer-matrix.json)).
 

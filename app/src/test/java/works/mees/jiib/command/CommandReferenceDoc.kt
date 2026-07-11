@@ -12,13 +12,17 @@ import kotlinx.serialization.json.jsonPrimitive
  * committed Markdown is a pure function of the catalog, and [CommandReferenceDocDriftTest] fails the
  * build if the checked-in file drifts from this output (regenerate with `-Djiib.regenerateDocs=true`).
  *
- * Scope (owner decision 2026-07-05): only the commands jiib ACTUALLY sends/calls. The AUTHORITATIVE
- * set is the runtime [CommandRegistry.all] (the catalog_ids jiib dispatches) — NOT the catalog's
+ * Scope (narrowed after pre-merge review, 2026-07-11): the registry-backed printer-control surface,
+ * not every network request the app makes. The AUTHORITATIVE set is runtime [CommandRegistry.all]
+ * (the catalog_ids represented by the registry) — NOT the catalog's
  * `runtime_registry.registered` flag, which [CommandCatalogDriftTest] does not bind to the registry and
- * can drift (Codex review 2026-07-06: the flag marked 65 while the registry sends ~86, so a flag-based
- * doc silently omitted ~21 real commands). Each sent command is joined to its catalog.json row for the
- * display metadata (purpose/params/availability/upstream). The broad reference surface jiib never
- * touches stays in catalog.json only. Because it is generated from the registry, the doc cannot rot.
+ * can drift (Codex review 2026-07-06: the flag marked 65 while the registry represented ~86, so a
+ * flag-based doc silently omitted ~21 registry entries). Each represented command is joined to its
+ * catalog.json row for the
+ * display metadata (purpose/params/availability/upstream). Auxiliary direct HTTP traffic (including
+ * auth, file/thumbnail access, and webcam media) is intentionally outside this document. The broad
+ * reference surface outside the registry stays in catalog.json only. Because it is generated from the
+ * registry, the registry-backed portion cannot drift from that registry.
  *
  * Lives in the TEST sourceset: it is a dev/CI documentation tool, not app runtime code.
  */
@@ -26,8 +30,8 @@ object CommandReferenceDoc {
 
     /**
      * Render the Markdown document. [sentCatalogIds] is the authoritative set of catalog_ids jiib
-     * sends (`CommandRegistry.all.map { it.catalogId }`); catalog entries are filtered to it and joined
-     * for metadata. (`CommandCatalogDriftTest` already guarantees every sent id has a catalog row.)
+     * represents (`CommandRegistry.all.map { it.catalogId }`); catalog entries are filtered to it and joined
+     * for metadata. (`CommandCatalogDriftTest` already guarantees every registry id has a catalog row.)
      */
     fun render(catalog: JsonObject, sentCatalogIds: Set<String>): String {
         val commands = catalog["commands"]!!.jsonArray.map { it.jsonObject }
@@ -59,11 +63,13 @@ object CommandReferenceDoc {
         |
         |# jiib — Moonraker & Printer Command Reference
         |
-        |Every G-code command and Moonraker API call **jiib actually sends** to your printer — the
-        |complete surface of how the app talks to Moonraker/Klipper. It is generated from jiib's runtime
-        |command registry, so it can never fall out of sync with the code.
+        |The G-code commands and Moonraker operations represented by jiib's runtime command registry.
+        |This is the generated reference for the app's **registry-backed printer-control surface**, not
+        |an inventory of every network request the app makes.
         |
-        |This lists the **$registeredCount** commands jiib sends. It intentionally omits the broad
+        |This lists the registry's **$registeredCount** commands. It intentionally omits auxiliary direct
+        |HTTP traffic such as authentication, file and thumbnail access, and webcam streams or snapshots.
+        |It also omits the broad
         |Klipper/Moonraker reference surface jiib does *not* use; the full $totalCatalog-entry catalog
         |(including planned and reference-only rows) lives in
         |[`docs/commands/catalog.json`](./catalog.json).
@@ -75,7 +81,8 @@ object CommandReferenceDoc {
         |what this printer exposes) → `printer.objects.query` for the subset jiib needs → then
         |`printer.objects.subscribe` for that same subset, after which Moonraker pushes
         |`notify_status_update` diffs that jiib merges into its live state. Printer motion and macros are
-        |sent as G-code through `printer.gcode.script`; everything else is a direct JSON-RPC method call.
+        |sent as G-code through `printer.gcode.script`; registry-backed operations otherwise use JSON-RPC
+        |or the transport stated on their entry. Auxiliary HTTP requests are outside this reference.
         |Which commands are offered on a given printer is gated at runtime by the **Available when**
         |predicate shown below (evidence lives in [`printer-matrix.json`](./printer-matrix.json)).
         |
